@@ -17,8 +17,9 @@ PROFILES = {
                 1: [(0, 0), (48, 35), (92, 120), (241, 218), (255, 248)],
                 2: [(0, 0), (18, 7), (32, 50), (201, 169), (255, 232)]},
         zones=[(0.2, -0.015, 0.48, 0.13, 0.085, 0.06)],
-        neck=0.39, hip=0.105, foot=(0.135, -0.03), long_feet=True, foot_y=(0.14, 0.17),  # 整條腳底都是腳，腳跟在 y≈0.13
-        smooth_legs=True, thigh_y=(0.04, 0.13), thigh_z=(0.06, 0.11),  # 腿的權重只在腳印上，再沿著網格模糊（走路時肚子不會被撕開）
+        neck=0.39, hip=0.105, foot=(0.135, -0.03), # 生成的腳是錯的：整個抬進肚子，換成派派狼的腳（縮放、移到身體重心下、改成派派鼠的毛色）
+        foot_donor=dict(glb="models/wolf/wolf_2.glb", H=0.9, cut=0.05, cx=0.118, cy=-0.031,
+                        tx=0.122, ty=-0.022, k=0.95, kz=1.3),
         shoulder=(0.215, -0.05, 0.35), paw=(0.245, -0.07, 0.175), arm_out=(0.2, 0.232),
         arm_z=(0.15, 0.37)),
     "rabbit": dict(
@@ -95,7 +96,8 @@ FOOT_RX, FOOT_RY = 0.08, 0.062    # 腳印半徑：腳跟收在原本前腳和�
 FOOT_WIDEN = 1.12                 # 腳稍微加寬（以腳的中線為準）
 # long_feet：原本整條長腳底（腳趾到後面的肉墊）全部當成一隻長腳，只把中間的摺痕填平
 LONG = P.get("long_feet", False)
-if P["feet"]:
+DONOR = P.get("foot_donor")
+if P["feet"] and not DONOR:
     for i in range(len(co)):
         x, y, z = co[i]
         yb = (0.14, 0.17) if LONG else (0.08, 0.12)
@@ -117,7 +119,19 @@ if LONG:
         x, y, z = co[i]
         if z < 0.05 and 0.04 < abs(x) < 0.24 and -0.05 < y < 0.06:
             moved.append(i)   # 摺痕附近：交給下面的平滑填平
-for i in (range(len(co)) if P["feet"] and not LONG else []):
+FOOT_SAMPLE = []
+if DONOR:
+    # 先記下原本腳背的頂點（之後從校色後的貼圖取派派鼠腳的顏色）
+    FOOT_SAMPLE = [i for i in range(len(co)) if 0.015 < co[i][2] < 0.04 and abs(co[i][0]) > 0.16 and co[i][1] < 0.0]
+    # 整片腳底抬到碗狀的肚子底部，之後平滑成圓圓的肚子
+    for i in range(len(co)):
+        x, y, z = co[i]
+        bowl = 0.036 + 0.04 * (abs(x) / 0.23) ** 2
+        gate = 1.0 - smoothstep(0.16, 0.2, y)
+        if z < bowl and gate > 0:
+            co[i, 2] = z + (bowl - z) * gate
+            moved.append(i)
+for i in (range(len(co)) if P["feet"] and not LONG and not DONOR else []):
     x, y, z = co[i]
     dx = (abs(x) - FOOT_CX) / FOOT_RX
     dy = max(y - FOOT_CY, 0.0) / FOOT_RY   # 前面（腳趾那頭）不動
@@ -143,7 +157,7 @@ for i in (range(len(co)) if P["feet"] and not LONG else []):
 # 拉的是有厚度的前腳本身，腳跟還是圓的；後面的肚子跟著往後讓開。
 TOE_Y, HEEL_Y, STRETCH, BACK = -0.129, 0.008, 1.4, 0.03
 SHIFT = BACK + (HEEL_Y - TOE_Y) * (STRETCH - 1.0)
-for i in (range(len(co)) if P["feet"] and not LONG else []):
+for i in (range(len(co)) if P["feet"] and not LONG and not DONOR else []):
     x, y, z = co[i]
     w = (1.0 - smoothstep(0.05, 0.095, z)) * smoothstep(0.03, 0.07, abs(x))
     if w <= 0:
@@ -297,6 +311,81 @@ if img:
     img.pack()
     print("COLOR corrected", img.name, tuple(img.size))
 
+# ---------- 4b. 換腳：從另一隻角色拿腳過來 ----------
+def tex_lookup(image):
+    a = np.array(image.pixels[:], dtype=np.float32).reshape(image.size[1], image.size[0], 4)
+    def at(uv):
+        u = int((uv[0] % 1.0) * (image.size[0] - 1)); v = int((uv[1] % 1.0) * (image.size[1] - 1))
+        return a[v, u, :3]
+    return a, at
+if DONOR and img:
+    _, at = tex_lookup(img)
+    uvl = mesh.data.uv_layers.active.data
+    want = set(FOOT_SAMPLE)
+    cols = [at(uvl[l.index].uv) for poly in mesh.data.polygons for l in (mesh.data.loops[k] for k in poly.loop_indices) if l.vertex_index in want]
+    target = np.median(np.array(cols), axis=0)
+    print("FOOT color target", (target * 255).round())
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=DONOR["glb"], merge_vertices=True, import_shading="SMOOTH")
+    new = [o for o in bpy.data.objects if o not in before]
+    dms = [o for o in new if o.type == 'MESH']
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in dms:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = dms[0]
+    if len(dms) > 1:
+        bpy.ops.object.join()
+    dobj = bpy.context.view_layer.objects.active
+    dobj.parent = None
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    for o in new:
+        if o != dobj and o.name in bpy.data.objects:
+            bpy.data.objects.remove(o, do_unlink=True)
+    dc = np.array([v.co[:] for v in dobj.data.vertices])
+    dc[:, 0] -= (dc[:, 0].min() + dc[:, 0].max()) / 2
+    dc[:, 2] -= dc[:, 2].min()
+    dc *= DONOR["H"] / dc[:, 2].max()
+    bm = bmesh.new(); bm.from_mesh(dobj.data); bm.verts.ensure_lookup_table()
+    for v, c in zip(bm.verts, dc):
+        v.co = Vector(c)
+    keep = lambda v: v.co.z < DONOR["cut"] and abs(v.co.x) > 0.03 and -0.17 < v.co.y < 0.1
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if not all(keep(v) for v in f.verts)], context='FACES')
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
+    K, KZ = DONOR["k"], DONOR["kz"]
+    for v in bm.verts:
+        x, y, z = v.co
+        sx = 1.0 if x > 0 else -1.0
+        v.co = Vector((sx * (DONOR["tx"] + (abs(x) - DONOR["cx"]) * K), DONOR["ty"] + (y - DONOR["cy"]) * K, z * KZ))
+    bm.to_mesh(dobj.data); bm.free()
+    # 貼圖改色：保留明暗細節（亮度比例），顏色換成派派鼠的腳
+    dimg = next(n.image for m in dobj.data.materials if m and m.use_nodes for n in m.node_tree.nodes if n.type == 'TEX_IMAGE' and n.image)
+    darr, dat = tex_lookup(dimg)
+    duv = dobj.data.uv_layers.active.data
+    lum = lambda c: c[..., 0] * 0.3 + c[..., 1] * 0.59 + c[..., 2] * 0.11
+    mean_l = float(np.median([lum(dat(duv[l].uv)) for poly in dobj.data.polygons for l in poly.loop_indices]))
+    ratio = (lum(darr[..., :3]) / max(mean_l, 1e-3)) ** 0.85
+    out = darr.copy()
+    out[..., :3] = np.clip(target[None, None, :] * ratio[..., None], 0, 1)
+    nimg = bpy.data.images.new("gopher_feet", dimg.size[0], dimg.size[1])
+    nimg.pixels.foreach_set(out.ravel()); nimg.update(); nimg.pack()
+    for m in dobj.data.materials:
+        if m and m.use_nodes:
+            m.name = "GopherFeet"
+            for n in m.node_tree.nodes:
+                if n.type == 'TEX_IMAGE':
+                    n.image = nimg
+    vg = dobj.vertex_groups.new(name="donor_foot")
+    vg.add(list(range(len(dobj.data.vertices))), 1.0, 'REPLACE')
+    for p_ in dobj.data.polygons:
+        p_.use_smooth = True
+    bpy.ops.object.select_all(action='DESELECT')
+    dobj.select_set(True); mesh.select_set(True)
+    bpy.context.view_layer.objects.active = mesh
+    bpy.ops.object.join()
+    mesh = bpy.context.view_layer.objects.active
+    print("FEET transplanted", len(dc), "donor verts; lum", round(mean_l, 3))
+
 # ---------- 5. 骨架對齊這隻土撥鼠的比例 ----------
 NECK_Z, HIP_Z = P["neck"], P["hip"]
 FOOT_X, FOOT_Y = P["foot"]
@@ -410,6 +499,11 @@ def seg_dist(p, a, b):
     ab = b - a
     t = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared))
     return (p - (a + ab * t)).length, t
+DONOR_SET = set()
+if "donor_foot" in mesh.vertex_groups:
+    gi = mesh.vertex_groups["donor_foot"].index
+    DONOR_SET = {v.index for v in mesh.data.vertices if any(g.group == gi for g in v.groups)}
+    mesh.vertex_groups.remove(mesh.vertex_groups["donor_foot"])
 W_ALL = []
 for i, (x, y, z) in enumerate(co):
     p = Vector((x, y, z))
@@ -421,6 +515,8 @@ for i, (x, y, z) in enumerate(co):
         foot *= smoothstep(0.035, 0.08, abs(x))   # 肚子正中間的底部不跟腳走
     thigh = (1.0 - smoothstep(*P.get("thigh_z", (0.1, 0.17)), z)) * smoothstep(0.03, 0.08, abs(x))         * (1.0 - smoothstep(*P.get("thigh_y", (FOOT_Y + 0.03, FOOT_Y + 0.08)), y))
     legs = max(foot, thigh)
+    if DONOR_SET:
+        legs = 1.0 if i in DONOR_SET else 0.0   # 換上去的腳整隻跟腿走，肚子不動（不會撕開）
     side = smoothstep(-0.03, 0.03, x)
     w["leg-left"] = legs * side
     w["leg-right"] = legs * (1 - side)
