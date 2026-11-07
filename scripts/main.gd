@@ -312,19 +312,31 @@ func _giver() -> GopherActor:
 
 
 # ---------------- 開場故事 ----------------
+## 派派鼠帶著行李從外地來到派森小鎮，對照爺爺給的照片找到樹屋，進門打掃，派派狼來敲門。
+## 所有角色都從南牆的門洞進出，屋裡沿著格子走（find_path），不穿牆。
 var intro_running := false
 var intro_advance := false  # 點一下畫面：跳到下一句
 var intro_skip := false
 var intro_skip_btn: Button
+var intro_gen := 0  # 開場重新開始時，舊的開場流程看到編號不同就停
+var intro_props: Array = []  # 灰塵、蜘蛛網、防塵布、行李……開場結束就收掉
+var intro_dust: Dictionary = {}  # 格子 → 灰塵堆
+var intro_card: Control
 
 
 func _play_intro() -> void:
+	intro_gen += 1
+	var gen := intro_gen
 	intro_running = true
 	intro_skip = false
 	intro_advance = false
 	roam_busy = true
 	hud.visible = false  # 開場時不顯示工具列，專心看故事
-	intro_skip_btn = UIKit.button("略過 ▶▶", func(): intro_skip = true, "直接跳過開場")
+	if is_instance_valid(intro_skip_btn):
+		intro_skip_btn.queue_free()
+	if is_instance_valid(intro_card):
+		intro_card.queue_free()
+	intro_skip_btn = UIKit.button("略過 ▶▶", _skip_intro, "直接跳過開場")
 	intro_skip_btn.anchor_left = 1
 	intro_skip_btn.anchor_right = 1
 	intro_skip_btn.anchor_top = 1
@@ -335,61 +347,12 @@ func _play_intro() -> void:
 	intro_skip_btn.offset_bottom = -16
 	intro_skip_btn.theme = UIKit.theme()
 	ui_layer.add_child(intro_skip_btn)
-	var wolf: GopherActor = room.npcs.wolf
-	var rabbit: GopherActor = room.npcs.rabbit
-	var g := room.gopher
-	var w := home_world
-	var wolf_spot := wolf.position
-	var rabbit_spot := rabbit.position
-	# 兩人從森林小路走過來
-	wolf.position = Vector3(_door_x(w), wolf_spot.y, w.depth + 5.0)
-	rabbit.position = Vector3(_door_x(w) + 0.8, rabbit_spot.y, w.depth + 6.2)
-	# 鏡頭：從南邊低低地看（像舞台側面），屋裡的派派鼠和西牆外的訪客面對面
-	rig.target_focus = Vector3(-0.2, 0.3, w.depth - 4.0)
-	rig.target_distance = 6.0
-	rig.target_yaw = deg_to_rad(8.0)
-	rig.target_pitch = deg_to_rad(-22.0)
-	g.say("（剛搬進派森小鎮的新家…）", "think")
-	# 派派鼠走到西牆邊
-	var meet := _nearest_walkable(Vector2i(0, w.depth - 4))
-	var path := w.find_path(_nearest_walkable(w.gopher_cell), meet)
-	if path.size() > 1:
-		await g.walk_path(path)
-		w.gopher_cell = meet
-	if not is_instance_valid(wolf) or not is_instance_valid(rabbit) or mode != "home":
-		_end_intro()
-		return  # 開場途中離開或房間重建了
-	g.face("W")
-	if intro_skip:
-		wolf.position = wolf_spot
-		rabbit.position = rabbit_spot
-		wolf.face("E")
-		rabbit.face("E")
-	else:
-		wolf.walk_to_point(wolf_spot, 1.0, "E")
-		await get_tree().create_timer(0.6).timeout
-		if is_instance_valid(rabbit):
-			await rabbit.walk_to_point(rabbit_spot, 1.0, "E")
-		await get_tree().create_timer(0.3).timeout
-	var lines := [
-		[wolf, "嘿！新來的，以後跟著我混。"],
-		[rabbit, "（推推眼鏡）我是派派兔，跟著派派狼一起來的～"],
-		[g, "……？"],
-		[wolf, "怎麼不說話？在派森小鎮，要用 Python 的 print() 才能說話喔！"],
-		[rabbit, "點派派狼接任務，學會 print() 就能跟我們聊天了！"],
-	]
-	for l in lines:
-		if mode != "home" or not is_instance_valid(l[0]) or intro_skip:
-			break
-		var who: GopherActor = l[0]
-		who.say(l[1], "say")
-		# 停留時間和氣泡一樣依字數（每字 0.12 秒、至少 2.4 秒）；點畫面可以提早換下一句
-		var until := Time.get_ticks_msec() + int((maxf(2.4, 1.0 + String(l[1]).length() * 0.12) + 0.3) * 1000)
-		intro_advance = false
-		while Time.get_ticks_msec() < until and not intro_advance and not intro_skip:
-			await get_tree().process_frame
-	if intro_skip:
-		bubbles.clear_all()
+	_build_abandoned_props()
+	await _intro_story(gen)
+	if gen != intro_gen:
+		return  # 開場被重新開始了，交給新的流程
+	if mode == "home" and is_instance_valid(room.gopher):
+		_intro_final_state()
 	save.intro_done = true
 	_write_save()
 	_end_intro()
@@ -397,11 +360,495 @@ func _play_intro() -> void:
 		rig.reset_view()
 
 
+func _skip_intro() -> void:
+	intro_skip = true
+	Engine.time_scale = 12.0  # 正在走的路、正在轉的門一下子演完，再擺成結束的樣子
+
+
+## 停下來嗎？（略過、離開家、或開場重新開始）
+func _intro_stop(gen: int) -> bool:
+	return intro_skip or gen != intro_gen or mode != "home" or not is_instance_valid(room.gopher)
+
+
+## 等一下；點畫面可以提早往下
+func _intro_wait(sec: float) -> void:
+	var until := Time.get_ticks_msec() + int(sec * 1000)
+	intro_advance = false
+	while Time.get_ticks_msec() < until and not intro_advance and not intro_skip:
+		await get_tree().process_frame
+
+
+## 說一句話，停留時間和氣泡一樣依字數
+func _intro_say(a: GopherActor, text: String, kind: String = "say") -> void:
+	if not is_instance_valid(a):
+		return
+	a.say(text, kind)
+	await _intro_wait(maxf(2.4, 1.0 + text.length() * 0.12) + 0.3)
+
+
+## 直直走到一個點（含高度：屋外草地比地板低一點，走過門洞時慢慢踏上來）
+func _intro_walk(a: GopherActor, to: Vector3, facing: String = "") -> void:
+	if not is_instance_valid(a):
+		return
+	a.moving = true
+	a.face_vector(Vector3(to.x - a.position.x, 0, to.z - a.position.z))
+	var tw := a.create_tween()
+	tw.tween_property(a, "position", to, maxf(0.05, a.position.distance_to(to) * 0.48 / a.speed_scale))
+	await tw.finished
+	if is_instance_valid(a):
+		a.moving = false
+		if facing != "":
+			a.face(facing)
+
+
+## 沿著屋裡的格子走（會繞過家具）
+func _intro_path(a: GopherActor, from: Vector2i, to: Vector2i, facing: String = "") -> void:
+	var path := home_world.find_path(from, to)
+	if path.size() > 1 and is_instance_valid(a):
+		await a.walk_path(path)
+	if is_instance_valid(a) and facing != "":
+		a.face(facing)
+
+
+func _door_inside() -> Vector2i:
+	return Vector2i(int(_door_x(home_world)), home_world.depth - 1)
+
+
+func _door_outside(dz: float = 0.75) -> Vector3:
+	return Vector3(_door_x(home_world), RoomView.GRASS_Y, home_world.depth + dz)
+
+
+func _intro_story(gen: int) -> void:
+	var w := home_world
+	var g := room.gopher
+	var wolf: GopherActor = room.npcs.get("wolf")
+	var rabbit: GopherActor = room.npcs.get("rabbit")
+	if wolf == null or rabbit == null:
+		return
+	wolf.visible = false
+	rabbit.visible = false
+	var dx := _door_x(w)
+	var inside := _door_inside()
+	# ---- 一、帶著行李走到門口（鏡頭在屋外，看得到整面南牆和門）----
+	room.cutaway = false
+	var suitcase := _make_suitcase()
+	g.carry_anchor.add_child(suitcase)
+	suitcase.position = Vector3.ZERO
+	suitcase.scale = Vector3.ONE * 0.6
+	g.carried = suitcase
+	g.position = Vector3(dx, RoomView.GRASS_Y, w.depth + 6.5)
+	g.face("N")
+	g.model.rotation.y = g.target_yaw
+	rig.follow_target = null
+	rig.focus = Vector3(dx, 0.5, w.depth + 3.5)
+	rig.target_focus = rig.focus
+	rig.yaw = deg_to_rad(12.0)
+	rig.target_yaw = rig.yaw
+	rig.pitch = deg_to_rad(-14.0)
+	rig.target_pitch = rig.pitch
+	rig.distance = 8.5
+	rig.target_distance = 8.5
+	g.say("（終於到了……派森小鎮。）", "think")
+	await _intro_walk(g, _door_outside(2.4), "N")
+	if _intro_stop(gen): return
+	rig.target_focus = Vector3(dx, 0.7, w.depth + 0.9)
+	rig.target_distance = 5.5
+	await _intro_walk(g, _door_outside(0.75), "N")
+	if _intro_stop(gen): return
+	# ---- 二、拿出爺爺給的照片對照 ----
+	_show_photo_card(true)
+	await _intro_wait(1.2)
+	if _intro_stop(gen): return
+	await _intro_say(g, "（爺爺給的照片……）", "think")
+	if _intro_stop(gen): return
+	g.confused()
+	await _intro_say(g, "（就是這裡了吧？）", "think")
+	_show_photo_card(false)
+	if _intro_stop(gen): return
+	# ---- 三、開門進屋 ----
+	await room.swing_door(true)
+	if _intro_stop(gen): return
+	await _intro_walk(g, GopherActor.cell_pos(inside), "N")
+	if _intro_stop(gen): return
+	room.cutaway = true
+	rig.target_focus = Vector3(w.width / 2.0, 0, w.depth / 2.0 + 0.6)
+	rig.target_distance = 9.0
+	rig.target_yaw = deg_to_rad(-30.0)
+	rig.target_pitch = deg_to_rad(-42.0)
+	room.swing_door(false)
+	await _intro_wait(0.8)
+	if _intro_stop(gen): return
+	g.set_face("confused", 2.0)
+	await _intro_say(g, "（咳咳……好多灰塵。）", "think")
+	if _intro_stop(gen): return
+	await _intro_say(g, "（看起來很久很久沒有人住了。）", "think")
+	if _intro_stop(gen): return
+	await _intro_say(g, "（打掃一下吧！）", "think")
+	if _intro_stop(gen): return
+	# ---- 四、放下行李，拿掃把打掃 ----
+	var side := inside + Vector2i(-1, 0)
+	var dropped: Node3D = await g.drop(room, Vector3(side.x + 0.6, 0, side.y + 0.55))
+	if dropped != null:
+		dropped.rotation.y = 0.3
+	var broom := _make_broom()
+	room.add_child(broom)
+	intro_props.append(broom)
+	broom.position = Vector3(side.x + 0.55, 0.3, side.y + 0.4)
+	await g.pick(broom)
+	if _intro_stop(gen): return
+	# 掃把拿在身體側邊、大一點，從後面也看得到
+	var bt := broom.create_tween().set_parallel()
+	bt.tween_property(broom, "scale", Vector3.ONE * 0.95, 0.2)
+	bt.tween_property(broom, "position", Vector3(0.32, -0.2, 0.05), 0.2)
+	var cur := inside
+	for c in [Vector2i(5, 6), Vector2i(3, 3)]:
+		await _intro_path(g, cur, c)
+		cur = c
+		if _intro_stop(gen): return
+		await _sweep(g, c)
+		if _intro_stop(gen): return
+	w.gopher_cell = cur
+	# ---- 五、有人敲門！鏡頭轉到北邊，看得到南牆和門 ----
+	wolf.position = _door_outside(0.7)
+	rabbit.position = _door_outside(1.5) + Vector3(0.6, 0, 0)
+	wolf.face("N")
+	rabbit.face("N")
+	wolf.model.rotation.y = wolf.target_yaw
+	rabbit.model.rotation.y = rabbit.target_yaw
+	wolf.visible = true
+	rabbit.visible = true
+	rig.target_focus = Vector3(dx, 0.3, w.depth - 2.0)
+	rig.target_distance = 7.5
+	rig.target_yaw = deg_to_rad(160.0)
+	rig.target_pitch = deg_to_rad(-30.0)
+	_knock_door()
+	await _intro_say(wolf, "叩叩叩！有人在嗎？")
+	if _intro_stop(gen): return
+	g.hop(0.12)
+	await _intro_say(g, "（有人來了？）", "think")
+	if _intro_stop(gen): return
+	var meet := Vector2i(inside.x + 1, inside.y - 1)
+	await _intro_path(g, cur, meet, "S")
+	w.gopher_cell = meet
+	if _intro_stop(gen): return
+	await room.swing_door(true)
+	if _intro_stop(gen): return
+	# 派派狼先進門，派派兔跟在後面
+	await _intro_walk(wolf, GopherActor.cell_pos(inside))
+	if _intro_stop(gen): return
+	await _intro_path(wolf, inside, inside + Vector2i(0, -1), "E")
+	if _intro_stop(gen): return
+	await _intro_walk(rabbit, GopherActor.cell_pos(inside))
+	if _intro_stop(gen): return
+	await _intro_path(rabbit, inside, inside + Vector2i(1, 0), "N")
+	if _intro_stop(gen): return
+	g.face("W")
+	rig.target_focus = Vector3(dx + 0.5, 0.4, w.depth - 1.5)
+	rig.target_distance = 5.5
+	# ---- 六、第一次見面 ----
+	var lines := [
+		[wolf, "嘿！新來的，以後跟著我混。"],
+		[rabbit, "……哇，好多灰塵。你在打掃喔？"],
+		[rabbit, "（推推眼鏡）我是派派兔，我們來幫忙吧～"],
+		[g, "……？"],
+		[wolf, "怎麼不說話？在派森小鎮，要用 Python 的 print() 才能說話喔！"],
+		[rabbit, "點派派狼接任務，學會 print() 就能跟我們聊天了！"],
+	]
+	for l in lines:
+		if l[0] == g:
+			g.confused()
+		await _intro_say(l[0], l[1])
+		if _intro_stop(gen): return
+	# 大家一起打掃：剩下的灰塵、蜘蛛網、防塵布都清掉
+	wolf.happy()
+	rabbit.happy()
+	g.carried = null  # 掃把收起來（跟著灰塵一起消失）
+	g.carry_anchor.rotation = Vector3.ZERO
+	_clear_abandoned(0.9)
+	await _intro_wait(1.4)
+	if _intro_stop(gen): return
+	g.happy()
+	await _intro_say(wolf, "好啦，我們在外面等你！")
+	if _intro_stop(gen): return
+	# ---- 七、派派兔、派派狼從門口出去，沿著南牆外面走到西邊等 ----
+	rig.reset_view()
+	await _intro_path(rabbit, inside + Vector2i(1, 0), inside)
+	if _intro_stop(gen): return
+	_visitor_leave(rabbit, "rabbit")
+	await _intro_wait(0.9)
+	if _intro_stop(gen): return
+	await _intro_path(wolf, inside + Vector2i(0, -1), inside)
+	if _intro_stop(gen): return
+	await _visitor_leave(wolf, "wolf")
+	if _intro_stop(gen): return
+	room.swing_door(false)
+	g.face("S")
+	await _intro_wait(0.8)
+
+
+## 從門口出去 → 沿著南牆外 → 走到西牆外的老位置
+func _visitor_leave(a: GopherActor, who: String) -> void:
+	var spot := visitor_spot(who, home_world)
+	spot.y = RoomView.GRASS_Y
+	await _intro_walk(a, _door_outside(0.75))
+	await _intro_walk(a, Vector3(spot.x, RoomView.GRASS_Y, home_world.depth + 0.75))
+	await _intro_walk(a, spot, "E")
+
+
+## 敲門：門板抖三下
+func _knock_door() -> void:
+	var h := room._door_hinge()
+	if h == null:
+		return
+	var tw := h.create_tween()
+	for i in range(3):
+		tw.tween_property(h, "rotation:y", deg_to_rad(-2.5), 0.06)
+		tw.tween_property(h, "rotation:y", 0.0, 0.08)
+		tw.tween_interval(0.12)
+
+
+## 掃地：掃把左右揮、揚起一陣灰，灰塵堆變小消失
+func _sweep(g: GopherActor, c: Vector2i) -> void:
+	g.face("S")
+	var tw := g.create_tween()
+	for i in range(3):
+		tw.tween_property(g.carry_anchor, "rotation:z", 0.45, 0.16)
+		tw.tween_property(g.carry_anchor, "rotation:z", -0.45, 0.16)
+	tw.tween_property(g.carry_anchor, "rotation:z", 0.0, 0.12)
+	_dust_puff(GopherActor.cell_pos(c))
+	if intro_dust.has(c):
+		var pile: Node3D = intro_dust[c]
+		intro_dust.erase(c)
+		var t2 := pile.create_tween()
+		t2.tween_property(pile, "scale", Vector3(1.3, 0.01, 1.3), 0.9)
+		t2.tween_callback(pile.queue_free)
+	await tw.finished
+
+
+func _dust_puff(at: Vector3) -> void:
+	for i in range(6):
+		var p := MeshInstance3D.new()
+		p.mesh = Models.sphere(0.09)
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(0.86, 0.8, 0.68, 0.7)
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		p.material_override = m
+		room.add_child(p)
+		var a := i * TAU / 6.0
+		p.position = at + Vector3(cos(a) * 0.15, 0.1, sin(a) * 0.15)
+		var tw := p.create_tween()
+		tw.set_parallel()
+		tw.tween_property(p, "position", at + Vector3(cos(a) * 0.5, 0.45 + randf() * 0.25, sin(a) * 0.5), 1.0)
+		tw.tween_property(p, "scale", Vector3.ONE * 2.4, 1.0)
+		tw.tween_property(m, "albedo_color:a", 0.0, 1.0)
+		tw.chain().tween_callback(p.queue_free)
+
+
+## 照片小卡：從畫面右邊浮上來
+func _show_photo_card(on: bool) -> void:
+	if on:
+		if is_instance_valid(intro_card):
+			intro_card.queue_free()
+		var card := PhotoCard.new()
+		card.anchor_left = 0.5
+		card.anchor_right = 0.5
+		card.anchor_top = 0.5
+		card.anchor_bottom = 0.5
+		card.offset_left = 150
+		card.offset_top = -230
+		card.offset_right = 150 + PhotoCard.SIZE.x
+		card.offset_bottom = -230 + PhotoCard.SIZE.y
+		ui_layer.add_child(card)
+		intro_card = card
+		card.modulate.a = 0.0
+		card.rotation = -0.2
+		card.scale = Vector2.ONE * 0.7
+		var tw := card.create_tween().set_parallel()
+		tw.tween_property(card, "modulate:a", 1.0, 0.35)
+		tw.tween_property(card, "rotation", -0.06, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(card, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	elif is_instance_valid(intro_card):
+		var card2 := intro_card
+		intro_card = null
+		var tw2 := card2.create_tween()
+		tw2.tween_property(card2, "modulate:a", 0.0, 0.3)
+		tw2.tween_callback(card2.queue_free)
+
+
+# ---- 開場的道具 ----
+static func _make_suitcase() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Suitcase"
+	var body := Color("b5643c")
+	Models.part(root, Models.box(0.55, 0.4, 0.22), body, Vector3(0, 0.2, 0))
+	Models.part(root, Models.box(0.57, 0.05, 0.24), Color("8a4a2c"), Vector3(0, 0.26, 0), Vector3.ONE, Vector3.ZERO, false)
+	for x in [-0.17, 0.17]:
+		Models.part(root, Models.box(0.04, 0.42, 0.235), Color("e8c98a"), Vector3(x, 0.2, 0), Vector3.ONE, Vector3.ZERO, false)
+	Models.part(root, Models.box(0.2, 0.05, 0.05), Color("5e3d26"), Vector3(0, 0.44, 0))
+	Models.part(root, Models.sphere(0.05), Color("f6e3b8"), Vector3(0.12, 0.12, 0.115), Vector3(1, 1, 0.3), Vector3.ZERO, false)
+	return root
+
+
+static func _make_broom() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Broom"
+	var tilt := Node3D.new()
+	tilt.rotation_degrees = Vector3(0, 0, 35)
+	root.add_child(tilt)
+	Models.part(tilt, Models.cyl(0.025, 0.025, 1.1), Color("b08457"), Vector3(0, 0.25, 0))
+	Models.part(tilt, Models.cyl(0.07, 0.17, 0.32), Color("e3c27a"), Vector3(0, -0.42, 0))
+	Models.part(tilt, Models.cyl(0.075, 0.075, 0.05), Color("b5643c"), Vector3(0, -0.27, 0), Vector3.ONE, Vector3.ZERO, false)
+	return root
+
+
+## 很久沒人住的樣子：地上的灰塵堆、落葉、北邊牆角的蜘蛛網、蓋著防塵布的家具
+func _build_abandoned_props() -> void:
+	_clear_abandoned(0.0)
+	var dust_mat := Color("cbbb98")
+	for c in [Vector2i(5, 6), Vector2i(3, 3), Vector2i(1, 4), Vector2i(6, 1), Vector2i(4, 1), Vector2i(1, 7), Vector2i(6, 5)]:
+		if not home_world.walkable(c):
+			continue
+		var pile := Node3D.new()
+		var center := GopherActor.cell_pos(c) + Vector3(randf_range(-0.12, 0.12), 0, randf_range(-0.12, 0.12))
+		pile.position = center
+		Models.part(pile, Models.sphere(0.24), dust_mat, Vector3(0, 0.01, 0), Vector3(1.2, 0.18, 1.0), Vector3.ZERO, false)
+		Models.part(pile, Models.sphere(0.1), dust_mat.lightened(0.08), Vector3(0.2, 0.01, 0.12), Vector3(1, 0.3, 1), Vector3.ZERO, false)
+		Models.part(pile, Models.sphere(0.07), dust_mat.darkened(0.06), Vector3(-0.18, 0.01, -0.1), Vector3(1, 0.3, 1), Vector3.ZERO, false)
+		room.add_child(pile)
+		intro_props.append(pile)
+		intro_dust[c] = pile
+	# 被風吹進來的落葉
+	for i in range(9):
+		var leaf := Node3D.new()
+		leaf.position = Vector3(randf_range(0.4, home_world.width - 0.4), 0.012, randf_range(home_world.depth - 2.6, home_world.depth - 0.3))
+		leaf.rotation.y = randf() * TAU
+		Models.part(leaf, Models.sphere(0.07), [Color("c48a4a"), Color("a9743e"), Color("d2a05a")][i % 3], Vector3.ZERO, Vector3(1.6, 0.08, 0.8), Vector3.ZERO, false)
+		room.add_child(leaf)
+		intro_props.append(leaf)
+	# 蜘蛛網：北牆兩個上角
+	for corner in [0, 1]:
+		var web := Node3D.new()
+		var sx := 1.0 if corner == 0 else -1.0
+		web.position = Vector3(0.0 if corner == 0 else float(home_world.width), RoomView.WALL_H - 0.06, 0.03)
+		var col := Color("f8f3ea")
+		for k in range(5):
+			var a := deg_to_rad(-90.0 + k * 22.5)
+			var dir := Vector3(cos(a) * sx, sin(a), 0)
+			_web_line(web, Vector3.ZERO, dir * 0.6, col)
+		for r in [0.2, 0.36, 0.52]:
+			for k in range(4):
+				var a1 := deg_to_rad(-90.0 + k * 22.5)
+				var a2 := deg_to_rad(-90.0 + (k + 1) * 22.5)
+				_web_line(web, Vector3(cos(a1) * sx, sin(a1), 0) * r, Vector3(cos(a2) * sx, sin(a2), 0) * (r - 0.03), col)
+		room.add_child(web)
+		intro_props.append(web)
+	# 防塵布：蓋住落地家具（信箱是拍拍鳥剛送的，不蓋）
+	for uid in home_world.items:
+		var it: Dictionary = home_world.items[uid]
+		if it.wall != "" or it.on != "" or it.type == "mailbox" or not room.furniture_nodes.has(uid):
+			continue
+		var box := _node_aabb(room.furniture_nodes[uid])
+		for child in home_world.children_of(uid):
+			if room.furniture_nodes.has(child):
+				box = box.merge(_node_aabb(room.furniture_nodes[child]))
+		if box.size == Vector3.ZERO:
+			continue
+		var sheet := Node3D.new()
+		var sz := box.size + Vector3(0.08, 0.05, 0.08)
+		var cloth := Color("eee6d6")
+		Models.part(sheet, Models.box(sz.x, sz.y, sz.z), cloth, Vector3(0, sz.y / 2, 0))
+		Models.part(sheet, Models.box(sz.x + 0.08, 0.14, sz.z + 0.08), cloth.darkened(0.04), Vector3(0, 0.07, 0), Vector3.ONE, Vector3.ZERO, false)
+		Models.part(sheet, Models.sphere(minf(sz.x, sz.z) * 0.45), cloth, Vector3(0, sz.y, 0), Vector3(1, 0.18, 1), Vector3.ZERO, false)
+		sheet.position = Vector3(box.get_center().x, 0, box.get_center().z)
+		room.add_child(sheet)
+		intro_props.append(sheet)
+
+
+func _web_line(parent: Node3D, a: Vector3, b: Vector3, col: Color) -> void:
+	var m := MeshInstance3D.new()
+	var ln := a.distance_to(b)
+	m.mesh = Models.box(ln, 0.014, 0.01)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = col
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.material_override = mat
+	m.position = (a + b) / 2
+	m.rotation.z = atan2(b.y - a.y, b.x - a.x)
+	parent.add_child(m)
+
+
+func _node_aabb(n: Node3D) -> AABB:
+	var out := AABB()
+	var first := true
+	var inv := room.global_transform.affine_inverse()
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var m: MeshInstance3D = mi
+		var b: AABB = inv * m.global_transform * m.get_aabb()
+		out = b if first else out.merge(b)
+		first = false
+	return out
+
+
+## 收掉開場道具；fade > 0 就慢慢變小消失
+func _clear_abandoned(fade: float) -> void:
+	for p in intro_props:
+		if not is_instance_valid(p):
+			continue
+		if fade <= 0.0:
+			p.queue_free()
+		else:
+			var tw: Tween = p.create_tween()
+			tw.tween_interval(randf() * 0.4)
+			tw.tween_property(p, "scale", Vector3(1.05, 0.01, 1.05), fade).set_trans(Tween.TRANS_SINE)
+			tw.tween_callback(p.queue_free)
+	intro_props.clear()
+	intro_dust.clear()
+
+
+## 略過或演完：擺成開場結束的樣子
+func _intro_final_state() -> void:
+	Engine.time_scale = 1.0
+	if intro_skip:
+		bubbles.clear_all()
+	_clear_abandoned(0.0)
+	_show_photo_card(false)
+	var g := room.gopher
+	if g.carried != null and is_instance_valid(g.carried):
+		g.carried.queue_free()
+	g.carried = null
+	for c in room.find_children("Suitcase", "", false, false):
+		c.queue_free()
+	g.carry_anchor.rotation = Vector3.ZERO
+	if not home_world.in_room(Vector2i(floor(g.position.x), floor(g.position.z))) or g.position.y < 0:
+		var c := _nearest_walkable(_door_inside() + Vector2i(1, -1))
+		g.position = GopherActor.cell_pos(c)
+		home_world.gopher_cell = c
+	g.moving = false
+	for who in ["wolf", "rabbit"]:
+		var a: GopherActor = room.npcs.get(who)
+		if a == null or not is_instance_valid(a):
+			continue
+		var spot := visitor_spot(who, home_world)
+		spot.y = RoomView.GRASS_Y
+		a.position = spot
+		a.moving = false
+		a.visible = true
+		a.face("E")
+	var h := room._door_hinge()
+	if h != null:
+		h.rotation.y = 0.0
+	room.cutaway = true
+
+
 func _end_intro() -> void:
+	Engine.time_scale = 1.0
 	intro_running = false
 	roam_busy = false
 	if is_instance_valid(intro_skip_btn):
 		intro_skip_btn.queue_free()
+	if is_instance_valid(intro_card):
+		intro_card.queue_free()
 	if mode == "home":
 		hud.visible = true
 		_update_task_cue()
@@ -1263,6 +1710,8 @@ func _auto_shot(path: String) -> void:
 			await _demo()
 		elif s == "submit":
 			await _submit()
+		elif s == "pos":
+			print("gopher ", room.gopher.position, " vis ", room.gopher.visible, " cam ", rig.cam.global_position, " gen ", intro_gen)
 		elif s == "esc":
 			var ev := InputEventKey.new()
 			ev.keycode = KEY_ESCAPE

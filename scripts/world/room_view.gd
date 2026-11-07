@@ -178,6 +178,66 @@ func _build_floor() -> void:
 		floor_root.add_child(inner)
 
 
+const DOOR_W := 0.9  # 門洞寬（門板 0.86）
+const DOOR_H := 1.95  # 門洞高（門板拱頂約 1.92）
+
+
+## 牆上門的位置（沿著牆的座標），用來在牆上挖門洞：角色真的從門洞走進走出，不穿牆
+func _door_spans(side: String) -> Array:
+	var out: Array = []
+	for uid in world.items:
+		var it: Dictionary = world.items[uid]
+		if it.type == "door" and it.wall == side:
+			var c: Vector2i = it.cell
+			var mid: float = (c.x + 0.5) if side in ["N", "S"] else (c.y + 0.5)
+			out.append(Vector2(mid - DOOR_W / 2, mid + DOOR_W / 2))
+	return out
+
+
+## 沿著牆蓋一條 y0..y1 高的方塊；碰到門洞（門洞高度以下）就切開
+func _wall_strip(holder: Node3D, side: String, s: Dictionary, y0: float, y1: float, grow: float, mat: Material) -> void:
+	var along_x: bool = side in ["N", "S"]
+	var size: Vector3 = s.size
+	var length: float = (size.x if along_x else size.z)
+	var lo: float = (s.pos.x if along_x else s.pos.z) - length / 2
+	var hi: float = lo + length
+	var cuts: Array = []
+	for sp in _door_spans(side):
+		if y0 < DOOR_H:
+			cuts.append(sp)
+	var pieces: Array = []
+	var cur := lo
+	for sp in cuts:
+		pieces.append(Vector2(cur, sp.x))
+		cur = sp.y
+	pieces.append(Vector2(cur, hi))
+	# 門洞上面的門楣
+	var lintels: Array = []
+	if y1 > DOOR_H:
+		for sp in cuts:
+			lintels.append([sp, maxf(y0, DOOR_H), y1])
+	var all: Array = []
+	for pc in pieces:
+		all.append([pc, y0, y1])
+	all += lintels
+	for e in all:
+		var span: Vector2 = e[0]
+		var ya: float = e[1]
+		var yb: float = e[2]
+		if span.y - span.x < 0.01 or yb - ya < 0.01:
+			continue
+		var m := MeshInstance3D.new()
+		var thick: float = (size.z if along_x else size.x) + grow
+		if along_x:
+			m.mesh = Models.box(span.y - span.x, yb - ya, thick)
+			m.position = Vector3((span.x + span.y) / 2, (ya + yb) / 2, s.pos.z)
+		else:
+			m.mesh = Models.box(thick, yb - ya, span.y - span.x)
+			m.position = Vector3(s.pos.x, (ya + yb) / 2, (span.x + span.y) / 2)
+		m.material_override = mat
+		holder.add_child(m)
+
+
 func _build_walls() -> void:
 	var specs := {
 		"N": {"pos": Vector3(world.width / 2.0, WALL_H / 2, -WALL_T / 2), "size": Vector3(world.width + WALL_T * 2, WALL_H, WALL_T)},
@@ -185,37 +245,43 @@ func _build_walls() -> void:
 		"W": {"pos": Vector3(-WALL_T / 2, WALL_H / 2, world.depth / 2.0), "size": Vector3(WALL_T, WALL_H, world.depth)},
 		"E": {"pos": Vector3(world.width + WALL_T / 2, WALL_H / 2, world.depth / 2.0), "size": Vector3(WALL_T, WALL_H, world.depth)},
 	}
+	var plaster := Models.mat(Color("f0e5cf"))  # 刷白的灰泥牆
+	var board := Models.mat(Color("dcc9a4"), false)  # 淺松木橫板
 	for side in specs:
 		var holder := Node3D.new()
 		holder.name = "Wall" + side
 		add_child(holder)
 		var s: Dictionary = specs[side]
-		var ws: Vector3 = s.size
 		var along_x: bool = side in ["N", "S"]
-		var wall := MeshInstance3D.new()
-		wall.mesh = Models.box(s.size.x, s.size.y, s.size.z)
-		wall.material_override = Models.mat(Color("f0e5cf"))  # 刷白的灰泥牆
-		wall.position = s.pos
-		holder.add_child(wall)
+		_wall_strip(holder, side, s, 0.0, WALL_H, 0.0, plaster)
 		# 原木牆：一圈一圈橫向的木頭（凸出牆面一點點）
 		for i in range(6):
-			var log_m := MeshInstance3D.new()
-			log_m.mesh = Models.box(ws.x + (0.0 if along_x else 0.03), 0.05, ws.z + (0.03 if along_x else 0.0))
-			log_m.material_override = Models.mat(Color("dcc9a4"), false)  # 淺松木橫板
-			log_m.position = Vector3(s.pos.x, 0.62 + i * 0.3, s.pos.z)
-			holder.add_child(log_m)
+			var y := 0.62 + i * 0.3
+			_wall_strip(holder, side, s, y - 0.025, y + 0.025, 0.03, board)
 		# 下半截：樹根色的護牆板
-		var wain := MeshInstance3D.new()
-		wain.mesh = Models.box(ws.x + (0.0 if along_x else 0.02), 0.55, ws.z + (0.02 if along_x else 0.0))
-		wain.material_override = wood_mat(Color("b39773"), not along_x)
-		wain.position = Vector3(s.pos.x, 0.275, s.pos.z)
-		holder.add_child(wain)
+		_wall_strip(holder, side, s, 0.0, 0.55, 0.02, wood_mat(Color("b39773"), not along_x))
 		# 牆頂的橫樑
 		var beam := MeshInstance3D.new()
-		beam.mesh = Models.box(ws.x + 0.06, 0.12, ws.z + 0.06)
+		beam.mesh = Models.box(s.size.x + 0.06, 0.12, s.size.z + 0.06)
 		beam.material_override = wood_mat(Color("9a7b58"), not along_x, true)
 		beam.position = Vector3(s.pos.x, WALL_H, s.pos.z)
 		holder.add_child(beam)
+		# 門框：門洞兩側和上方的木框
+		for sp in _door_spans(side):
+			var frame_mat := wood_mat(Color("8a6646"), not along_x, true)
+			var depth_f: float = WALL_T + 0.06
+			for x in [sp.x - 0.04, sp.y + 0.04]:
+				var post := MeshInstance3D.new()
+				post.mesh = Models.box(0.08, DOOR_H, depth_f) if along_x else Models.box(depth_f, DOOR_H, 0.08)
+				post.position = Vector3(x, DOOR_H / 2, s.pos.z) if along_x else Vector3(s.pos.x, DOOR_H / 2, x)
+				post.material_override = frame_mat
+				holder.add_child(post)
+			var top := MeshInstance3D.new()
+			top.mesh = Models.box(DOOR_W + 0.16, 0.1, depth_f) if along_x else Models.box(depth_f, 0.1, DOOR_W + 0.16)
+			var mid: float = (sp.x + sp.y) / 2
+			top.position = Vector3(mid, DOOR_H + 0.05, s.pos.z) if along_x else Vector3(s.pos.x, DOOR_H + 0.05, mid)
+			top.material_override = frame_mat
+			holder.add_child(top)
 		walls[side] = holder
 
 
@@ -527,7 +593,15 @@ static func tint(node: Node, color: Color) -> void:
 
 
 # ---------------- 鏡頭相關 ----------------
+## false：每面牆都顯示（開場從屋外看門口時用）
+var cutaway := true
+
+
 func update_cutaway(cam_pos: Vector3) -> void:
+	if not cutaway:
+		for side in walls:
+			walls[side].visible = true
+		return
 	var center := Vector3(world.width / 2.0, 0, world.depth / 2.0)
 	var to_cam := cam_pos - center
 	var normals := {"N": Vector3(0, 0, -1), "S": Vector3(0, 0, 1), "W": Vector3(-1, 0, 0), "E": Vector3(1, 0, 0)}
@@ -535,6 +609,36 @@ func update_cutaway(cam_pos: Vector3) -> void:
 		var n: Vector3 = normals[side]
 		var half: float = (world.depth if side in ["N", "S"] else world.width) / 2.0
 		walls[side].visible = to_cam.dot(n) < half * 0.6
+
+
+# ---------------- 門 ----------------
+## 門板裝在一個鉸鏈節點上，開門就是轉鉸鏈（往屋裡開）
+func _door_hinge(side: String = "S") -> Node3D:
+	for uid in world.items:
+		var it: Dictionary = world.items[uid]
+		if it.type != "door" or it.wall != side or not furniture_nodes.has(uid):
+			continue
+		var node: Node3D = furniture_nodes[uid]
+		var h := node.get_node_or_null("Hinge") as Node3D
+		if h == null:
+			h = Node3D.new()
+			h.name = "Hinge"
+			h.position = Vector3(-0.43, 0, 0.03)
+			var kids := node.get_children()
+			node.add_child(h)
+			for k in kids:
+				k.reparent(h, true)
+		return h
+	return null
+
+
+func swing_door(open: bool, side: String = "S") -> void:
+	var h := _door_hinge(side)
+	if h == null:
+		return
+	var tw := create_tween()
+	tw.tween_property(h, "rotation:y", deg_to_rad(-95.0) if open else 0.0, 0.45).set_trans(Tween.TRANS_SINE)
+	await tw.finished
 
 
 # ---------------- 任務演出 ----------------

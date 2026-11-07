@@ -9,9 +9,9 @@ uniform float strength : hint_range(0.0, 1.0) = 1.0;
 uniform float saturation = 0.9;
 uniform vec3 paper = vec3(0.97, 0.945, 0.89);   // 最亮的地方 = 紙色
 uniform vec3 ink = vec3(0.2, 0.14, 0.1);      // 最暗的地方 = 暖棕油墨
-uniform float grain = 0.05;
-uniform float fiber = 0.035;
-uniform float vignette = 0.22;
+uniform float grain = 0.022;
+uniform float fiber = 0.008;
+uniform float vignette = 0.1;
 
 float hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -39,14 +39,13 @@ void fragment() {
 	c = mix(ink, paper, c);  // 黑 → 油墨、白 → 紙
 	// 紙張顆粒（以像素為單位，畫面大小改變時顆粒大小不變）
 	vec2 px = FRAGCOORD.xy;
-	float g = vnoise(px * 0.9) * 0.6 + vnoise(px * 0.3) * 0.4;
+	float g = vnoise(px * 1.3);  // 只留很細的紙紋，不要大片的斑點（看起來會像螢幕髒了）
 	float fb = vnoise(vec2(px.x * 0.035, px.y * 0.6)) * vnoise(vec2(px.x * 0.6, px.y * 0.04));  // 橫、直的纖維
-	float blot = vnoise(px * 0.006);  // 大片的紙張深淺（像水彩紙吸色不均）
-	c *= 1.0 - grain * (g - 0.5) * 2.0 - fiber * fb - 0.035 * blot;
+	c *= 1.0 - grain * (g - 0.5) * 2.0 - fiber * fb;
 	// 暗角
 	vec2 uv = SCREEN_UV - 0.5;
-	float v = smoothstep(0.35, 0.85, length(uv * vec2(1.0, 0.85)));
+	float v = smoothstep(0.5, 0.95, length(uv * vec2(1.0, 0.85)));
 	c *= 1.0 - vignette * v;
-	c = mix(c, c * vec3(1.0, 0.95, 0.86), v * 0.5);
+	c = mix(c, c * vec3(1.0, 0.96, 0.9), v * 0.4);
 	COLOR = vec4(mix(src, c, strength), 1.0);
 }
