@@ -32,7 +32,7 @@ func _build() -> void:
 	th.add_theme_constant_override("separation", 10)
 	top.add_child(th)
 	th.add_child(UIKit.label("派派鼠的樹屋", 22))
-	stars_label = UIKit.label("★ 0", 18, Color("b8741a"))
+	stars_label = UIKit.label("★ 0", 18, UIKit.TEXT_WARN)
 	stars_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	th.add_child(stars_label)
 	var bq := UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點屋外的派派狼")
@@ -167,7 +167,7 @@ func set_stars(n: int) -> void:
 func show_status(text: String, pos: Vector2, bad: bool = false) -> void:
 	status.text = text
 	status.visible = text != ""
-	status.add_theme_color_override("font_color", UIKit.RED if bad else UIKit.INK)
+	status.add_theme_color_override("font_color", UIKit.TEXT_RED if bad else UIKit.INK)
 	status.position = pos + Vector2(18, 18)
 
 
@@ -193,11 +193,13 @@ func show_board(tasks: Array, progress: Dictionary) -> void:
 		info.add_child(UIKit.label("%s　難度 %s　獎勵：%s" % [t.concept, "★".repeat(int(t.difficulty)), reward_name], 14, Color("8a6a50")))
 		var right := VBoxContainer.new()
 		h.add_child(right)
-		var sl := UIKit.label(("★".repeat(stars) + "☆".repeat(3 - stars)) if stars > 0 else "", 18, Color("b8741a"))
+		var sl := UIKit.label(("★".repeat(stars) + "☆".repeat(3 - stars)) if stars > 0 else "", 18, UIKit.TEXT_WARN)
 		sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		right.add_child(sl)
 		var id: String = t.id
 		var b := UIKit.button("接受任務" if stars == 0 else "再挑戰", func(): task_chosen.emit(id))
+		if stars == 0:
+			UIKit.primary(b)
 		b.disabled = not unlocked
 		if not unlocked:
 			b.text = "未解鎖"

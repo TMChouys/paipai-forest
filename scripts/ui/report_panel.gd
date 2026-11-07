@@ -34,17 +34,17 @@ func show_report(task: Dictionary, rep: Dictionary, first_clear: bool) -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if rep.passed:
 		title.text = "任務完成！ " + "★".repeat(rep.stars) + "☆".repeat(3 - rep.stars)
-		title.add_theme_color_override("font_color", Color("b8741a"))
+		title.add_theme_color_override("font_color", UIKit.TEXT_WARN)
 	else:
 		title.text = "還差一點點！派派兔的檢查結果"
-		title.add_theme_color_override("font_color", UIKit.RED)
+		title.add_theme_color_override("font_color", UIKit.TEXT_RED)
 	box.add_child(title)
 	# 測資結果
 	var cases_row := HBoxContainer.new()
 	cases_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	cases_row.add_theme_constant_override("separation", 8)
 	for c in rep.cases:
-		var chip := UIKit.label(("✓ " if c.ok else "× ") + c.name, 15, UIKit.GREEN.darkened(0.2) if c.ok else UIKit.RED)
+		var chip := UIKit.label(("✓ " if c.ok else "× ") + c.name, 15, UIKit.TEXT_GREEN if c.ok else UIKit.TEXT_RED)
 		chip.autowrap_mode = TextServer.AUTOWRAP_OFF
 		var st := UIKit.panel_style(Color("eef8e8") if c.ok else Color("ffe9e4"), 10, UIKit.GREEN if c.ok else UIKit.RED, 1)
 		st.shadow_size = 0
@@ -65,16 +65,16 @@ func show_report(task: Dictionary, rep: Dictionary, first_clear: bool) -> void:
 	scroll.add_child(list)
 	var txt := ""
 	if rep.findings.is_empty():
-		txt = "[color=#4f8f4f]✓ 全部符合任務單！寫法也完全正確。[/color]"
+		txt = "[color=#3d7a3d]✓ 全部符合任務單！寫法也完全正確。[/color]"
 	var order := {"block": 0, "warn": 1, "info": 2}
 	var fs: Array = rep.findings.duplicate()
 	fs.sort_custom(func(a, b): return order[a.severity] < order[b.severity])
 	for f in fs:
-		var icon := "[color=#d9605a]× 不通過[/color]"
+		var icon := "[color=#b8473f]× 不通過[/color]"
 		if f.severity == "warn":
-			icon = "[color=#c98a1a]▲ 扣一顆星[/color]"
+			icon = "[color=#8f5f12]▲ 扣一顆星[/color]"
 		elif f.severity == "info":
-			icon = "[color=#5a9bd9]● 提醒[/color]"
+			icon = "[color=#3a75b0]● 提醒[/color]"
 		var case_tag := ("  [color=#8a6a50]〔%s〕[/color]" % UIKit.esc(f.case)) if f.case != "" else ""
 		txt += "%s%s\n[b]%s[/b]\n" % [icon, case_tag, UIKit.esc(f.message)]
 		if f.get("hint", "") != "":
@@ -96,7 +96,7 @@ func show_report(task: Dictionary, rep: Dictionary, first_clear: bool) -> void:
 	row.add_theme_constant_override("separation", 16)
 	row.add_child(UIKit.button("回去修改程式", func(): retry_pressed.emit()))
 	if rep.passed:
-		var b := UIKit.button("收下獎勵、回家擺設", func(): accept_pressed.emit())
+		var b := UIKit.primary(UIKit.button("收下獎勵、回家擺設", func(): accept_pressed.emit()))
 		b.add_theme_font_size_override("font_size", 19)
 		row.add_child(b)
 	box.add_child(row)

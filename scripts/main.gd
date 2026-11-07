@@ -144,6 +144,7 @@ func _total_stars() -> int:
 # ---------------- 家 ----------------
 func _enter_home() -> void:
 	mode = "home"
+	bubbles.avoid_side_panels = false
 	playback.cancel()
 	task = {}
 	bubbles.clear_all()
@@ -688,6 +689,7 @@ func _enter_task(id: String) -> void:
 	_cancel_held()
 	_write_save()
 	mode = "task"
+	bubbles.avoid_side_panels = true
 	hud.board.visible = false
 	hud.visible = false
 	hud.show_status("", Vector2.ZERO)

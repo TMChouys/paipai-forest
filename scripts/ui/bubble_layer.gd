@@ -4,6 +4,8 @@ extends Control
 
 var camera_getter: Callable
 var bubbles: Array = []  # {actor, panel, until}
+## 寫程式模式：氣泡不可以蓋住左邊任務單（寬 380）和右邊程式碼區（寬 480）
+var avoid_side_panels := false
 
 
 func _ready() -> void:
@@ -35,7 +37,8 @@ func show_bubble(actor: Node3D, text: String, kind: String = "say", seconds: flo
 	p.add_child(box)
 	var who: String = actor.get("speaker_name") if actor.get("speaker_name") != null else ""
 	if who != "":
-		var nl := UIKit.label(who, 13, Color("a0603a"))
+		var nl := UIKit.label(who, 14, Color("a0603a"))
+		nl.add_theme_font_override("font", UIKit.font_bold())
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(nl)
 	var l := UIKit.label(text, 17)
@@ -87,6 +90,12 @@ func _process(_delta: float) -> void:
 		var sp := cam.unproject_position(head)
 		var sz: Vector2 = b.panel.size
 		b.panel.pivot_offset = Vector2(sz.x / 2, sz.y)
-		b.panel.position = sp - Vector2(sz.x / 2, sz.y + 12)
+		var pos := sp - Vector2(sz.x / 2, sz.y + 12)
+		if avoid_side_panels:
+			var vp := get_viewport_rect().size
+			var lo := Vector2(388, 62)
+			var hi := Vector2(vp.x - 488 - sz.x, vp.y - 10 - sz.y)
+			pos = pos.clamp(lo, hi.max(lo))
+		b.panel.position = pos
 		var tail: Node2D = b.panel.get_meta("tail")
-		tail.position = Vector2(sz.x / 2, sz.y)
+		tail.position = Vector2(clampf(sp.x - pos.x, 18, sz.x - 18), sz.y)

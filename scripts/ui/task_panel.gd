@@ -86,6 +86,7 @@ func _build() -> void:
 	sheet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sheet.selection_enabled = true
 	sheet.add_theme_font_override("mono_font", UIKit.mono())
+	sheet.add_theme_font_override("bold_font", UIKit.font_bold())
 	sheet.add_theme_font_size_override("normal_font_size", 16)
 	sheet.add_theme_font_size_override("bold_font_size", 16)
 	sheet.add_theme_font_size_override("mono_font_size", 16)
@@ -122,12 +123,19 @@ func _build() -> void:
 	code.minimap_draw = false
 	code.add_theme_font_override("font", UIKit.mono())
 	code.add_theme_font_size_override("font_size", 18)
+	code.add_theme_constant_override("line_spacing", 6)
+	code.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	code.gutters_draw_bookmarks = true  # 錯誤行的行號旁邊畫一個記號
 	var cs := UIKit.panel_style(Color("fffdf6"), 10, UIKit.INK, 2)
 	code.add_theme_stylebox_override("normal", cs)
-	code.add_theme_stylebox_override("focus", UIKit.panel_style(Color("fffdf6"), 10, UIKit.ACCENT, 2))
+	code.add_theme_stylebox_override("focus", UIKit.panel_style(Color("fffdf6"), 10, UIKit.ACCENT_LINE, 3))
+	# 示範／執行中不能編輯：換成淡一點的紙色，文字顏色不變（原本會變成灰底灰字）
+	code.add_theme_stylebox_override("read_only", UIKit.panel_style(Color("f6efe2"), 10, UIKit.INK, 2))
 	code.add_theme_color_override("font_color", Color("3b2a1e"))
+	code.add_theme_color_override("font_readonly_color", Color("3b2a1e"))
 	code.add_theme_color_override("current_line_color", Color(1, 0.86, 0.6, 0.25))
-	code.add_theme_color_override("line_number_color", Color(0.55, 0.42, 0.3, 0.7))
+	code.add_theme_color_override("line_number_color", UIKit.TEXT_MUTED)
+	code.add_theme_color_override("bookmark_color", UIKit.TEXT_RED)
 	code.add_theme_color_override("executing_line_color", Color(0.4, 0.75, 1.0, 0.35))
 	code.add_theme_color_override("caret_color", UIKit.INK)
 	code.add_theme_color_override("selection_color", Color(1, 0.75, 0.45, 0.5))
@@ -142,7 +150,8 @@ func _build() -> void:
 	btn_step = UIKit.button("單步", func(): step_pressed.emit(), "一次執行一行，可以看變數的值")
 	btn_speed = UIKit.button("速度 1x", _cycle_speed)
 	btn_submit = UIKit.button("★ 交件", func(): submit_pressed.emit(), "交給派派狼檢查（含隱藏測資）")
-	btn_submit.add_theme_color_override("font_color", Color("8a3b1a"))
+	UIKit.primary(btn_run)
+	UIKit.primary(btn_submit)
 	var btn_reset := UIKit.button("重來", func(): reset_pressed.emit(), "房間回到一開始的樣子")
 	for b in [btn_run, btn_pause, btn_step, btn_speed, btn_reset, btn_submit]:
 		ctrl.add_child(b)
@@ -184,11 +193,12 @@ func _build() -> void:
 
 	# ---- 中間上方橫幅（隱藏測資、示範中…）----
 	banner = UIKit.label("", 20)
-	banner.anchor_left = 0.5
-	banner.anchor_right = 0.5
-	banner.offset_left = -250
-	banner.offset_right = 150
+	banner.anchor_left = 0
+	banner.anchor_right = 1
+	banner.offset_left = 400
+	banner.offset_right = -500
 	banner.offset_top = 70
+	banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var bst := UIKit.panel_style(Color("fff1b8"), 14)
 	banner.add_theme_stylebox_override("normal", bst)
@@ -197,13 +207,13 @@ func _build() -> void:
 
 	# ---- input() 的回答框 ----
 	ask_box = PanelContainer.new()
-	ask_box.anchor_left = 0.5
-	ask_box.anchor_right = 0.5
+	ask_box.anchor_left = 0
+	ask_box.anchor_right = 1
 	ask_box.anchor_top = 1.0
 	ask_box.anchor_bottom = 1.0
-	ask_box.offset_left = -330
-	ask_box.offset_right = 70
-	ask_box.offset_top = -190
+	ask_box.offset_left = 396
+	ask_box.offset_right = -496
+	ask_box.offset_top = -200
 	ask_box.offset_bottom = -40
 	ask_box.add_theme_stylebox_override("panel", UIKit.panel_style(Color("fffdf6"), 16, UIKit.ACCENT, 3))
 	ask_box.visible = false
@@ -222,24 +232,25 @@ func _build() -> void:
 	ask_edit.add_theme_font_size_override("font_size", 18)
 	ask_edit.text_submitted.connect(func(t): submit_answer(t))
 	ah.add_child(ask_edit)
-	ah.add_child(UIKit.button("回答", func(): submit_answer(ask_edit.text)))
+	ah.add_child(UIKit.primary(UIKit.button("回答", func(): submit_answer(ask_edit.text))))
 
 
 func _highlighter() -> CodeHighlighter:
 	var h := CodeHighlighter.new()
-	h.number_color = Color("c0612b")
+	# 顏色在 #fffdf6 上的對比度都 ≥ 4.5:1
+	h.number_color = Color("a8551f")
 	h.symbol_color = Color("6b5242")
-	h.function_color = Color("2f7fb5")
+	h.function_color = Color("2a6fa3")
 	h.member_variable_color = Color("7a4fa3")
 	for kw in ["if", "elif", "else", "while", "for", "in", "and", "or", "not", "pass", "break", "continue", "import", "from", "def", "return", "as"]:
 		h.add_keyword_color(kw, Color("c2407a"))
 	for kw in ["True", "False", "None"]:
-		h.add_keyword_color(kw, Color("c0612b"))
+		h.add_keyword_color(kw, Color("a8551f"))
 	for f in ["print", "input", "len", "str", "int", "float", "range", "abs", "min", "max", "round"]:
-		h.add_keyword_color(f, Color("2f7fb5"))
-	h.add_color_region("\"", "\"", Color("3f8f4f"), true)
-	h.add_color_region("'", "'", Color("3f8f4f"), true)
-	h.add_color_region("#", "", Color("9a8a7a"), true)
+		h.add_keyword_color(f, Color("2a6fa3"))
+	h.add_color_region("\"", "\"", Color("2f7a3f"), true)
+	h.add_color_region("'", "'", Color("2f7a3f"), true)
+	h.add_color_region("#", "", Color("76644f"), true)
 	return h
 
 
@@ -308,7 +319,7 @@ static func build_sheet(t: Dictionary) -> String:
 		if test.get("hidden", false):
 			hidden += 1
 	if hidden > 0:
-		s += "\n[color=#b0563a]交件時還有 %d 組隱藏測資。[/color]\n" % hidden
+		s += "\n[color=#b8473f]交件時還有 %d 組隱藏測資。[/color]\n" % hidden
 	s += "\n[b]獎勵[/b]：%s\n" % UIKit.esc(WorldModel.def_of(t.get("reward", {}).get("furniture", "")).get("name", ""))
 	return s
 
@@ -346,7 +357,9 @@ func log_system(text: String, color: String = "#f6c85f") -> void:
 
 
 func log_error(err: Dictionary) -> void:
-	console.append_text("[color=#ff8a80]× %s：%s[/color]\n" % [UIKit.esc(err.get("kind", "錯誤")), UIKit.esc(err.get("message", ""))])
+	var line := int(err.get("line", 0))
+	var where := ("第 %d 行：" % line) if line > 0 else ""
+	console.append_text("[color=#ff8a80]× %s%s：%s[/color]\n" % [where, UIKit.esc(err.get("kind", "錯誤")), UIKit.esc(err.get("message", ""))])
 	if err.get("hint", "") != "":
 		console.append_text("[color=#ffd59a]  提示：%s[/color]\n" % UIKit.esc(err.hint))
 	mark_error(int(err.get("line", 0)))
@@ -357,7 +370,7 @@ func set_vars(v: Dictionary) -> void:
 	for k in v:
 		var val = v[k]
 		s += "[color=#7a4fa3]%s[/color] = %s\n" % [UIKit.esc(str(k)), UIKit.esc(PyInterp.py_repr(val))]
-	vars_label.text = s if s != "" else "[color=#9a8a7a]（還沒有變數）[/color]"
+	vars_label.text = s if s != "" else "[color=#7a6a5a]（還沒有變數）[/color]"
 
 
 func highlight_line(line: int) -> void:
@@ -368,13 +381,18 @@ func highlight_line(line: int) -> void:
 
 func mark_error(line: int) -> void:
 	if line >= 1 and line <= code.get_line_count():
-		code.set_line_background_color(line - 1, Color(1.0, 0.45, 0.4, 0.3))
+		code.set_line_background_color(line - 1, Color(0.85, 0.28, 0.25, 0.22))
+		code.set_line_as_bookmarked(line - 1, true)
+		code.set_caret_line(line - 1)
+		code.set_caret_column(0)
+		code.center_viewport_to_caret()
 
 
 func clear_marks() -> void:
 	code.clear_executing_lines()
 	for i in range(code.get_line_count()):
 		code.set_line_background_color(i, Color(0, 0, 0, 0))
+		code.set_line_as_bookmarked(i, false)
 
 
 func set_running(running: bool, paused: bool = false) -> void:
