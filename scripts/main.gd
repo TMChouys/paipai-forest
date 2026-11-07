@@ -475,6 +475,18 @@ func _wall_cell_match(it: Dictionary, c: Vector2i) -> bool:
 	return it.cell.y == c.y
 
 
+## Esc 關閉蓋在畫面上的面板（交件報告、任務板）；在 _input 先處理，程式碼區有焦點時也有效
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
+		return
+	if report.visible:
+		report.visible = false
+		get_viewport().set_input_as_handled()
+	elif hud.board.visible:
+		hud.board.visible = false
+		get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if mode != "home" or hud.board.visible:
 		return
@@ -925,6 +937,12 @@ func _auto_shot(path: String) -> void:
 			await _demo()
 		elif s == "submit":
 			await _submit()
+		elif s == "esc":
+			var ev := InputEventKey.new()
+			ev.keycode = KEY_ESCAPE
+			ev.pressed = true
+			Input.parse_input_event(ev)
+			await get_tree().create_timer(0.3).timeout
 		elif s == "board":
 			_open_board()
 			await get_tree().create_timer(0.5).timeout

@@ -113,9 +113,19 @@ func _build() -> void:
 	var bv := VBoxContainer.new()
 	bv.add_theme_constant_override("separation", 10)
 	board.add_child(bv)
+	var bh := HBoxContainer.new()
+	bv.add_child(bh)
+	var pad := Control.new()
+	pad.custom_minimum_size.x = 36  # 和右邊 × 一樣寬，標題才會置中
+	bh.add_child(pad)
 	var bt := UIKit.label("派派狼的任務板", 24)
 	bt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bv.add_child(bt)
+	bt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bh.add_child(bt)
+	var bx := UIKit.button("×", func(): board.visible = false, "關閉（Esc）")
+	bx.custom_minimum_size = Vector2(36, 36)
+	bx.add_theme_font_size_override("font_size", 20)
+	bh.add_child(bx)
 	var bs := ScrollContainer.new()
 	bs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -124,7 +134,7 @@ func _build() -> void:
 	board_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	board_list.add_theme_constant_override("separation", 8)
 	bs.add_child(board_list)
-	var close := UIKit.button("關閉", func(): board.visible = false)
+	var close := UIKit.button("關閉", func(): board.visible = false, "也可以按 Esc")
 	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	bv.add_child(close)
 

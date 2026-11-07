@@ -36,7 +36,7 @@ func show_report(task: Dictionary, rep: Dictionary, first_clear: bool) -> void:
 		title.text = "任務完成！ " + "★".repeat(rep.stars) + "☆".repeat(3 - rep.stars)
 		title.add_theme_color_override("font_color", UIKit.TEXT_WARN)
 	else:
-		title.text = "還差一點點！派派兔的檢查結果"
+		title.text = "還差一點點！%s的檢查結果" % RoomView.NAMES.get(task.get("npc", "wolf"), "派派狼")
 		title.add_theme_color_override("font_color", UIKit.TEXT_RED)
 	box.add_child(title)
 	# 測資結果
@@ -53,7 +53,6 @@ func show_report(task: Dictionary, rep: Dictionary, first_clear: bool) -> void:
 	box.add_child(cases_row)
 	# 評估清單
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 240)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	box.add_child(scroll)
 	var list := RichTextLabel.new()
@@ -79,8 +78,9 @@ func show_report(task: Dictionary, rep: Dictionary, first_clear: bool) -> void:
 		txt += "%s%s\n[b]%s[/b]\n" % [icon, case_tag, UIKit.esc(f.message)]
 		if f.get("hint", "") != "":
 			txt += "[color=#8a6a50]提示：%s[/color]\n" % UIKit.esc(f.hint)
-		txt += "[color=#c9b8a0][font_size=12]%s[/font_size][/color]\n\n" % f.code
-	list.text = txt
+		txt += "\n"
+	list.text = txt.strip_edges()
+	_fit_scroll.call_deferred(scroll, list)
 	# 獎勵
 	if rep.passed:
 		var rw: Dictionary = task.get("reward", {})
@@ -101,3 +101,12 @@ func show_report(task: Dictionary, rep: Dictionary, first_clear: bool) -> void:
 		row.add_child(b)
 	box.add_child(row)
 	visible = true
+
+
+## 清單多高，捲動區就多高（最多 360，超過才捲動），不會留一大片空白
+func _fit_scroll(scroll: ScrollContainer, list: RichTextLabel) -> void:
+	if not is_instance_valid(list):
+		return
+	await get_tree().process_frame
+	if is_instance_valid(list):
+		scroll.custom_minimum_size.y = minf(list.get_content_height() + 4, 360)
