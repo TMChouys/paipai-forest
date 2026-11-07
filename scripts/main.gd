@@ -35,6 +35,9 @@ var roam_busy := false
 var uid_counter := 0
 
 
+var music: Music
+
+
 func _ready() -> void:
 	_setup_environment()
 	rig = CameraRig.new()
@@ -46,6 +49,8 @@ func _ready() -> void:
 	add_child(town)
 	playback = Playback.new()
 	add_child(playback)
+	music = Music.new()
+	add_child(music)
 
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
@@ -75,6 +80,10 @@ func _ready() -> void:
 	hud.view_reset.connect(func(): rig.reset_view())
 	hud.task_chosen.connect(_enter_task)
 	hud.reduce_motion_toggled.connect(_set_reduce_motion)
+	hud.music_toggled.connect(func(on: bool) -> void:
+		save.music_on = on
+		music.set_enabled(on)
+		_write_save())
 	hud.open_book.connect(_open_book)
 	hud.help_closed.connect(_start_play)
 	hud.town_toggled.connect(func():
@@ -111,6 +120,8 @@ func _ready() -> void:
 	tasks = TaskRunner.list_tasks()
 	_load_save()
 	UIKit.reduce_motion = save.get("reduce_motion", false)
+	music.enabled = save.get("music_on", true)
+	hud.set_music_checked(music.enabled)
 	hud.set_reduce_motion(UIKit.reduce_motion)
 	_enter_home()
 	# 自動截圖（開發驗證用）：godot -- --shot=res://…
@@ -226,6 +237,7 @@ func _total_stars() -> int:
 # ---------------- 家 ----------------
 func _enter_home() -> void:
 	mode = "home"
+	music.play("home")
 	offer.visible = false
 	room.visible = true
 	room.scene = "house"
@@ -1242,6 +1254,7 @@ func _open_book() -> void:
 func _enter_town() -> void:
 	_cancel_held()
 	mode = "town"
+	music.play("town")
 	playback.cancel()
 	bubbles.clear_all()
 	letters.close()
@@ -2453,6 +2466,7 @@ func _enter_task(id: String) -> void:
 	hud.set_town_mode(false)
 	_write_save()
 	mode = "task"
+	music.play("task")
 	bubbles.avoid_side_panels = true
 	if intro_running:
 		intro_skip = true  # 開場還沒演完就進任務：開場直接結束
@@ -2664,6 +2678,7 @@ func _show_report(rep: Dictionary) -> void:
 	var first_clear: bool = rep.passed and int(save.stars.get(task.id, 0)) == 0
 	report.show_report(task, rep, first_clear)
 	if rep.passed:
+		music.jingle()
 		save.stars[task.id] = max(int(save.stars.get(task.id, 0)), rep.stars)
 		if first_clear:
 			var rt: String = task.reward.furniture

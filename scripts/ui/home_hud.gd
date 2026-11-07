@@ -11,6 +11,7 @@ signal reduce_motion_toggled(on: bool)
 signal open_book
 signal town_toggled  # 去鎮上／回樹屋
 signal help_closed  # 操作說明關掉了（開場後按「開始玩！」）
+signal music_toggled(on: bool)  # ⋯ → 背景音樂 開／關
 
 var title_label: Label
 var town_btn: Button
@@ -69,6 +70,8 @@ func _build() -> void:
 	pm.add_item("操作說明", 2)
 	pm.add_separator()
 	pm.add_check_item("減少動態", 3)
+	pm.add_check_item("背景音樂", 4)
+	pm.set_item_checked(pm.get_item_index(4), true)
 	more_menu = pm
 	pm.id_pressed.connect(_on_more)
 	th.add_child(more)
@@ -172,6 +175,15 @@ func _on_more(id: int) -> void:
 			var on := not more_menu.is_item_checked(i)
 			more_menu.set_item_checked(i, on)
 			reduce_motion_toggled.emit(on)
+		4:
+			var i4 := more_menu.get_item_index(4)
+			var on4 := not more_menu.is_item_checked(i4)
+			more_menu.set_item_checked(i4, on4)
+			music_toggled.emit(on4)
+
+
+func set_music_checked(on: bool) -> void:
+	more_menu.set_item_checked(more_menu.get_item_index(4), on)
 
 
 # ---------------- 怎麼玩（操作說明視窗）----------------
