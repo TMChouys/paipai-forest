@@ -65,7 +65,7 @@ func play(timeline: Array) -> bool:
 				if panel:
 					panel.log_input(ev.prompt, ev.value, demo)
 			"action":
-				if panel and ev.result.ok and ev.result.get("act", "") == "say" and ev.result.who != "gopher":
+				if panel and ev.result.ok and ev.result.get("act", "") == "say" and ev.result.get("who", "gopher") != "gopher":  # 派派鼠自己說的話（混合任務）沒有 who
 					panel.log_system("%s：%s" % [TaskRunner.NAMES.get(ev.result.who, ""), ev.result.text], "#d8c3a5")
 				await view.play_result(ev.result, speed)
 				if not ev.result.ok and panel:
