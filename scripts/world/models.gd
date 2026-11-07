@@ -327,11 +327,12 @@ static func furniture(type: String) -> Node3D:
 			part(root, box(0.02, 0.14, 0.01), INK, Vector3(0, 1.55, 0.095), Vector3.ONE, Vector3.ZERO, false)
 			part(root, box(0.1, 0.02, 0.01), INK, Vector3(0.04, 1.5, 0.095), Vector3.ONE, Vector3.ZERO, false)
 		"window":
-			part(root, box(0.9, 0.9, 0.08), c, Vector3(0, 1.35, 0.02))
-			part(root, box(0.76, 0.76, 0.04), a, Vector3(0, 1.35, 0.05), Vector3.ONE, Vector3.ZERO, false)
-			part(root, box(0.05, 0.76, 0.06), c, Vector3(0, 1.35, 0.06), Vector3.ONE, Vector3.ZERO, false)
-			part(root, box(0.76, 0.05, 0.06), c, Vector3(0, 1.35, 0.06), Vector3.ONE, Vector3.ZERO, false)
-			part(root, box(1.0, 0.08, 0.16), c.darkened(0.1), Vector3(0, 0.88, 0.08))
+			# 圓窗：木頭圓框、十字窗櫺
+			part(root, cyl(0.46, 0.46, 0.08), c, Vector3(0, 1.4, 0.02), Vector3.ONE, Vector3(90, 0, 0))
+			part(root, cyl(0.37, 0.37, 0.04), a, Vector3(0, 1.4, 0.05), Vector3.ONE, Vector3(90, 0, 0), false)
+			part(root, box(0.05, 0.74, 0.06), c, Vector3(0, 1.4, 0.07), Vector3.ONE, Vector3.ZERO, false)
+			part(root, box(0.74, 0.05, 0.06), c, Vector3(0, 1.4, 0.07), Vector3.ONE, Vector3.ZERO, false)
+			part(root, box(0.7, 0.07, 0.14), c.darkened(0.1), Vector3(0, 0.92, 0.07))
 		"door":
 			# 長方形的木板門（剛好塞滿門洞）：直木板、上下兩條橫木、斜撐，裡外兩面都有門把
 			part(root, box(0.84, 1.9, 0.07), c, Vector3(0, 0.95, 0.03))
@@ -349,19 +350,18 @@ static func furniture(type: String) -> Node3D:
 					part(root, box(0.16, 0.05, 0.03), Color("4a3a30"), Vector3(-0.34, hy, 0.03 + side_z * 0.06), Vector3.ONE, Vector3.ZERO, false)
 		"sky_door":
 			# 樹幹裡的圓頂小門（往上是螺旋樓梯），現在用兩塊木板釘成 X 封起來
+			# 樹幹上的橢圓門洞：裡面塞滿石頭，外面釘了三塊木板（往天空樹頂的樓梯暫時封住）
 			var bark := Color("5e3d26")
-			part(root, box(1.0, 1.6, 0.06), bark, Vector3(0, 0.8, 0.01))
-			part(root, cyl(0.5, 0.5, 0.06), bark, Vector3(0, 1.6, 0.01), Vector3.ONE, Vector3(90, 0, 0))
-			part(root, box(0.8, 1.55, 0.06), c, Vector3(0, 0.78, 0.04))
-			part(root, cyl(0.4, 0.4, 0.06), c, Vector3(0, 1.55, 0.04), Vector3.ONE, Vector3(90, 0, 0))
-			for gx in [-0.2, 0.0, 0.2]:
-				part(root, box(0.014, 1.9, 0.064), c.darkened(0.3), Vector3(gx, 0.95, 0.045), Vector3(1, 1, 1), Vector3.ZERO, false)
-			part(root, sphere(0.045), a, Vector3(0.27, 0.9, 0.09))
-			# 釘上去的木板
-			for deg in [34.0, -34.0]:
-				part(root, box(0.12, 1.5, 0.04), Color("c9a274"), Vector3(0, 1.05, 0.1), Vector3.ONE, Vector3(0, 0, deg))
+			part(root, cyl(0.52, 0.52, 0.08), bark, Vector3(0, 1.0, 0.01), Vector3(1, 1, 1.9), Vector3(90, 0, 0))
+			part(root, cyl(0.43, 0.43, 0.06), Color("3b3029"), Vector3(0, 1.0, 0.03), Vector3(1, 1, 1.9), Vector3(90, 0, 0), false)
+			for st in [[-0.2, 0.4], [0.15, 0.5], [-0.05, 0.75], [0.22, 0.95], [-0.22, 1.05], [0.02, 1.25], [0.2, 1.45], [-0.15, 1.55], [0.05, 1.75], [0.0, 0.28]]:
+				part(root, sphere(0.13), Color("8d8679").lerp(Color("6f6a60"), absf(st[0]) * 2.0), Vector3(st[0], st[1], 0.06), Vector3(1.1, 0.85, 0.5))
+			for bd in [[0.62, 18.0], [1.05, -12.0], [1.5, 8.0]]:
+				part(root, box(0.95, 0.14, 0.04), Color("c9a274"), Vector3(0, bd[0], 0.13), Vector3.ONE, Vector3(0, 0, bd[1]))
+				for nx in [-0.38, 0.38]:
+					part(root, sphere(0.02), Color("4a3a30"), Vector3(nx, bd[0] + nx * tan(deg_to_rad(bd[1])), 0.16), Vector3.ONE, Vector3.ZERO, false)
 			# 小木牌：暫時封閉
-			part(root, box(0.6, 0.24, 0.03), Color("efe2c4"), Vector3(0, 1.75, 0.13))
+			part(root, box(0.6, 0.24, 0.03), Color("efe2c4"), Vector3(0, 2.0, 0.13))
 			var lbl := Label3D.new()
 			lbl.text = "暫時封閉"
 			lbl.font = UIKit.font_bold()
@@ -369,7 +369,7 @@ static func furniture(type: String) -> Node3D:
 			lbl.pixel_size = 0.0032
 			lbl.modulate = Color("8a3b2a")
 			lbl.outline_size = 0
-			lbl.position = Vector3(0, 1.75, 0.15)
+			lbl.position = Vector3(0, 2.0, 0.15)
 			root.add_child(lbl)
 		"sky_crates":
 			# 疊在樓梯門前面的木箱

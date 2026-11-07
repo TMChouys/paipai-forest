@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "note": "新玩家的家（8x8）。存檔後會改存在 user://save.json。",
+  "note": "新玩家的家（10x9）。存檔後會改存在 user://save.json。",
   "size": [
-    8,
-    8
+    10,
+    9
   ],
   "gopher": {
     "cell": [
-      4,
-      5
+      5,
+      6
     ],
     "dir": "S"
   },
@@ -33,16 +33,16 @@
       "uid": "h_table",
       "type": "round_table",
       "cell": [
-        5,
-        3
+        6,
+        4
       ]
     },
     {
       "uid": "h_lamp",
       "type": "mushroom_lamp",
       "cell": [
-        5,
-        3
+        6,
+        4
       ],
       "on": "h_table"
     },
@@ -50,8 +50,8 @@
       "uid": "h_chair",
       "type": "chair_small",
       "cell": [
-        5,
-        4
+        6,
+        5
       ],
       "rot": 2
     },
@@ -59,7 +59,7 @@
       "uid": "h_pot",
       "type": "flower_pot",
       "cell": [
-        7,
+        9,
         0
       ]
     },
@@ -67,7 +67,7 @@
       "uid": "h_window",
       "type": "window",
       "cell": [
-        4,
+        3,
         0
       ],
       "wall": "N"
@@ -77,7 +77,7 @@
       "type": "picture",
       "cell": [
         0,
-        3
+        4
       ],
       "wall": "W"
     },
@@ -85,7 +85,7 @@
       "uid": "h_clock",
       "type": "clock",
       "cell": [
-        6,
+        8,
         0
       ],
       "wall": "N"
@@ -94,8 +94,8 @@
       "uid": "h_door",
       "type": "door",
       "cell": [
-        3,
-        7
+        4,
+        8
       ],
       "wall": "S"
     },
@@ -103,7 +103,7 @@
       "uid": "h_sky_door",
       "type": "sky_door",
       "cell": [
-        5,
+        6,
         0
       ],
       "wall": "N"
@@ -112,7 +112,7 @@
       "uid": "h_sky_crates",
       "type": "sky_crates",
       "cell": [
-        5,
+        6,
         0
       ]
     }

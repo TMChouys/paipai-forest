@@ -168,6 +168,18 @@ func _load_save() -> void:
 		var hf := FileAccess.open("res://data/home.json", FileAccess.READ)
 		var home: Dictionary = JSON.parse_string(hf.get_as_text())
 		save = {"version": 1, "home": home, "inventory": home.get("inventory", {}), "stars": {}, "codes": {}}
+	# 樹屋變大了（10x9）：舊存檔的房子撐大，南牆、東牆上的東西跟著牆移過去
+	var hsz: Array = save.home.get("size", [8, 8])
+	var nw := maxi(int(hsz[0]), 10)
+	var nd := maxi(int(hsz[1]), 9)
+	if nw != int(hsz[0]) or nd != int(hsz[1]):
+		for it in save.home.get("furniture", []):
+			var wl: String = it.get("wall", "")
+			if wl == "S":
+				it.cell = [int(it.cell[0]), nd - 1]
+			elif wl == "E":
+				it.cell = [nw - 1, int(it.cell[1])]
+		save.home.size = [nw, nd]
 	# 往天空樹頂的門（暫時封閉）：舊存檔補上北牆的門和堵住門的木箱
 	var has_sky := false
 	for it in save.home.get("furniture", []):
@@ -227,8 +239,8 @@ func _enter_home() -> void:
 	_spawn_visitors(home_world)
 	rig.frame_room(home_world.width, home_world.depth)
 	# 家：鏡頭往門口挪一點，看得到門口外的派派狼、派派兔和信箱
-	rig.home_focus += Vector3(-0.2, 0, 1.1)
-	rig.home_distance *= 1.06
+	rig.home_focus += Vector3(-0.3, 0, 2.3)
+	rig.home_distance *= 1.12
 	rig.reset_view()
 	rig.screen_offset = 0.0
 	rig.follow_target = null
@@ -243,7 +255,14 @@ func _enter_home() -> void:
 	if not save.get("intro_done", false):
 		_play_intro()
 	else:
+		if intro_running:  # 開場演到一半就換成已看過開場的存檔：開場停掉
+			intro_gen += 1
+			intro_running = false
+			Engine.time_scale = 1.0
+			if is_instance_valid(intro_skip_btn):
+				intro_skip_btn.queue_free()
 		_update_task_cue()
+		_start_visitor_life()
 
 
 func _set_reduce_motion(on: bool) -> void:
@@ -294,6 +313,193 @@ static func visitor_spot(who: String, w: WorldModel) -> Vector3:
 ## 面向門（稍微朝向門的中間）
 static func visitor_look(who: String) -> Vector3:
 	return Vector3(0.3, 0, -1.0) if who == "wolf" else Vector3(-0.3, 0, -1.0)
+
+
+# ---------------- 訪客的日常 ----------------
+## 派派狼和派派兔平常站在門口的小石路上；過一陣子派派兔會去胡蘿蔔園澆水，
+## 派派狼會去溪邊的木平台坐著釣魚，做一會兒再回到門口。
+var visitor_gen := 0
+var visitor_quick := false  # 截圖用：馬上去做嗜好
+
+
+func _start_visitor_life() -> void:
+	visitor_gen += 1
+	for who in ["wolf", "rabbit"]:
+		_visitor_loop(who, visitor_gen)
+
+
+func _visitor_ok(who: String, gen: int) -> bool:
+	return gen == visitor_gen and mode == "home" and not intro_running and room.npcs.has(who) and is_instance_valid(room.npcs[who])
+
+
+func _visitor_wait(sec: float, who: String, gen: int) -> bool:
+	var until := Time.get_ticks_msec() + int(sec * 1000)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+		if not _visitor_ok(who, gen):
+			return false
+	return true
+
+
+## 從門口走到嗜好地點的路線（屋外直線走，不穿過房子和柵欄）
+func _hobby_route(who: String) -> Array:
+	var d := float(home_world.depth)
+	if who == "wolf":
+		var fs := room.fishing_spot()
+		var gap_x := room.yard_x0()
+		return [Vector3(gap_x + 0.7, RoomView.GRASS_Y, fs.z), Vector3(gap_x - 0.3, RoomView.GRASS_Y, fs.z), Vector3(fs.x + 0.3, fs.y, fs.z)]
+	var gc := room.garden_center()
+	return [Vector3(gc.x - 2.1, RoomView.GRASS_Y, d + 3.2), Vector3(gc.x - 2.1, RoomView.GRASS_Y, gc.z - 0.3)]
+
+
+func _visitor_loop(who: String, gen: int) -> void:
+	var first := true
+	while true:
+		if not await _visitor_wait(1.0 if visitor_quick else (randf_range(14.0, 24.0) if first else randf_range(10.0, 18.0)), who, gen):
+			return
+		first = false
+		var a: GopherActor = room.npcs[who]
+		var route := _hobby_route(who)
+		for p in route:
+			await _intro_walk(a, p)
+			if not _visitor_ok(who, gen):
+				return
+		if who == "wolf":
+			await _wolf_fishing(a, gen)
+		else:
+			await _rabbit_watering(a, gen)
+		if not _visitor_ok(who, gen):
+			return
+		route.reverse()
+		route.remove_at(0)
+		var home := visitor_spot(who, home_world)
+		home.y = RoomView.GRASS_Y
+		route.append(home)
+		for p in route:
+			await _intro_walk(a, p)
+			if not _visitor_ok(who, gen):
+				return
+		a.face_vector(visitor_look(who))
+
+
+## 派派狼：坐在木平台邊，拿釣竿，浮標在水上一上一下
+func _wolf_fishing(a: GopherActor, gen: int) -> void:
+	a.face("W")
+	a.set_seated(true)
+	var rod := Node3D.new()
+	rod.name = "FishingRod"
+	a.model.add_child(rod)
+	rod.position = Vector3(0.12, 0.32, 0.22)
+	var stick := Models.part(rod, Models.cyl(0.008, 0.018, 1.3), Color("8a6646"), Vector3(0, 0, 0))
+	stick.rotation_degrees = Vector3(55, 0, 0)
+	stick.position = Vector3(0, 0.37, 0.53)
+	var fs := room.fishing_spot()
+	var bob_pos := Vector3(room.stream_x(fs.z) - 0.1, RoomView.GRASS_Y + 0.04, fs.z + 0.15)
+	var bob := Node3D.new()
+	room.add_child(bob)
+	bob.position = bob_pos
+	Models.part(bob, Models.sphere(0.05), Color("e0553e"), Vector3(0, 0.03, 0))
+	Models.part(bob, Models.sphere(0.04), Color("f6efe0"), Vector3(0, -0.01, 0), Vector3(1, 0.6, 1), Vector3.ZERO, false)
+	await get_tree().process_frame
+	var tip := (stick.global_transform * Vector3(0, 0.65, 0))
+	var line := MeshInstance3D.new()
+	var lm := StandardMaterial3D.new()
+	lm.albedo_color = Color(0.95, 0.95, 0.9, 0.8)
+	lm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	line.mesh = Models.cyl(0.004, 0.004, tip.distance_to(bob_pos))
+	line.material_override = lm
+	room.add_child(line)
+	var up := (tip - bob_pos).normalized()
+	var side := up.cross(Vector3.FORWARD).normalized()
+	line.transform = Transform3D(Basis(side, up, side.cross(up)), (tip + bob_pos) / 2)
+	var bt := bob.create_tween().set_loops()
+	bt.tween_property(bob, "position:y", bob_pos.y - 0.025, 0.9).set_trans(Tween.TRANS_SINE)
+	bt.tween_property(bob, "position:y", bob_pos.y + 0.01, 0.9).set_trans(Tween.TRANS_SINE)
+	if randf() < 0.5:
+		a.say("（今天會釣到大魚嗎……）", "think")
+	await _visitor_wait(randf_range(22.0, 34.0), "wolf", gen)
+	if randf() < 0.4 and _visitor_ok("wolf", gen):
+		a.hop(0.1)
+		a.say("釣到了！……喔，是一隻小鞋子。", "say")
+		await _visitor_wait(2.5, "wolf", gen)
+	for n in [rod, bob, line]:
+		if is_instance_valid(n):
+			n.queue_free()
+	if is_instance_valid(a):
+		a.set_seated(false)
+
+
+## 派派兔：拿著澆水壺，往胡蘿蔔澆水（壺嘴往下、水滴落到菜圃）
+func _rabbit_watering(a: GopherActor, gen: int) -> void:
+	a.face("E")
+	var can := _make_watering_can()
+	a.carry_anchor.add_child(can)
+	can.position = Vector3.ZERO
+	a.carried = can
+	if randf() < 0.5:
+		a.say("胡蘿蔔快快長大～", "say")
+	var spots := [room.garden_center() + Vector3(-2.1, 0, -0.3), room.garden_center() + Vector3(-2.1, 0, 0.6)]
+	for i in range(4):
+		if not _visitor_ok("rabbit", gen):
+			break
+		if i == 2:
+			var sp: Vector3 = spots[1]
+			sp.y = RoomView.GRASS_Y
+			await _intro_walk(a, sp, "E")
+		var tw := can.create_tween()
+		tw.tween_property(can, "rotation:x", 0.65, 0.4).set_trans(Tween.TRANS_SINE)
+		await tw.finished
+		for k in range(7):
+			_water_drop(can)
+			if not await _visitor_wait(0.18, "rabbit", gen):
+				break
+		var tw2 := can.create_tween()
+		tw2.tween_property(can, "rotation:x", 0.0, 0.35).set_trans(Tween.TRANS_SINE)
+		await tw2.finished
+		if not await _visitor_wait(randf_range(2.0, 3.5), "rabbit", gen):
+			break
+	if is_instance_valid(a):
+		a.carried = null
+	if is_instance_valid(can):
+		can.queue_free()
+
+
+func _water_drop(can: Node3D) -> void:
+	if not is_instance_valid(can):
+		return
+	var spout := can.get_node_or_null("Spout") as Node3D
+	var from := spout.global_position if spout else can.global_position
+	var drop := MeshInstance3D.new()
+	drop.mesh = Models.sphere(0.025)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.6, 0.82, 0.95, 0.9)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	drop.material_override = m
+	room.add_child(drop)
+	drop.global_position = from + Vector3(randf_range(-0.03, 0.03), 0, randf_range(-0.03, 0.03))
+	var to := drop.position + Vector3(0.12, 0, 0)
+	to.y = RoomView.GRASS_Y + 0.12
+	var tw := drop.create_tween()
+	tw.tween_property(drop, "position", to, 0.45).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tw.tween_callback(drop.queue_free)
+
+
+## 澆水壺：壺嘴朝前（+z），名字叫 Spout 的節點是出水口
+static func _make_watering_can() -> Node3D:
+	var root := Node3D.new()
+	root.name = "WateringCan"
+	var col := Color("6fa3b3")
+	Models.part(root, Models.cyl(0.1, 0.11, 0.2), col, Vector3(0, 0.0, 0))
+	Models.part(root, Models.cyl(0.105, 0.105, 0.03), col.darkened(0.15), Vector3(0, 0.1, 0), Vector3.ONE, Vector3.ZERO, false)
+	var sp := Models.part(root, Models.cyl(0.015, 0.03, 0.3), col, Vector3(0, 0.07, 0.2))
+	sp.rotation_degrees = Vector3(60, 0, 0)
+	Models.part(root, Models.box(0.03, 0.18, 0.03), col.darkened(0.2), Vector3(0, 0.12, -0.12), Vector3.ONE, Vector3(-25, 0, 0))
+	var spout := Node3D.new()
+	spout.name = "Spout"
+	spout.position = Vector3(0, 0.16, 0.34)
+	root.add_child(spout)
+	return root
 
 
 func _spawn_visitors(w: WorldModel, who_list: Array = ["wolf", "rabbit"]) -> void:
@@ -483,11 +689,12 @@ func _intro_story(gen: int) -> void:
 	# ---- 一、帶著行李走到門口（鏡頭在屋外，看得到整面南牆和門）----
 	room.cutaway = false
 	var suitcase := _make_suitcase()
-	g.carry_anchor.add_child(suitcase)
-	suitcase.position = Vector3.ZERO
-	suitcase.scale = Vector3.ONE * 0.6
-	g.carried = suitcase
-	g.position = Vector3(dx, RoomView.GRASS_Y, w.depth + 6.5)
+	g.model.add_child(suitcase)  # 右手提著（手垂在身體旁邊），走路時跟著晃
+	suitcase.position = Vector3(-0.43, 0.02, 0.02)
+	var swing := suitcase.create_tween().set_loops()
+	swing.tween_property(suitcase, "rotation:x", 0.1, 0.32).set_trans(Tween.TRANS_SINE)
+	swing.tween_property(suitcase, "rotation:x", -0.1, 0.32).set_trans(Tween.TRANS_SINE)
+	g.position = Vector3(dx, RoomView.GRASS_Y, w.depth + 10.0)
 	g.face("N")
 	g.model.rotation.y = g.target_yaw
 	rig.follow_target = null
@@ -500,6 +707,8 @@ func _intro_story(gen: int) -> void:
 	rig.distance = 8.5
 	rig.target_distance = 8.5
 	g.say("（終於到了……派森小鎮。）", "think")
+	await _intro_walk(g, _door_outside(4.5), "N")
+	if _intro_stop(gen): return
 	await _intro_walk(g, _door_outside(2.4), "N")
 	if _intro_stop(gen): return
 	rig.target_focus = Vector3(dx, 0.7, w.depth + 0.9)
@@ -538,9 +747,15 @@ func _intro_story(gen: int) -> void:
 	if _intro_stop(gen): return
 	# ---- 四、放下行李，拿掃把打掃 ----
 	var side := inside + Vector2i(-1, 0)
-	var dropped: Node3D = await g.drop(room, Vector3(side.x + 0.6, 0, side.y + 0.55))
-	if dropped != null:
-		dropped.rotation.y = 0.3
+	swing.kill()
+	var sgt := suitcase.global_transform
+	suitcase.get_parent().remove_child(suitcase)
+	room.add_child(suitcase)
+	suitcase.global_transform = sgt
+	var st2 := suitcase.create_tween().set_parallel()
+	st2.tween_property(suitcase, "position", Vector3(side.x + 0.55, 0, side.y + 0.5), 0.3)
+	st2.tween_property(suitcase, "rotation", Vector3(0, 0.4, 0), 0.3)
+	await st2.finished
 	# 從行李裡拿出掃把，雙手握著：握把在手上，刷子碰到身體前面的地板
 	var broom := _make_broom(g.carry_anchor.position.y)
 	intro_props.append(broom)
@@ -720,16 +935,19 @@ func _show_photo_card(on: bool) -> void:
 
 
 # ---- 開場的道具 ----
+## 大皮箱：原點在箱子底部；長邊朝前後（提在身體旁邊不會撞到腳），提把在上面
 static func _make_suitcase() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Suitcase"
 	var body := Color("b5643c")
-	Models.part(root, Models.box(0.55, 0.4, 0.22), body, Vector3(0, 0.2, 0))
-	Models.part(root, Models.box(0.57, 0.05, 0.24), Color("8a4a2c"), Vector3(0, 0.26, 0), Vector3.ONE, Vector3.ZERO, false)
-	for x in [-0.17, 0.17]:
-		Models.part(root, Models.box(0.04, 0.42, 0.235), Color("e8c98a"), Vector3(x, 0.2, 0), Vector3.ONE, Vector3.ZERO, false)
-	Models.part(root, Models.box(0.2, 0.05, 0.05), Color("5e3d26"), Vector3(0, 0.44, 0))
-	Models.part(root, Models.sphere(0.05), Color("f6e3b8"), Vector3(0.12, 0.12, 0.115), Vector3(1, 1, 0.3), Vector3.ZERO, false)
+	Models.part(root, Models.box(0.17, 0.32, 0.46), body, Vector3(0, 0.17, 0))
+	Models.part(root, Models.box(0.18, 0.04, 0.47), Color("8a4a2c"), Vector3(0, 0.22, 0), Vector3.ONE, Vector3.ZERO, false)
+	for z in [-0.14, 0.14]:
+		Models.part(root, Models.box(0.185, 0.33, 0.035), Color("e8c98a"), Vector3(0, 0.17, z), Vector3.ONE, Vector3.ZERO, false)
+	Models.part(root, Models.box(0.05, 0.05, 0.16), Color("5e3d26"), Vector3(0, 0.355, 0))
+	Models.part(root, Models.box(0.03, 0.06, 0.03), Color("5e3d26"), Vector3(0, 0.335, -0.07), Vector3.ONE, Vector3.ZERO, false)
+	Models.part(root, Models.box(0.03, 0.06, 0.03), Color("5e3d26"), Vector3(0, 0.335, 0.07), Vector3.ONE, Vector3.ZERO, false)
+	Models.part(root, Models.sphere(0.04), Color("f6e3b8"), Vector3(0.09, 0.1, 0.12), Vector3(0.3, 1, 1), Vector3.ZERO, false)
 	return root
 
 
@@ -894,6 +1112,8 @@ func _intro_final_state() -> void:
 func _end_intro() -> void:
 	Engine.time_scale = 1.0
 	intro_running = false
+	if mode == "home":
+		_start_visitor_life()
 	roam_busy = false
 	roam_timer = 15.0  # 說完話大家留在原地；派派鼠在門口站一陣子，才自己走回屋裡
 	if is_instance_valid(intro_skip_btn):
@@ -1842,6 +2062,9 @@ func _auto_shot(path: String) -> void:
 			_load_save()
 			save.intro_done = s == "fresh"
 			_enter_home()
+		elif s == "hobbies":
+			visitor_quick = true
+			_start_visitor_life()
 		elif s.begins_with("answer:"):
 			panel.submit_answer(s.substr(7))
 		elif s.begins_with("look:"):
