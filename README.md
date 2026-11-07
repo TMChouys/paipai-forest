@@ -3,6 +3,8 @@
 3D 繪本風家具佈置遊戲。故事：派派鼠剛搬進派派森林的地洞樹屋，派派狼帶著派派兔來拜訪（第一次進遊戲會演開場）。在派派森林要用 print() 才能說話，所以前三個任務是「用程式碼對話」：print() 說話 → 變數與 f-string → input() 回答派派狼的問題。
 平常用滑鼠擺家具、看派派鼠閒晃；接派派狼的任務時，才進入寫程式模式。學生用簡化版 Python 照「任務單」寫程式，派派鼠和家具會把程式演一遍，交件後由檢查器列出評估報告。
 
+**線上試玩：https://tmchouys.github.io/paipai-forest/**（第一次載入約 65 MB）
+
 ## 執行
 
 ```bash
@@ -14,6 +16,14 @@
 ```bash
 "D:/Godot_v4/Godot_v4.7.2-stable_win64_console.exe" --headless --path . --script res://tests/run_tests.gd
 ```
+
+網頁版（GitHub Pages，`gh-pages` 分支）：
+
+```bash
+"D:/Godot_v4/Godot_v4.7.2-stable_win64_console.exe" --headless --path . --export-release "Web" build/web/index.html
+```
+
+再把 `build/web/` 的內容（加一個空的 `.nojekyll`）推到 `gh-pages` 分支。匯出設定在 `export_presets.cfg`（單執行緒版，GitHub Pages 不需要特殊標頭；`docs/` `tools/` `tests/` 和模型原始檔不打包）。網頁版沒有系統字型，所以內附 `fonts/NotoSansTC.ttf`（OFL），並打包 ICU 斷行資料讓中文能自動換行。
 
 開發用自動截圖：`tools/shot.sh "task:T01_print;demo_bg;wait:5;png:C:/…/a.png"`（步驟見 `scripts/main.gd` 的 `_auto_shot`）。
 
@@ -69,5 +79,4 @@ data/furniture.json 家具定義；data/home.json 新玩家的家
 
 - 正式 3D 模型：派派鼠、派派兔、派派狼由混元 3D（Hunyuan3D-2）生成，經 `tools/blender/rig_hy3d.py` 修正並上骨架（`models/gopher/gopher_rigged.glb`、`models/rabbit/rabbit_rigged.glb`、`models/wolf/wolf_rigged.glb`；用法 `blender -b -P rig_hy3d.py -- kenney.glb 原檔.glb 輸出.glb gopher|rabbit|wolf`）、小椅子（`models/chair.glb`，陽光小椅子用 `model_tint` 染黃）。其餘家具仍是程式拼的佔位模型；Thrixel 免費額度剩 13 方塊，雕塑次數 2026-12-01 重置。換模型：把 GLB 放進 `models/`，在 `furniture.json` 填 `model`（可選 `model_fill` `model_yaw` `model_tint`），會自動縮放貼地並加描邊。
 - Kenney 模型（CC0，免費可商用，不需標註；授權檔在 `models/kenney/License-*.txt`）：Furniture Kit 的桌子、圓桌、書櫃、盆栽、沙發、邊桌、長椅、衣帽架、復古電視、收音機、書、小盆栽；Nature Kit 與 Fantasy Town Kit 的樹、花、灌木、蘑菇、石子路、柵欄、路燈、噴水池、攤位、推車（屋外小鎮景色，見 `room_view.gd` 的 `OUTDOOR`）。載入時會自動校正 Kenney 偏白的顏色並套繪本色票（`models.gd` 的 `KENNEY_PALETTE`）。
-- 網頁版：需要安裝 Godot 網頁匯出範本，並放入 Noto Sans TC 字型到 `fonts/`（網頁沒有系統中文字型）。
 - 管理員的任務設計器（第二版）。
