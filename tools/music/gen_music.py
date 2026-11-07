@@ -62,6 +62,13 @@ def finish(a: np.ndarray, sr: int, loop: bool) -> np.ndarray:
     return a.astype(np.float32)
 
 
+def write_ogg(path: str, a: np.ndarray, sr: int) -> None:
+    """分段寫入：libsndfile 一次寫很長的 Vorbis 會當掉。"""
+    with sf.SoundFile(path, "w", sr, 1, format="OGG", subtype="VORBIS") as f:
+        for i in range(0, len(a), 4096):
+            f.write(a[i:i + 4096])
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("names", nargs="*")
@@ -90,7 +97,8 @@ def main() -> None:
             a = out[0, 0].float().cpu().numpy()
             a = finish(a, sr, loop)
             path = f"{OUT}/{name}_{k}.ogg"
-            sf.write(path, a, sr, format="OGG", subtype="VORBIS")
+            sf.write(f"{OUT}/{name}_{k}.wav", a, sr)  # 原始檔留一份
+            write_ogg(path, a, sr)
             print("wrote", path, round(len(a) / sr, 1), "s", flush=True)
             if k == 1:
                 shutil.copy(path, os.path.join(GAME, f"{name}.ogg"))
