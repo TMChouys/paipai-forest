@@ -17,7 +17,7 @@ PROFILES = {
                 1: [(0, 0), (48, 35), (92, 120), (241, 218), (255, 248)],
                 2: [(0, 0), (18, 7), (32, 50), (201, 169), (255, 232)]},
         zones=[(0.2, -0.015, 0.48, 0.13, 0.085, 0.06)],
-        neck=0.39, hip=0.105, foot=(0.135, -0.03),
+        neck=0.39, hip=0.105, foot=(0.135, -0.03), foot_y=(0.015, 0.075),  # 腳跟在 y≈0.01，後面是肚子
         shoulder=(0.215, -0.05, 0.35), paw=(0.245, -0.07, 0.175), arm_out=(0.2, 0.232),
         arm_z=(0.15, 0.37)),
     "rabbit": dict(
@@ -86,24 +86,50 @@ co *= s
 print("SCALE", round(s, 4), "orig height", round(zmax - zmin, 3))
 
 # ---------- 3. 修腳：後半段多出來的兩個肉墊抬平到肚子底部 ----------
-Y_SPLIT = 0.011     # 前腳（有腳趾）在 y < 0，後面的肉墊在 y > 0.011
-LIFT = 0.049        # 肚子底部離地高度
+# 原模型每邊是一整條長腳底（y -0.12 ~ +0.13）。前半（有腳趾）保留成一隻腳，
+# 腳印是橢圓：腳跟圓圓地收起來，不會像被斜斜削掉一塊；橢圓外面才抬到肚子底部。
+LIFT = 0.049                 # 肚子底部離地高度
+FOOT_CX, FOOT_CY = 0.152, -0.05   # 腳印中心（左右對稱）
+FOOT_RX, FOOT_RY = 0.08, 0.062    # 腳印半徑：腳跟收在原本前腳和肉墊之間的摺痕（y≈+0.01）
 moved = []
 for i in (range(len(co)) if P["feet"] else []):
     x, y, z = co[i]
-    L = LIFT * smoothstep(Y_SPLIT - 0.005, Y_SPLIT + 0.045, y)
-    if z < L:
-        co[i, 2] = L
+    dx = (abs(x) - FOOT_CX) / FOOT_RX
+    dy = max(y - FOOT_CY, 0.0) / FOOT_RY   # 前面（腳趾那頭）不動
+    d = (dx * dx + dy * dy) ** 0.5
+    t = min(max((d - 0.85) / 0.4, 0.0), 1.0)
+    # 肚子底部是碗狀（中間低 3.4 cm、兩側約 7 cm）：抬到碗面上，才不會留下一片平板
+    bowl = 0.034 + 0.04 * (abs(x) / 0.23) ** 2
+    L = bowl * (1.0 - (1.0 - t * t) ** 0.5)          # 四分之一圓：側面看腳跟是圓弧，不是斜切面
+    gate = smoothstep(-0.035, 0.0, y) * (1.0 - smoothstep(0.13, 0.16, y))   # 不動到腳趾和尾巴
+    if gate <= 0.0:
+        continue
+    # 肉墊往外凸出肚子的部分：往中間收進肚子底下（只收低處，越低收越多）
+    w = gate * t * (1.0 - smoothstep(0.05, 0.085, z))
+    nx = x * (1.0 - 0.3 * w)
+    nz = z + (max(z, L) - z) * gate
+    if nz != z or nx != x:
+        co[i, 0] = nx
+        co[i, 2] = nz
         moved.append(i)
 mesh.data.vertices.foreach_set("co", co.ravel())
 mesh.data.update()
 # 被抬平的地方做幾次平滑，避免出現平台和稜角
 bm = bmesh.new(); bm.from_mesh(mesh.data); bm.verts.ensure_lookup_table()
-region = set(moved)
-for i in list(moved):
-    for e in bm.verts[i].link_edges:
-        region.add(e.other_vert(bm.verts[i]).index)
-region = [bm.verts[i] for i in region]
+# 抬平的區域往外擴 4 圈，權重由內往外遞減：把抬平後的平板邊緣「融」進肚子，不留切口
+ring = {i: 1.0 for i in moved}
+front = set(moved)
+for k in range(4):
+    nxt = set()
+    for i in front:
+        for e in bm.verts[i].link_edges:
+            j = e.other_vert(bm.verts[i]).index
+            if j not in ring:
+                nxt.add(j)
+    for j in nxt:
+        ring[j] = 0.8 - 0.18 * k
+    front = nxt
+region = [bm.verts[i] for i in ring]
 def welded_smooth(verts, weight, iters, taubin=True):
     # 貼圖接縫處同一位置有多個頂點：以位置合併後再平滑，才不會裂開
     key = lambda co: (round(co.x, 5), round(co.y, 5), round(co.z, 5))
@@ -136,7 +162,8 @@ def welded_smooth(verts, weight, iters, taubin=True):
 def zone_r(x, y, z):  # 到最近一個（要磨平幾何的）橢球區的正規化距離
     return min([((((abs(x) - zx) / rx) ** 2 + ((y - zy) / ry) ** 2 + ((z - zz) / rz) ** 2) ** 0.5)
                 for zx, zy, zz, rx, ry, rz in P.get("geo", P["zones"])] + [9.0])
-welded_smooth(region, lambda v: 1.0, 6, taubin=False)  # 腳底抬平處
+welded_smooth(region, lambda v: ring.get(v.index, 0.0), 45, taubin=False)  # 腳底抬平處：多磨幾次，平板融進肚子、腳跟變圓
+welded_smooth(region, lambda v: ring.get(v.index, 0.0), 10)
 def _wf(v):  # 多出的小臉：一般 Laplacian 多次把凹痕填平，再 Taubin 修飾
     return 1 - smoothstep(0.8, 1.15, zone_r(*v.co))
 core = [v for v in bm.verts if _wf(v) > 0]
@@ -347,7 +374,7 @@ for i, (x, y, z) in enumerate(co):
     w = {}
     w["head"] = smoothstep(NECK_Z - 0.015, NECK_Z + 0.02, z)
     # 腳掌全歸腿；往上到大腿外側也跟著腿（中間肚子不跟，免得被左右扯開）
-    foot = (1.0 - smoothstep(0.055, 0.09, z)) * (1.0 - smoothstep(0.1, 0.16, y))  # 尾巴不算腳
+    foot = (1.0 - smoothstep(0.055, 0.09, z)) * (1.0 - smoothstep(*P.get("foot_y", (0.1, 0.16)), y))  # 尾巴（和腳跟後面的肚子）不算腳
     thigh = (1.0 - smoothstep(*P.get("thigh_z", (0.1, 0.17)), z)) * smoothstep(0.03, 0.08, abs(x))         * (1.0 - smoothstep(FOOT_Y + 0.03, FOOT_Y + 0.08, y))
     legs = max(foot, thigh)
     side = smoothstep(-0.03, 0.03, x)
