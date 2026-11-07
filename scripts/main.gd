@@ -234,6 +234,9 @@ func _enter_home() -> void:
 	bubbles.clear_all()
 	room.build(home_world)
 	room.set_grid_visible(false)  # 家裡不顯示格子（⋯ 選單可以打開）
+	if not save.has("yard"):
+		save.yard = room.default_yard()
+	room.yard_items = save.yard
 	room.build_outdoor(true)
 	room.gopher.bubble_requested.connect(_on_bubble)
 	_spawn_visitors(home_world)
@@ -341,15 +344,25 @@ func _visitor_wait(sec: float, who: String, gen: int) -> bool:
 	return true
 
 
-## 從門口走到嗜好地點的路線（屋外直線走，不穿過房子和柵欄）
-func _hobby_route(who: String) -> Array:
-	var d := float(home_world.depth)
+## 嗜好地點：派派狼去溪邊釣魚平台、派派兔去胡蘿蔔園西邊
+func _hobby_goal(who: String) -> Vector3:
 	if who == "wolf":
 		var fs := room.fishing_spot()
-		var gap_x := room.yard_x0()
-		return [Vector3(gap_x + 0.7, RoomView.GRASS_Y, fs.z), Vector3(gap_x - 0.3, RoomView.GRASS_Y, fs.z), Vector3(fs.x + 0.3, fs.y, fs.z)]
+		return Vector3(fs.x + 0.3, fs.y, fs.z)
 	var gc := room.garden_center()
-	return [Vector3(gc.x - 2.1, RoomView.GRASS_Y, d + 3.2), Vector3(gc.x - 2.1, RoomView.GRASS_Y, gc.z - 0.3)]
+	return Vector3(gc.x - 2.1, RoomView.GRASS_Y, gc.z - 0.3)
+
+
+## 訪客沿著前院的路線走（繞過柵欄、擺設和派派鼠）；走不到回傳 false
+func _visitor_go(a: GopherActor, who: String, gen: int, goal: Vector3) -> bool:
+	var route := room.outdoor_route(a.position, goal, a)
+	if route.is_empty():
+		return a.position.distance_to(goal) < 0.3
+	for p in route:
+		await _intro_walk(a, p)
+		if not _visitor_ok(who, gen):
+			return false
+	return true
 
 
 func _visitor_loop(who: String, gen: int) -> void:
@@ -359,26 +372,25 @@ func _visitor_loop(who: String, gen: int) -> void:
 			return
 		first = false
 		var a: GopherActor = room.npcs[who]
-		var route := _hobby_route(who)
-		for p in route:
-			await _intro_walk(a, p)
+		var goal := _hobby_goal(who)
+		if not await _visitor_go(a, who, gen, goal):
 			if not _visitor_ok(who, gen):
 				return
+			continue
 		if who == "wolf":
 			await _wolf_fishing(a, gen)
 		else:
 			await _rabbit_watering(a, gen)
 		if not _visitor_ok(who, gen):
 			return
-		route.reverse()
-		route.remove_at(0)
 		var home := visitor_spot(who, home_world)
 		home.y = RoomView.GRASS_Y
-		route.append(home)
-		for p in route:
-			await _intro_walk(a, p)
+		for tries in range(6):
+			if await _visitor_go(a, who, gen, home):
+				break
 			if not _visitor_ok(who, gen):
 				return
+			await _visitor_wait(1.5, who, gen)
 		a.face_vector(visitor_look(who))
 
 
@@ -1527,7 +1539,7 @@ func _route_to(g: GopherActor, to: Vector3) -> Array:
 			for c in path.slice(1):
 				steps.append({"cell": c})
 			return steps
-		var target := room.nearest_free(to)
+		var target := room.nearest_free(to, g)
 		var out_path := w.find_path(start, _door_inside())
 		if out_path.is_empty():
 			return []
@@ -1537,12 +1549,12 @@ func _route_to(g: GopherActor, to: Vector3) -> Array:
 		steps.append({"pos": _door_outside(0.3), "lock": true})
 		steps.append({"pos": door_out, "lock": true})
 		steps.append({"door": false, "lock": true})
-		for p in room.outdoor_route(door_out, target):
+		for p in room.outdoor_route(door_out, target, g):
 			steps.append({"pos": p})
 		return steps
 	# 在屋外
 	if to_inside:
-		var back := room.outdoor_route(g.position, door_out)
+		var back := room.outdoor_route(g.position, door_out, g)
 		if back.is_empty() and g.position.distance_to(door_out) > 0.2:
 			return []
 		for p in back:
@@ -1556,7 +1568,7 @@ func _route_to(g: GopherActor, to: Vector3) -> Array:
 		for c in path2.slice(1):
 			steps.append({"cell": c})
 		return steps
-	for p in room.outdoor_route(g.position, room.nearest_free(to)):
+	for p in room.outdoor_route(g.position, room.nearest_free(to, g), g):
 		steps.append({"pos": p})
 	return steps
 
@@ -1745,6 +1757,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.show_status(d.name + tip, get_viewport().get_mouse_position())
 		elif _wolf_under_mouse():
 			hud.show_status("派派狼：有任務要給你！", get_viewport().get_mouse_position())
+		elif _yard_under_mouse() != "":
+			var yt: String = _yard_item(_yard_under_mouse()).get("type", "")
+			hud.show_status(WorldModel.def_of(yt).name + "　點一下拿起來", get_viewport().get_mouse_position())
 		elif _mailbox_under_mouse():
 			var nm := LetterPanel.unread_count(letters.data, save.stars, save.get("letters_read", []))
 			hud.show_status("森林信箱　點一下讀信" + ("（%d 封新信）" % nm if nm > 0 else ""), get_viewport().get_mouse_position())
@@ -1766,6 +1781,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open_letters()
 			elif uid2 != "":
 				_pick_existing(uid2)
+			elif _yard_under_mouse() != "":
+				_pick_yard(_yard_under_mouse())
 			else:
 				var gp: Variant = _ground_under_mouse()
 				if gp != null:
@@ -1776,12 +1793,95 @@ func _unhandled_input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_R:
 				if not held.is_empty():
-					held.rot = (held.rot + 1) % 4
+					if held.get("yard", false):
+						held.yrot = fmod(float(held.yrot) + 45.0, 360.0)
+					else:
+						held.rot = (held.rot + 1) % 4
 					_update_held()
 			KEY_ESCAPE:
 				_cancel_held()
 			KEY_DELETE, KEY_X, KEY_BACKSPACE:
 				_store_held()
+
+
+# ---------------- 前院擺設（花草、蘑菇、石頭）----------------
+func _yard_item(uid: String) -> Dictionary:
+	for it in save.get("yard", []):
+		if it.uid == uid:
+			return it
+	return {}
+
+
+## 滑鼠指著哪一個前院擺設（看螢幕上的距離）
+func _yard_under_mouse() -> String:
+	if mode != "home":
+		return ""
+	var mp := get_viewport().get_mouse_position()
+	var best := ""
+	var best_d := INF
+	for uid in room.yard_nodes:
+		var n: Node3D = room.yard_nodes[uid]
+		if not is_instance_valid(n) or not n.visible:
+			continue
+		var it := _yard_item(uid)
+		if it.is_empty():
+			continue
+		var r := RoomView.yard_radius(it)
+		var p := n.global_position + Vector3(0, r * 0.8, 0)
+		if rig.cam.is_position_behind(p):
+			continue
+		var sp := rig.cam.unproject_position(p)
+		var edge := rig.cam.unproject_position(p + rig.cam.global_transform.basis.x * maxf(r, 0.25))
+		var dd := sp.distance_to(mp)
+		if dd < maxf(sp.distance_to(edge), 18.0) and dd < best_d:
+			best_d = dd
+			best = uid
+	return best
+
+
+func _pick_yard(uid: String) -> void:
+	var it := _yard_item(uid)
+	if it.is_empty():
+		return
+	save.yard.erase(it)
+	room.remove_yard_node(uid)
+	held = {"uid": uid, "type": it.type, "yard": true, "yrot": float(it.get("rot", 0.0)), "scale": float(it.get("scale", 1.0)), "orig": it, "target": null, "reason": ""}
+	held.node = RoomView.yard_node(it.type, held.scale)
+	room.add_child(held.node)
+	_update_held()
+
+
+func _update_held_yard() -> void:
+	var node: Node3D = held.node
+	var d := WorldModel.def_of(held.type)
+	var r := float(d.get("block", 0.3)) * float(held.scale)
+	var gp: Variant = _ground_under_mouse()
+	var reason := "放在前院的地上"
+	if gp != null:
+		var p: Vector3 = gp
+		reason = room.yard_place_ok(p.x, p.z, r)
+		node.position = Vector3(p.x, RoomView.GRASS_Y + 0.08, p.z)
+		held.target = [p.x, p.z]
+	node.rotation_degrees.y = float(held.yrot)
+	held.reason = reason
+	RoomView.tint(node, Color(0.45, 0.85, 0.45, 0.6) if reason == "" else Color(0.95, 0.4, 0.35, 0.6))
+	var nm: String = d.name
+	hud.show_status(("%s　左鍵放下・R 旋轉・Del 收起來" % nm) if reason == "" else ("%s：%s" % [nm, reason]), get_viewport().get_mouse_position(), reason != "")
+
+
+func _drop_held_yard() -> void:
+	if held.target == null:
+		return
+	if held.reason != "":
+		room.gopher.say(held.reason, "think")
+		return
+	var it := {"uid": held.uid, "type": held.type, "pos": held.target, "rot": float(held.yrot), "scale": float(held.scale)}
+	_free_held_node(held.node)
+	save.yard.append(it)
+	room.set_yard_item(it)
+	held = {}
+	hud.show_status("", Vector2.ZERO)
+	_write_save()
 
 
 func _mailbox_under_mouse() -> bool:
@@ -1839,6 +1939,12 @@ func _take_from_inventory(type: String) -> void:
 		return
 	save.inventory[type] = int(save.inventory[type]) - 1
 	hud.set_inventory(save.inventory)
+	if WorldModel.def_of(type).get("kind", "") == "yard":
+		held = {"uid": _new_uid(), "type": type, "yard": true, "yrot": 0.0, "scale": 1.0, "orig": null, "target": null, "reason": ""}
+		held.node = RoomView.yard_node(type, 1.0)
+		room.add_child(held.node)
+		_update_held()
+		return
 	held = {"uid": _new_uid(), "type": type, "rot": 0, "orig": null, "target": null, "reason": ""}
 	_make_held_node()
 	_update_held()
@@ -1858,6 +1964,9 @@ func _place_held_at(cell: Vector2i) -> void:
 
 
 func _update_held(forced: Dictionary = {}) -> void:
+	if held.get("yard", false):
+		_update_held_yard()
+		return
 	var h := _hit() if forced.is_empty() else forced
 	var d := WorldModel.def_of(held.type)
 	var item := {"uid": held.uid, "type": held.type, "cell": Vector2i.ZERO, "rot": held.rot, "on": "", "wall": ""}
@@ -1892,6 +2001,9 @@ func _update_held(forced: Dictionary = {}) -> void:
 
 
 func _drop_held() -> void:
+	if held.get("yard", false):
+		_drop_held_yard()
+		return
 	if held.is_empty() or held.target == null:
 		return
 	if held.reason != "":
@@ -1925,6 +2037,17 @@ func _drop_held() -> void:
 func _cancel_held() -> void:
 	if held.is_empty():
 		return
+	if held.get("yard", false):
+		_free_held_node(held.node)
+		if held.orig != null:
+			save.yard.append(held.orig)
+			room.set_yard_item(held.orig)
+		else:
+			save.inventory[held.type] = int(save.inventory.get(held.type, 0)) + 1
+			hud.set_inventory(save.inventory)
+		held = {}
+		hud.show_status("", Vector2.ZERO)
+		return
 	_free_held_node(held.node)
 	if held.orig != null:
 		var uid: String = held.uid
@@ -1942,6 +2065,14 @@ func _cancel_held() -> void:
 
 func _store_held() -> void:
 	if held.is_empty():
+		return
+	if held.get("yard", false):
+		_free_held_node(held.node)
+		save.inventory[held.type] = int(save.inventory.get(held.type, 0)) + 1
+		held = {}
+		hud.set_inventory(save.inventory)
+		hud.show_status("", Vector2.ZERO)
+		_write_save()
 		return
 	_free_held_node(held.node)
 	var uid: String = held.uid
@@ -2283,6 +2414,24 @@ func _auto_shot(path: String) -> void:
 		elif s.begins_with("click:"):
 			var cxz: Array = s.substr(6).split(",")
 			_click_walk_to(Vector3(float(cxz[0]), 0, float(cxz[1])))
+		elif s.begins_with("yard_move:"):
+			# yard_move:uid,x,z（測試用：搬前院擺設）
+			var ya: Array = s.substr(10).split(",")
+			_pick_yard(ya[0])
+			if not held.is_empty():
+				var x := float(ya[1])
+				var z := float(ya[2])
+				held.target = [x, z]
+				held.reason = room.yard_place_ok(x, z, RoomView.yard_radius({"type": held.type, "scale": held.scale}))
+				print("yard_move reason='", held.reason, "'")
+				if held.reason == "":
+					_drop_held_yard()
+				else:
+					_cancel_held()
+		elif s.begins_with("yard_store:"):
+			_pick_yard(s.substr(11))
+			_store_held()
+			print("inventory ", save.inventory)
 		elif s == "hobbies":
 			visitor_quick = true
 			_start_visitor_life()

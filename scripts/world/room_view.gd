@@ -27,6 +27,11 @@ var room_name := ""
 var mailbox: Node3D = null
 var yard_blockers: Array = []  # 前院裡擋路的小東西：[Vector2(x, z), 半徑]
 var _route_grid: AStarGrid2D = null
+var yard_items: Array = []  # 家裡前院的擺設（main 的存檔陣列）：{uid, type, pos:[x,z], rot, scale}
+var yard_nodes: Dictionary = {}  # uid -> Node3D
+var yard_root: Node3D = null
+var dyn_blockers: Array = []  # 算路線時暫時擋路的角色：[Vector2, 半徑]
+var grass_plane: MeshInstance3D = null
 
 
 func build(w: WorldModel) -> void:
@@ -161,6 +166,7 @@ func _build_floor() -> void:
 	grass.material_override = Models.mat(Color("8fae7a"), false)
 	grass.position = Vector3(world.width / 2.0, GRASS_Y, world.depth / 2.0)
 	floor_root.add_child(grass)
+	grass_plane = grass
 	# 圓形苔蘚地毯
 	var rug := MeshInstance3D.new()
 	rug.mesh = Models.cyl(1.4, 1.4, 0.02)
@@ -514,10 +520,20 @@ func build_outdoor(with_mailbox: bool = false) -> void:
 	yard_blockers.clear()
 	_route_grid = null
 	_build_backdrop(holder)
+	_build_terrain(holder)
 	_build_big_tree(holder)
 	_build_stream(holder)
 	_build_front_yard(holder)
 	_build_forest(holder)
+	# 前院的花草、蘑菇、石頭：家裡用存檔的（可以搬），任務房間用預設的
+	yard_root = Node3D.new()
+	yard_root.name = "YardItems"
+	add_child(yard_root)
+	yard_nodes.clear()
+	if not with_mailbox:
+		yard_items = default_yard()
+	for it in yard_items:
+		set_yard_item(it)
 
 
 ## 地洞樹屋：房子蓋在一棵大樹的樹根底下。樹幹在北牆後面，粗樹根沿著兩側牆外伸出來。
@@ -665,17 +681,23 @@ func _build_stream(holder: Node3D) -> void:
 		var x1 := stream_x(z + step)
 		var mid := Vector3((x0 + x1) / 2, 0, z + step / 2)
 		var ang := atan2(x1 - x0, step)
+		# 溪水順著地勢往下流：北邊（神木旁）比較高
+		var y0 := stream_y(z)
+		var y1 := stream_y(z + step)
+		mid.y = (y0 + y1) / 2 - GRASS_Y
+		var pitch := atan2(y0 - y1, step)
+		var seg_len := sqrt(step * step + (y0 - y1) * (y0 - y1)) + 0.1
 		var bk := MeshInstance3D.new()
-		bk.mesh = Models.box(2.5, 0.02, step + 0.1)
+		bk.mesh = Models.box(2.5, 0.02, seg_len)
 		bk.material_override = bank
 		bk.position = mid + Vector3(0, GRASS_Y + 0.004, 0)
-		bk.rotation.y = ang
+		bk.rotation = Vector3(pitch, ang, 0)
 		holder.add_child(bk)
 		var wt := MeshInstance3D.new()
-		wt.mesh = Models.box(1.6, 0.02, step + 0.1)
+		wt.mesh = Models.box(1.6, 0.02, seg_len)
 		wt.material_override = water
 		wt.position = mid + Vector3(0, GRASS_Y + 0.016, 0)
-		wt.rotation.y = ang
+		wt.rotation = Vector3(pitch, ang, 0)
 		holder.add_child(wt)
 		# 兩岸長青苔的圓石頭
 		for side in [-1.0, 1.0]:
@@ -683,30 +705,31 @@ func _build_stream(holder: Node3D) -> void:
 				var rk := MeshInstance3D.new()
 				rk.mesh = Models.sphere(rng.randf_range(0.16, 0.3))
 				rk.material_override = moss_rock
-				rk.position = mid + Vector3(side * rng.randf_range(0.85, 1.15), GRASS_Y + 0.05, rng.randf_range(-0.3, 0.3))
+				rk.position = mid + Vector3(side * rng.randf_range(0.85, 1.15), GRASS_Y + 0.07, rng.randf_range(-0.3, 0.3))
 				rk.scale = Vector3(1.2, 0.65, 1.0)
 				holder.add_child(rk)
 		z += step
 	# 兩個小瀑布：一排石頭，水從上面流下來冒白泡
-	for wz in [-2.0, 4.0]:
+	for wz in [-9.0, -5.5, -2.0, 4.0]:
 		var cx := stream_x(wz)
+		var wy := stream_y(wz) - GRASS_Y
 		for k in range(5):
 			var st := MeshInstance3D.new()
 			st.mesh = Models.sphere(0.2)
 			st.material_override = moss_rock
-			st.position = Vector3(cx - 0.65 + k * 0.32, GRASS_Y + 0.07, wz)
+			st.position = Vector3(cx - 0.65 + k * 0.32, GRASS_Y + wy + 0.07, wz)
 			st.scale = Vector3(1.0, 0.7, 0.8)
 			holder.add_child(st)
 		var fm := MeshInstance3D.new()
 		fm.mesh = Models.box(1.5, 0.03, 0.35)
 		fm.material_override = foam
-		fm.position = Vector3(cx, GRASS_Y + 0.03, wz + 0.3)
+		fm.position = Vector3(cx, stream_y(wz + 0.3) + 0.03, wz + 0.3)
 		holder.add_child(fm)
 		for k in range(4):
 			var bub := MeshInstance3D.new()
 			bub.mesh = Models.sphere(0.08)
 			bub.material_override = foam
-			bub.position = Vector3(cx - 0.5 + k * 0.33, GRASS_Y + 0.05, wz + 0.55)
+			bub.position = Vector3(cx - 0.5 + k * 0.33, stream_y(wz + 0.55) + 0.05, wz + 0.55)
 			bub.scale = Vector3(1.4, 0.5, 1.0)
 			holder.add_child(bub)
 	if not UIKit.reduce_motion:
@@ -717,7 +740,7 @@ func _build_stream(holder: Node3D) -> void:
 	for i in range(18):
 		var rz := rng.randf_range(-12.0, yard_z1() + 10.0)
 		var side2 := 1.0 if i % 2 == 0 else -1.0
-		var rp := Vector3(stream_x(rz) + side2 * rng.randf_range(0.9, 1.2), GRASS_Y, rz)
+		var rp := Vector3(stream_x(rz) + side2 * rng.randf_range(0.9, 1.2), stream_y(rz), rz)
 		if absf(rz - fishing_spot().z) < 1.2:
 			continue
 		for k in range(3):
@@ -789,9 +812,12 @@ func _build_front_yard(holder: Node3D) -> void:
 			k += 1
 	# 矮木柵欄：西邊（留缺口通往溪邊釣魚角）、南邊（中間是小門）、東邊
 	var fs := fishing_spot()
-	var runs := [[Vector3(x0, 0, d + 0.4), Vector3(x0, 0, fs.z - 0.9)], [Vector3(x0, 0, fs.z + 0.9), Vector3(x0, 0, z1)],
+	var nook_x := fs.x - 0.75  # 釣魚角的凹口一直圍到水邊（西邊是溪水）
+	var runs := [[Vector3(-0.38, 0, d + 0.3), Vector3(x0, 0, d + 0.3)], [Vector3(x0, 0, d + 0.3), Vector3(x0, 0, fs.z - 0.9)],
+		[Vector3(x0, 0, fs.z - 0.9), Vector3(nook_x, 0, fs.z - 0.9)], [Vector3(nook_x, 0, fs.z + 0.9), Vector3(x0, 0, fs.z + 0.9)],
+		[Vector3(x0, 0, fs.z + 0.9), Vector3(x0, 0, z1)],
 		[Vector3(x0, 0, z1), Vector3(dx - 0.75, 0, z1)], [Vector3(dx + 0.75, 0, z1), Vector3(x1, 0, z1)],
-		[Vector3(x1, 0, d + 0.4), Vector3(x1, 0, z1)]]
+		[Vector3(x1, 0, z1), Vector3(x1, 0, d + 0.3)], [Vector3(x1, 0, d + 0.3), Vector3(w + 0.38, 0, d + 0.3)]]
 	for r in runs:
 		var a: Vector3 = r[0]
 		var b: Vector3 = r[1]
@@ -812,6 +838,32 @@ func _build_front_yard(holder: Node3D) -> void:
 		gp.material_override = wood_dark
 		gp.position = Vector3(gx, GRASS_Y + 0.47, z1)
 		holder.add_child(gp)
+	# 關著的柵欄小門（兩片，中間有門閂）
+	for side in [-1.0, 1.0]:
+		var gcx: float = dx + side * 0.36
+		for ky in [0.2, 0.55]:
+			var rail := MeshInstance3D.new()
+			rail.mesh = Models.box(0.66, 0.07, 0.05)
+			rail.material_override = wood
+			rail.position = Vector3(gcx, GRASS_Y + ky, z1)
+			holder.add_child(rail)
+		for kx in [-0.24, 0.0, 0.24]:
+			var pk := MeshInstance3D.new()
+			pk.mesh = Models.box(0.1, 0.62, 0.04)
+			pk.material_override = wood
+			pk.position = Vector3(gcx + kx, GRASS_Y + 0.36, z1 + 0.03)
+			holder.add_child(pk)
+		var brace := MeshInstance3D.new()
+		brace.mesh = Models.box(0.05, 0.5, 0.03)
+		brace.material_override = wood_dark
+		brace.position = Vector3(gcx, GRASS_Y + 0.38, z1 + 0.06)
+		brace.rotation.z = side * 0.75
+		holder.add_child(brace)
+	var latch := MeshInstance3D.new()
+	latch.mesh = Models.box(0.16, 0.05, 0.05)
+	latch.material_override = Models.mat(Color("5e4a3a"))
+	latch.position = Vector3(dx, GRASS_Y + 0.45, z1 + 0.07)
+	holder.add_child(latch)
 	# 胡蘿蔔園（派派兔常來澆水）
 	var gc := garden_center()
 	var soil := Models.mat(Color("54402e"), false)
@@ -870,56 +922,6 @@ func _build_front_yard(holder: Node3D) -> void:
 	lbl.position = gc + Vector3(-1.9, GRASS_Y + 0.55, -1.3) + Vector3(sin(0.5), 0, cos(0.5)) * 0.03
 	lbl.rotation.y = 0.5
 	holder.add_child(lbl)
-	# 前院角落的大蘑菇
-	var caps := [[Vector3(x1 - 0.8, 0, z1 - 0.9), 0.55, 0.75], [Vector3(x1 - 1.45, 0, z1 - 0.55), 0.42, 0.55]]
-	for cpz in caps:
-		var mpos: Vector3 = cpz[0]
-		var cr: float = cpz[1]
-		var ch: float = cpz[2]
-		var stem := MeshInstance3D.new()
-		stem.mesh = Models.cyl(cr * 0.38, cr * 0.48, ch)
-		stem.material_override = Models.mat(Color("efe3c8"))
-		stem.position = mpos + Vector3(0, GRASS_Y + ch / 2, 0)
-		holder.add_child(stem)
-		var cap := MeshInstance3D.new()
-		cap.mesh = Models.sphere(cr)
-		cap.material_override = Models.mat(Color("c9783e"))
-		cap.position = mpos + Vector3(0, GRASS_Y + ch, 0)
-		cap.scale = Vector3(1, 0.55, 1)
-		holder.add_child(cap)
-		for k3 in range(5):
-			var dot := MeshInstance3D.new()
-			dot.mesh = Models.sphere(cr * 0.1)
-			dot.material_override = Models.mat(Color("f3dcae"), false)
-			var aa := k3 * TAU / 5.0
-			dot.position = mpos + Vector3(cos(aa) * cr * 0.5, GRASS_Y + ch + cr * 0.4, sin(aa) * cr * 0.5)
-			holder.add_child(dot)
-	# 前院裡的小花、草叢、苔石
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 5
-	var deco := ["flower_redA", "flower_yellowA", "flower_purpleA", "plant_bush", "flower_yellowA"]
-	for i in range(26):
-		var px := rng.randf_range(x0 + 0.4, x1 - 0.4)
-		var pz := rng.randf_range(d + 0.7, z1 - 0.4)
-		var pp := Vector3(px, 0, pz)
-		if absf(px - dx) < 2.4 and pz < d + 6.5:
-			continue  # 門口空地
-		if absf(px - dx) < 1.0:
-			continue  # 小石路
-		if absf(px - gc.x) < 2.3 and absf(pz - gc.z) < 1.8:
-			continue  # 菜園
-		if pp.distance_to(Vector3(fs.x, 0, fs.z)) < 2.2:
-			continue
-		_place_nature(holder, deco[i % deco.size()], pp, rng.randf_range(0.45, 0.7) if i % 5 != 3 else 0.85, rng.randf() * 360)
-	for i in range(6):
-		var rk := MeshInstance3D.new()
-		rk.mesh = Models.sphere(rng.randf_range(0.22, 0.4))
-		rk.material_override = Models.mat(Color("8f9e62"))
-		rk.position = Vector3(rng.randf_range(x0 + 0.5, x0 + 2.0) if i % 2 == 0 else rng.randf_range(x1 - 1.0, x1 - 0.4), GRASS_Y + 0.08, rng.randf_range(d + 4.0, z1 - 0.5))
-		rk.scale = Vector3(1.2, 0.75, 1.0)
-		holder.add_child(rk)
-		yard_blockers.append([Vector2(rk.position.x, rk.position.z), 0.55])
-
 
 func _place_nature(holder: Node3D, model_name: String, pos: Vector3, size: float, yaw: float) -> void:
 	var path := "res://models/kenney/nature/%s.glb" % model_name
@@ -929,7 +931,7 @@ func _place_nature(holder: Node3D, model_name: String, pos: Vector3, size: float
 	var wrap := Node3D.new()
 	wrap.add_child(n)
 	Models.fit(n, Vector3(size, size, size))
-	wrap.position = Vector3(pos.x, -0.1, pos.z)
+	wrap.position = Vector3(pos.x, ground_y(pos.x, pos.z) + 0.01, pos.z)
 	wrap.rotation_degrees.y = yaw
 	holder.add_child(wrap)
 
@@ -1136,11 +1138,14 @@ func _build_backdrop(holder: Node3D) -> void:
 func outdoor_free(x: float, z: float) -> bool:
 	var d := float(world.depth)
 	var fs := fishing_spot()
-	if absf(z - fs.z) < 0.5 and x > stream_x(z) + 0.75 and x < yard_x0() + 0.5:
-		return Vector2(x, z).distance_to(Vector2(fs.x + 0.45, fs.z + 0.4)) > 0.4  # 柵欄缺口 → 釣魚平台（避開水桶）
-	if x < yard_x0() + 0.3 or x > yard_x1() - 0.3 or z < d + 0.45 or z > yard_z1() - 0.3:
-		return false
 	var p := Vector2(x, z)
+	for db in dyn_blockers:
+		if p.distance_to(db[0]) < db[1]:
+			return false
+	if absf(z - fs.z) < 0.55 and x > fs.x - 0.65 and x < yard_x0() + 0.5:
+		return p.distance_to(Vector2(fs.x + 0.45, fs.z + 0.4)) > 0.4  # 釣魚角（避開水桶）
+	if x < yard_x0() + 0.3 or x > yard_x1() - 0.3 or z < d + 0.55 or z > yard_z1() - 0.3:
+		return false
 	if p.distance_to(Vector2(0, d)) < 0.95 or p.distance_to(Vector2(world.width, d)) < 0.95:
 		return false  # 房子轉角的樹幹
 	var gc := garden_center()
@@ -1148,10 +1153,9 @@ func outdoor_free(x: float, z: float) -> bool:
 		return false
 	if p.distance_to(Vector2(gc.x - 1.9, gc.z - 1.3)) < 0.35:
 		return false  # 菜園木牌
-	var x1 := yard_x1()
-	var z1 := yard_z1()
-	if p.distance_to(Vector2(x1 - 0.8, z1 - 0.9)) < 0.85 or p.distance_to(Vector2(x1 - 1.45, z1 - 0.55)) < 0.7:
-		return false
+	for it in yard_items:
+		if p.distance_to(Vector2(float(it.pos[0]), float(it.pos[1]))) < yard_radius(it) + 0.2:
+			return false
 	if mailbox != null and is_instance_valid(mailbox) and p.distance_to(Vector2(mailbox.position.x, mailbox.position.z)) < 0.45:
 		return false
 	for bl in yard_blockers:
@@ -1194,8 +1198,44 @@ func _route_point(c: Vector2i) -> Vector3:
 	return Vector3(o.x + c.x * ROUTE_CELL, GRASS_Y, o.y + c.y * ROUTE_CELL)
 
 
-## 離 p 最近、可以站的地方
-func nearest_free(p: Vector3) -> Vector3:
+## 算路線前：其他角色（派派鼠、派派狼、派派兔）站的地方暫時當成擋路的
+func _begin_dynamic(ignore: Node3D) -> Array:
+	_ensure_route_grid()
+	dyn_blockers.clear()
+	var actors: Array = [gopher]
+	actors.append_array(npcs.values())
+	for a in actors:
+		if a == null or not is_instance_valid(a) or a == ignore or not a.visible:
+			continue
+		dyn_blockers.append([Vector2(a.position.x, a.position.z), 0.5])
+	var marked: Array = []
+	var reg := _route_grid.region
+	for db in dyn_blockers:
+		var c := _route_cell(Vector3(db[0].x, 0, db[0].y))
+		for i in range(-2, 3):
+			for j in range(-2, 3):
+				var cc: Vector2i = c + Vector2i(i, j)
+				if reg.has_point(cc) and not _route_grid.is_point_solid(cc) and _route_point(cc).distance_to(Vector3(db[0].x, GRASS_Y, db[0].y)) < db[1]:
+					_route_grid.set_point_solid(cc, true)
+					marked.append(cc)
+	return marked
+
+
+func _end_dynamic(marked: Array) -> void:
+	for cc in marked:
+		_route_grid.set_point_solid(cc, false)
+	dyn_blockers.clear()
+
+
+## 離 p 最近、可以站的地方（ignore：要走路的那個角色自己）
+func nearest_free(p: Vector3, ignore: Node3D = null) -> Vector3:
+	var marked := _begin_dynamic(ignore)
+	var q := _nearest_free(p)
+	_end_dynamic(marked)
+	return q
+
+
+func _nearest_free(p: Vector3) -> Vector3:
 	_ensure_route_grid()
 	var c := _route_cell(p)
 	var reg := _route_grid.region
@@ -1223,15 +1263,22 @@ func nearest_free(p: Vector3) -> Vector3:
 
 func _segment_free(a: Vector3, b: Vector3) -> bool:
 	var n := int(a.distance_to(b) / 0.12) + 1
-	for i in range(n + 1):
+	for i in range(1, n + 1):
 		var p := a.lerp(b, float(i) / n)
 		if not outdoor_free(p.x, p.z):
 			return false
 	return true
 
 
-## 屋外從 a 走到 b 的路線（繞過障礙物，盡量走直線）；回傳一串點（不含 a）。走不到回傳空陣列
-func outdoor_route(a: Vector3, b: Vector3) -> Array:
+## 屋外從 a 走到 b 的路線（繞過障礙物和其他角色，盡量走直線）；回傳一串點（不含 a）。走不到回傳空陣列
+func outdoor_route(a: Vector3, b: Vector3, ignore: Node3D = null) -> Array:
+	var marked := _begin_dynamic(ignore)
+	var r := _outdoor_route(a, b)
+	_end_dynamic(marked)
+	return r
+
+
+func _outdoor_route(a: Vector3, b: Vector3) -> Array:
 	_ensure_route_grid()
 	var ca := _route_cell(a)
 	var cb := _route_cell(b)
@@ -1264,6 +1311,225 @@ func outdoor_route(a: Vector3, b: Vector3) -> Array:
 		var p: Vector3 = out[k]
 		p.y = walk_height(p)
 		out[k] = p
+	return out
+
+
+# ---------------- 地形 ----------------
+## 地面高度（不含溪床）：房子和前院是平的；往北（神木那邊）漸漸變高，神木後面是山；兩側遠處有小丘
+func _terrain_base(x: float, z: float) -> float:
+	var rise := smoothstep(-1.0, -24.0, z)
+	var h := pow(rise, 1.4) * 6.0
+	var m := smoothstep(-12.0, -26.0, z)
+	h += m * (4.5 + 2.5 * sin(x * 0.21 + 1.3) + 1.5 * sin(x * 0.47 + 0.4))
+	# 兩側和南邊遠處的小丘（離房子、前院遠一點才開始）
+	var w := float(world.width)
+	var ox := maxf(maxf(-4.0 - x, x - (w + 4.0)), 0.0)
+	var oz := maxf(z - (yard_z1() + 2.0), 0.0)
+	var away := smoothstep(1.0, 7.0, maxf(ox, oz))
+	h += away * (0.6 + 0.5 * sin(x * 0.37 + 0.8) * cos(z * 0.29 + 0.3))
+	return minf(h, 11.0)
+
+
+## 溪水的高度（溪流中心線的地面高度）
+func stream_y(z: float) -> float:
+	return GRASS_Y + _terrain_base(stream_x(z), z) + 0.02
+
+
+## 地面高度（世界座標 y）：溪床挖低一點
+func ground_y(x: float, z: float) -> float:
+	var h := _terrain_base(x, z)
+	var dist := absf(x - stream_x(z))
+	if dist < 2.2:
+		var bed := _terrain_base(stream_x(z), z) - 0.04
+		h = lerpf(bed, h, smoothstep(1.1, 2.2, dist))
+	return GRASS_Y + h
+
+
+func _build_terrain(holder: Node3D) -> void:
+	if grass_plane != null:
+		grass_plane.visible = false
+	var cx := world.width / 2.0
+	var cz := world.depth / 2.0 + 2.0
+	var half := 34.0
+	var step := 0.8
+	var n := int(half * 2 / step)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var grass := Color("8fae7a")
+	var slope := Color("7d9c68")
+	var rock := Color("a3a58e")
+	var verts: Array = []
+	for j in range(n + 1):
+		var row: Array = []
+		for i in range(n + 1):
+			var x := cx - half + i * step
+			var z := cz - half + j * step
+			var y := ground_y(x, z)
+			var hh := y - GRASS_Y
+			var col := grass.lerp(slope, clampf(hh / 4.0, 0.0, 1.0)).lerp(rock, smoothstep(6.0, 10.0, hh))
+			row.append([Vector3(x, y, z), col])
+		verts.append(row)
+	for j in range(n):
+		for i in range(n):
+			var q := [verts[j][i], verts[j][i + 1], verts[j + 1][i + 1], verts[j + 1][i]]
+			for idx in [0, 1, 2, 0, 2, 3]:
+				st.set_color(q[idx][1])
+				st.add_vertex(q[idx][0])
+	st.generate_normals()
+	var mesh := st.commit()
+	var mi := MeshInstance3D.new()
+	mi.name = "Terrain"
+	mi.mesh = mesh
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.albedo_color = Color(1, 1, 1)
+	m.roughness = 0.95
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	Models.storybook_texture(m)
+	mi.material_override = m
+	holder.add_child(mi)
+
+
+# ---------------- 前院的擺設（花草、蘑菇、石頭）：跟家具一樣可以搬、可以收起來 ----------------
+static func yard_radius(it: Dictionary) -> float:
+	var d := WorldModel.def_of(it.type)
+	return float(d.get("block", 0.3)) * float(it.get("scale", 1.0))
+
+
+## 做一個前院擺設的模型（原點在地上）
+static func yard_node(type: String, scale: float) -> Node3D:
+	var d := WorldModel.def_of(type)
+	var root := Node3D.new()
+	root.name = type
+	if d.has("nature"):
+		var path := "res://models/kenney/nature/%s.glb" % d.nature
+		if ResourceLoader.exists(path):
+			var n := Models.glb(path)
+			root.add_child(n)
+			var s := float(d.get("fit", 0.6)) * scale
+			Models.fit(n, Vector3(s, s, s))
+		return root
+	match type:
+		"yard_mushroom":
+			var cr := 0.55 * scale
+			var ch := 0.75 * scale
+			Models.part(root, Models.cyl(cr * 0.38, cr * 0.48, ch), Color("efe3c8"), Vector3(0, ch / 2, 0))
+			Models.part(root, Models.sphere(cr), Color("c9783e"), Vector3(0, ch, 0), Vector3(1, 0.55, 1))
+			for k in range(5):
+				var aa := k * TAU / 5.0
+				Models.part(root, Models.sphere(cr * 0.1), Color("f3dcae"), Vector3(cos(aa) * cr * 0.5, ch + cr * 0.4, sin(aa) * cr * 0.5), Vector3.ONE, Vector3.ZERO, false)
+		"yard_rock":
+			var r := 0.3 * scale
+			Models.part(root, Models.sphere(r), Color("8f9e62"), Vector3(0, r * 0.45, 0), Vector3(1.2, 0.75, 1.0))
+			Models.part(root, Models.sphere(r * 0.55), Color("9aab6c"), Vector3(r * 0.5, r * 0.3, r * 0.3), Vector3(1.1, 0.7, 1.0), Vector3.ZERO, false)
+		_:
+			Models.part(root, Models.box(0.4, 0.4, 0.4), Color(d.get("color", "#cccccc")), Vector3(0, 0.2, 0))
+	return root
+
+
+func set_yard_item(it: Dictionary) -> void:
+	remove_yard_node(it.uid)
+	if yard_root == null:
+		return
+	var node := yard_node(it.type, float(it.get("scale", 1.0)))
+	yard_root.add_child(node)
+	node.position = Vector3(float(it.pos[0]), GRASS_Y, float(it.pos[1]))
+	node.rotation_degrees.y = float(it.get("rot", 0.0))
+	yard_nodes[it.uid] = node
+	_route_grid = null
+
+
+func remove_yard_node(uid: String) -> void:
+	if yard_nodes.has(uid):
+		var n: Node3D = yard_nodes[uid]
+		if is_instance_valid(n):
+			n.queue_free()
+		yard_nodes.erase(uid)
+	_route_grid = null
+
+
+func yard_changed() -> void:
+	_route_grid = null
+
+
+## 前院這個位置能不能放（半徑 r 的擺設；ignore 是正在搬的那一個）
+func yard_place_ok(x: float, z: float, r: float) -> String:
+	var d := float(world.depth)
+	if z < d + 0.2:
+		return "這個要放在屋外的前院"
+	if x < yard_x0() + r or x > yard_x1() - r or z < d + 0.5 + r or z > yard_z1() - r:
+		return "要放在柵欄裡面"
+	var gc := garden_center()
+	if absf(x - gc.x) < 1.7 + r and absf(z - gc.z) < 1.3 + r:
+		return "這裡是胡蘿蔔園"
+	if absf(x - door_x(world)) < 0.45 + r:
+		return "小石路要留給大家走"
+	var p := Vector2(x, z)
+	if p.distance_to(Vector2(0, d)) < 0.5 + r or p.distance_to(Vector2(world.width, d)) < 0.5 + r:
+		return "這裡放不下"
+	for it in yard_items:
+		if p.distance_to(Vector2(float(it.pos[0]), float(it.pos[1]))) < yard_radius(it) + r:
+			return "跟別的東西太近了"
+	if mailbox != null and is_instance_valid(mailbox) and p.distance_to(Vector2(mailbox.position.x, mailbox.position.z)) < 0.4 + r:
+		return "信箱在這裡"
+	var actors: Array = [gopher]
+	actors.append_array(npcs.values())
+	for a in actors:
+		if a != null and is_instance_valid(a) and p.distance_to(Vector2(a.position.x, a.position.z)) < 0.35 + r:
+			return "有人站在這裡"
+	return ""
+
+
+## 新家的預設前院擺設（以前程式隨機擺的花草、石頭和兩個大蘑菇）
+func default_yard() -> Array:
+	var out: Array = []
+	var d := float(world.depth)
+	var dx := door_x(world)
+	var x0 := yard_x0()
+	var x1 := yard_x1()
+	var z1 := yard_z1()
+	var gc := garden_center()
+	var fs := fishing_spot()
+	out.append({"uid": "y_mush1", "type": "yard_mushroom", "pos": [x1 - 0.8, z1 - 0.9], "rot": 0.0, "scale": 1.0})
+	out.append({"uid": "y_mush2", "type": "yard_mushroom", "pos": [x1 - 1.45, z1 - 0.55], "rot": 40.0, "scale": 0.76})
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var deco := ["yard_flower_red", "yard_flower_yellow", "yard_flower_purple", "yard_bush", "yard_flower_red", "yard_flower_purple"]
+	var k := 0
+	for i in range(40):
+		var px := rng.randf_range(x0 + 0.4, x1 - 0.4)
+		var pz := rng.randf_range(d + 0.7, z1 - 0.4)
+		var tp: String = deco[k % deco.size()]
+		var sz := rng.randf_range(0.45, 0.7) if tp != "yard_bush" else 0.85
+		var yaw := rng.randf() * 360
+		if absf(px - dx) < 2.4 and pz < d + 6.5:
+			continue
+		if absf(px - dx) < 1.0:
+			continue
+		if absf(px - gc.x) < 2.3 and absf(pz - gc.z) < 1.8:
+			continue
+		if Vector2(px, pz).distance_to(Vector2(fs.x, fs.z)) < 2.2:
+			continue
+		var fit := float(WorldModel.def_of(tp).get("fit", 0.6))
+		var it := {"uid": "y_%d" % k, "type": tp, "pos": [px, pz], "rot": yaw, "scale": sz / fit}
+		k += 1
+		var clash := false
+		for o in out:
+			if Vector2(px, pz).distance_to(Vector2(float(o.pos[0]), float(o.pos[1]))) < yard_radius(o) + yard_radius(it):
+				clash = true
+		if not clash:
+			out.append(it)
+	for i in range(6):
+		var rr := rng.randf_range(0.22, 0.4)
+		var rx := rng.randf_range(x0 + 0.5, x0 + 2.0) if i % 2 == 0 else rng.randf_range(x1 - 1.0, x1 - 0.4)
+		var rz := rng.randf_range(d + 4.0, z1 - 0.5)
+		var it2 := {"uid": "y_r%d" % i, "type": "yard_rock", "pos": [rx, rz], "rot": rng.randf() * 360, "scale": rr / 0.3}
+		var clash2 := absf(rz - fs.z) < 1.3 and rx < x0 + 1.0
+		for o in out:
+			if Vector2(rx, rz).distance_to(Vector2(float(o.pos[0]), float(o.pos[1]))) < yard_radius(o) + yard_radius(it2):
+				clash2 = true
+		if not clash2:
+			out.append(it2)
 	return out
 
 

@@ -188,6 +188,8 @@ static func capsule(r: float, h: float) -> CapsuleMesh:
 ## 回傳的 Node3D 原點 = 佔地範圍的中心、地面高度
 static func furniture(type: String) -> Node3D:
 	var d := WorldModel.def_of(type)
+	if d.get("kind", "") == "yard":
+		return RoomView.yard_node(type, 1.0)
 	var root := Node3D.new()
 	root.name = type
 	if d.has("model") and ResourceLoader.exists(d.model):
