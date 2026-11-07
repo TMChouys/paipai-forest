@@ -30,6 +30,7 @@ var mailbox: Node3D = null
 func build(w: WorldModel) -> void:
 	world = w
 	mailbox = null
+	cutaway = true  # 開場中途被打斷時，重建房間要恢復成自動隱藏前面的牆
 	for c in get_children():
 		c.queue_free()
 	furniture_nodes.clear()
@@ -182,7 +183,7 @@ func _build_floor() -> void:
 
 
 const DOOR_W := 0.9  # 門洞寬（門板 0.86）
-const DOOR_H := 1.95  # 門洞高（門板拱頂約 1.92）
+const DOOR_H := 1.92  # 門洞高（木板門 1.9）
 
 
 ## 牆上門的位置（沿著牆的座標），用來在牆上挖門洞：角色真的從門洞走進走出，不穿牆
@@ -272,20 +273,174 @@ func _build_walls() -> void:
 		# 門框：門洞兩側和上方的木框
 		for sp in _door_spans(side):
 			var frame_mat := wood_mat(Color("8a6646"), not along_x, true)
-			var depth_f: float = WALL_T + 0.06
+			var depth_f: float = WALL_T + 0.34
+			var out_n: Vector3 = OUT_N[side]
 			for x in [sp.x - 0.04, sp.y + 0.04]:
 				var post := MeshInstance3D.new()
 				post.mesh = Models.box(0.08, DOOR_H, depth_f) if along_x else Models.box(depth_f, DOOR_H, 0.08)
-				post.position = Vector3(x, DOOR_H / 2, s.pos.z) if along_x else Vector3(s.pos.x, DOOR_H / 2, x)
+				post.position = (Vector3(x, DOOR_H / 2, s.pos.z) if along_x else Vector3(s.pos.x, DOOR_H / 2, x)) + out_n * 0.14
 				post.material_override = frame_mat
 				holder.add_child(post)
 			var top := MeshInstance3D.new()
 			top.mesh = Models.box(DOOR_W + 0.16, 0.1, depth_f) if along_x else Models.box(depth_f, 0.1, DOOR_W + 0.16)
 			var mid: float = (sp.x + sp.y) / 2
-			top.position = Vector3(mid, DOOR_H + 0.05, s.pos.z) if along_x else Vector3(s.pos.x, DOOR_H + 0.05, mid)
+			top.position = (Vector3(mid, DOOR_H + 0.05, s.pos.z) if along_x else Vector3(s.pos.x, DOOR_H + 0.05, mid)) + out_n * 0.14
 			top.material_override = frame_mat
 			holder.add_child(top)
+		_treehouse_outside(holder, side, s)
 		walls[side] = holder
+
+
+# ---------------- 樹屋的外觀 ----------------
+const OUT_N := {"N": Vector3(0, 0, -1), "S": Vector3(0, 0, 1), "W": Vector3(-1, 0, 0), "E": Vector3(1, 0, 0)}
+const BARK := Color("7d5838")
+const LOG_COLS := [Color("86603f"), Color("7a5639"), Color("8f6a47")]
+const MOSS := Color("8fae6a")
+
+
+## 牆外面：一根一根橫放的圓木（帶樹皮），牆頂長青苔，南牆有垂下來的藤蔓、牆腳有小蘑菇；
+## 每個牆角是一根樹幹（後面兩根比較高、頂上有葉子），整間屋子像是蓋在樹裡面。
+func _treehouse_outside(holder: Node3D, side: String, s: Dictionary) -> void:
+	var along_x: bool = side in ["N", "S"]
+	var n: Vector3 = OUT_N[side]
+	var size: Vector3 = s.size
+	var length: float = (size.x if along_x else size.z) + 0.2
+	var lo: float = (s.pos.x if along_x else s.pos.z) - length / 2
+	var hi: float = lo + length
+	var log_mats: Array = []
+	for col in LOG_COLS:
+		log_mats.append(Models.mat(col))
+	var end_mat := Models.mat(Color("d9b98a"), false)
+	var r := 0.13
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(side + str(world.width) + str(world.depth))
+	for i in range(8):
+		var y := 0.13 + i * 0.27
+		var pieces: Array = []
+		var cur := lo
+		if y - r < DOOR_H:
+			for sp in _door_spans(side):
+				pieces.append(Vector2(cur, sp.x - 0.1))
+				cur = sp.y + 0.1
+		pieces.append(Vector2(cur, hi))
+		for pc in pieces:
+			var a: float = pc.x
+			var b: float = pc.y
+			if b - a < 0.05:
+				continue
+			var m := MeshInstance3D.new()
+			m.mesh = Models.cyl(r, r, b - a)
+			m.material_override = log_mats[(i + rng.randi_range(0, 1)) % log_mats.size()]
+			var mid := (a + b) / 2
+			var base := Vector3(mid, y, s.pos.z) if along_x else Vector3(s.pos.x, y, mid)
+			m.position = base + n * (WALL_T / 2 + r * 0.55)
+			m.rotation_degrees = Vector3(0, 0, 90) if along_x else Vector3(90, 0, 0)
+			holder.add_child(m)
+	# 牆頂的青苔
+	for k in range(4):
+		var t := rng.randf_range(0.1, 0.9)
+		var along := lo + (hi - lo) * t
+		var moss := MeshInstance3D.new()
+		moss.mesh = Models.sphere(0.35)
+		moss.material_override = Models.mat(MOSS.darkened(rng.randf_range(0.0, 0.12)), false)
+		var top := Vector3(along, WALL_H + 0.06, s.pos.z) if along_x else Vector3(s.pos.x, WALL_H + 0.06, along)
+		moss.position = top
+		moss.scale = Vector3(1.4, 0.22, 0.45) if along_x else Vector3(0.45, 0.22, 1.4)
+		holder.add_child(moss)
+	# 南牆（有門的那面）：藤蔓從牆頂垂下來，牆腳長小蘑菇
+	if side == "S":
+		var spans := _door_spans(side)
+		for vx in [0.7, 2.2, world.width - 1.6, world.width - 0.5]:
+			var blocked := false
+			for sp in spans:
+				if vx > sp.x - 0.25 and vx < sp.y + 0.25:
+					blocked = true
+			if blocked:
+				continue
+			var drop := rng.randf_range(0.7, 1.3)
+			var steps := int(drop / 0.13)
+			for j in range(steps):
+				var leaf := MeshInstance3D.new()
+				leaf.mesh = Models.sphere(0.075)
+				leaf.material_override = Models.mat(Color("6f9a52") if j % 2 == 0 else Color("85ad5f"), false)
+				leaf.position = Vector3(vx + sin(j * 1.7) * 0.06, WALL_H - j * 0.13, s.pos.z) + n * (WALL_T / 2 + 0.25)
+				leaf.scale = Vector3(1.2, 0.8, 0.6)
+				holder.add_child(leaf)
+		for mx in [0.4, 1.3, world.width - 0.9, world.width - 0.3]:
+			var blocked2 := false
+			for sp in spans:
+				if mx > sp.x - 0.3 and mx < sp.y + 0.3:
+					blocked2 = true
+			if blocked2:
+				continue
+			var cap := MeshInstance3D.new()
+			cap.mesh = Models.sphere(0.09)
+			cap.material_override = Models.mat(Color("d9644a"))
+			cap.scale = Vector3(1, 0.6, 1)
+			var foot := Vector3(mx, GRASS_Y, s.pos.z) + n * (WALL_T / 2 + 0.33)
+			cap.position = foot + Vector3(0, 0.14, 0)
+			holder.add_child(cap)
+			var stem := MeshInstance3D.new()
+			stem.mesh = Models.cyl(0.03, 0.04, 0.12)
+			stem.material_override = Models.mat(Color("f2e6cf"), false)
+			stem.position = foot + Vector3(0, 0.07, 0)
+			holder.add_child(stem)
+	# 牆角的樹幹：每面牆負責一個角（北牆：西北、東北兩個高的；南牆：西南；東牆：東南）
+	var corners: Array = []
+	match side:
+		"N": corners = [[Vector3(-WALL_T, 0, -WALL_T), true], [Vector3(world.width + WALL_T, 0, -WALL_T), true]]
+		"S": corners = [[Vector3(-WALL_T, 0, world.depth + WALL_T), false]]
+		"E": corners = [[Vector3(world.width + WALL_T, 0, world.depth + WALL_T), false]]
+	for cn in corners:
+		_corner_trunk(holder, cn[0], cn[1], rng)
+
+
+func _corner_trunk(holder: Node3D, p: Vector3, tall: bool, rng: RandomNumberGenerator) -> void:
+	var h := WALL_H + (1.5 if tall else 0.45)
+	var trunk := MeshInstance3D.new()
+	trunk.mesh = Models.cyl(0.22, 0.32, h)
+	trunk.material_override = Models.mat(BARK)
+	trunk.position = p + Vector3(0, GRASS_Y + h / 2, 0)
+	holder.add_child(trunk)
+	# 樹皮的直紋
+	for k in range(7):
+		var a := k * TAU / 7.0 + rng.randf() * 0.3
+		var st := MeshInstance3D.new()
+		st.mesh = Models.box(0.05, h * 0.85, 0.05)
+		st.material_override = Models.mat(BARK.darkened(0.22), false)
+		st.position = p + Vector3(cos(a) * 0.27, GRASS_Y + h * 0.45, sin(a) * 0.27)
+		holder.add_child(st)
+	# 樹根：往屋子外面張開
+	var out := Vector3(signf(p.x - world.width / 2.0), 0, signf(p.z - world.depth / 2.0)).normalized()
+	for k in [-0.9, 0.0, 0.9]:
+		var dir := out.rotated(Vector3.UP, k)
+		var root := MeshInstance3D.new()
+		root.mesh = Models.cyl(0.05, 0.13, 0.7)
+		root.material_override = Models.mat(BARK)
+		root.position = p + dir * 0.38 + Vector3(0, GRASS_Y + 0.1, 0)
+		root.look_at_from_position(root.position, root.position + dir, Vector3.UP)
+		root.rotate_object_local(Vector3.RIGHT, deg_to_rad(-75))
+		holder.add_child(root)
+	# 頂上：高的樹幹長出一團葉子，矮的樹幹頂著一圈青苔
+	if tall:
+		for c in [[Vector3(0, h + 0.15, 0), 0.65], [Vector3(0.45, h - 0.1, 0.1), 0.45], [Vector3(-0.4, h - 0.05, -0.15), 0.5], [Vector3(0.05, h + 0.55, -0.1), 0.42]]:
+			var ball := MeshInstance3D.new()
+			ball.mesh = Models.sphere(c[1])
+			ball.material_override = Models.mat(Color("7fa25a").darkened(rng.randf_range(0.0, 0.15)))
+			ball.position = p + Vector3(0, GRASS_Y, 0) + c[0]
+			holder.add_child(ball)
+	else:
+		var moss := MeshInstance3D.new()
+		moss.mesh = Models.sphere(0.3)
+		moss.material_override = Models.mat(MOSS, false)
+		moss.scale = Vector3(1.1, 0.35, 1.1)
+		moss.position = p + Vector3(0, GRASS_Y + h, 0)
+		holder.add_child(moss)
+		var sprout := MeshInstance3D.new()
+		sprout.mesh = Models.sphere(0.14)
+		sprout.material_override = Models.mat(Color("85ad5f"))
+		sprout.position = p + Vector3(0.05, GRASS_Y + h + 0.15, 0.02)
+		holder.add_child(sprout)
 
 
 func _build_grid() -> void:
@@ -359,7 +514,7 @@ func build_outdoor(with_mailbox: bool = false) -> void:
 		mailbox = Models.furniture("mailbox")
 		mailbox.name = "Mailbox"
 		add_child(mailbox)
-		mailbox.position = Vector3(door_x(world) + 1.0, GRASS_Y, world.depth + 0.55)
+		mailbox.position = Vector3(door_x(world) + 1.6, GRASS_Y, world.depth + 1.55)
 		mailbox.rotation.y = 0.0
 	if scene == "town":
 		# 鎮中心當背景：把整個鎮中心挪過來，讓任務格子剛好在 town_spot 前面
@@ -511,13 +666,13 @@ func _spawn_item(uid: String) -> Node3D:
 	furniture_nodes[uid] = node
 	_place_node(uid)
 	if _hides_with_wall(item):
-		# 掛牆裝飾跟著牆一起隱藏（門窗一直顯示，方便看出門口在哪）
+		# 掛牆裝飾、門窗都跟著牆一起隱藏
 		node.reparent(walls[item.wall])
 	return node
 
 
 static func _hides_with_wall(item: Dictionary) -> bool:
-	return item.wall != "" and not WorldModel.def_of(item.type).get("fixed", false)
+	return item.wall != ""  # 牆上的東西（包括門）跟著牆一起隱藏，不會剩一扇門站在那裡
 
 
 func _place_node(uid: String) -> void:

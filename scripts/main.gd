@@ -271,20 +271,21 @@ func _update_task_cue() -> void:
 		tw.tween_property(m, "position:y", m.position.y, 0.6).set_trans(Tween.TRANS_SINE)
 
 
-## 派派狼和派派兔站在門口外面（門的西邊；信箱在門的東邊）
+## 派派狼和派派兔是來拜訪的：站在門口正對面的小石路上，面向門
 static func visitor_spot(who: String, w: WorldModel) -> Vector3:
 	var dx := RoomView.door_x(w)
-	return Vector3(dx - 1.0, 0, w.depth + 0.8) if who == "wolf" else Vector3(dx - 2.05, 0, w.depth + 0.95)
+	return Vector3(dx - 0.55, 0, w.depth + 1.7) if who == "wolf" else Vector3(dx + 0.55, 0, w.depth + 1.85)
 
 
-## 站在門口等的方向：面向鏡頭這一側（看得到臉）
-const VISITOR_LOOK := Vector3(-0.35, 0, 1.0)
+## 面向門（稍微朝向門的中間）
+static func visitor_look(who: String) -> Vector3:
+	return Vector3(0.3, 0, -1.0) if who == "wolf" else Vector3(-0.3, 0, -1.0)
 
 
 func _spawn_visitors(w: WorldModel, who_list: Array = ["wolf", "rabbit"]) -> void:
 	for who in who_list:
-		var a := room.spawn_npc(who, visitor_spot(who, w), "S")
-		a.face_vector(VISITOR_LOOK)
+		var a := room.spawn_npc(who, visitor_spot(who, w), "N")
+		a.face_vector(visitor_look(who))
 		a.model.rotation.y = a.target_yaw
 		a.bubble_requested.connect(_on_bubble)
 
@@ -526,16 +527,19 @@ func _intro_story(gen: int) -> void:
 	var dropped: Node3D = await g.drop(room, Vector3(side.x + 0.6, 0, side.y + 0.55))
 	if dropped != null:
 		dropped.rotation.y = 0.3
-	var broom := _make_broom()
-	room.add_child(broom)
+	# 從行李裡拿出掃把，雙手握著：握把在手上，刷子碰到身體前面的地板
+	var broom := _make_broom(g.carry_anchor.position.y)
 	intro_props.append(broom)
-	broom.position = Vector3(side.x + 0.55, 0.3, side.y + 0.4)
-	await g.pick(broom)
+	if g.anthro:
+		g.play_once(["pick-up"], 0.6)
+	g.carry_anchor.add_child(broom)
+	broom.position = Vector3.ZERO
+	broom.scale = Vector3.ONE * 0.2
+	g.carried = broom
+	var bt := broom.create_tween()
+	bt.tween_property(broom, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await bt.finished
 	if _intro_stop(gen): return
-	# 掃把拿在身體側邊、大一點，從後面也看得到
-	var bt := broom.create_tween().set_parallel()
-	bt.tween_property(broom, "scale", Vector3.ONE * 0.95, 0.2)
-	bt.tween_property(broom, "position", Vector3(0.32, -0.2, 0.05), 0.2)
 	var cur := inside
 	for c in [Vector2i(5, 6), Vector2i(3, 3)]:
 		await _intro_path(g, cur, c)
@@ -552,7 +556,7 @@ func _intro_story(gen: int) -> void:
 	wolf.position = _door_outside(0.55)
 	rabbit.position = rabbit_spot
 	wolf.face("N")
-	rabbit.face_vector(VISITOR_LOOK)
+	rabbit.face_vector(visitor_look("rabbit"))
 	wolf.model.rotation.y = wolf.target_yaw
 	rabbit.model.rotation.y = rabbit.target_yaw
 	wolf.visible = true
@@ -570,7 +574,9 @@ func _intro_story(gen: int) -> void:
 	# 掃把先靠在牆邊，走到門口
 	var broom2 := g.carried
 	if broom2 != null:
-		await g.drop(room, GopherActor.cell_pos(cur) + Vector3(0.3, 0, 0.3))
+		var lean := GopherActor.cell_pos(cur) + Vector3(0.3, 0, 0.3)
+		lean.y = g.carry_anchor.position.y  # 握把的高度：放下後刷子剛好碰地
+		await g.drop(room, lean)
 	await _intro_path(g, cur, inside, "S")
 	w.gopher_cell = inside
 	if _intro_stop(gen): return
@@ -578,19 +584,21 @@ func _intro_story(gen: int) -> void:
 	await room.swing_door(true)
 	if _intro_stop(gen): return
 	await _intro_walk(wolf, wolf_spot)
-	wolf.face_vector(Vector3(1, 0, -0.3))
+	wolf.face_vector(visitor_look("wolf"))
 	if _intro_stop(gen): return
 	# ---- 六、派派鼠走到屋外，在門口跟他們說話（鏡頭回到屋外南邊）----
 	room.cutaway = false
-	rig.target_focus = Vector3(dx - 0.8, 0.5, w.depth + 1.1)
-	rig.target_distance = 6.0
-	rig.target_yaw = deg_to_rad(14.0)
-	rig.target_pitch = deg_to_rad(-16.0)
-	var talk_spot := _door_outside(1.0)
+	# 越過訪客肩膀看派派鼠：派派鼠面向鏡頭，派派狼、派派兔轉向派派鼠
+	rig.target_focus = Vector3(dx, 0.6, w.depth + 1.3)
+	rig.target_distance = 5.0
+	rig.target_yaw = deg_to_rad(-8.0)
+	rig.target_pitch = deg_to_rad(-26.0)
+	var talk_spot := _door_outside(0.95)
 	await _intro_walk(g, talk_spot)
 	if _intro_stop(gen): return
-	g.face_vector(Vector3(-1, 0, 0.2))
-	rabbit.face_vector(Vector3(1, 0, -0.2))
+	g.face("S")
+	wolf.face_vector(talk_spot - wolf.position)
+	rabbit.face_vector(talk_spot - rabbit.position)
 	var lines := [
 		[wolf, "嘿！新來的，以後跟著我混。"],
 		[rabbit, "……哇，裡面好多灰塵。你在打掃喔？"],
@@ -611,8 +619,6 @@ func _intro_story(gen: int) -> void:
 	if _intro_stop(gen): return
 	room.cutaway = true
 	room.swing_door(false)
-	wolf.face_vector(VISITOR_LOOK)
-	rabbit.face_vector(VISITOR_LOOK)
 	rig.reset_view()
 	_clear_abandoned(0.9)
 	for c in [Vector2i(2, 4), Vector2i(5, 2), Vector2i(1, 6)]:
@@ -639,10 +645,14 @@ func _knock_door() -> void:
 func _sweep(g: GopherActor, c: Vector2i) -> void:
 	g.face("S")
 	var tw := g.create_tween()
+	var b := g.carried
+	if b == null or not is_instance_valid(b):
+		b = g.carry_anchor
+	# 以握把為軸左右掃：刷子在地上左右刷
 	for i in range(3):
-		tw.tween_property(g.carry_anchor, "rotation:z", 0.45, 0.16)
-		tw.tween_property(g.carry_anchor, "rotation:z", -0.45, 0.16)
-	tw.tween_property(g.carry_anchor, "rotation:z", 0.0, 0.12)
+		tw.tween_property(b, "rotation:z", 0.5, 0.18).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(b, "rotation:z", -0.5, 0.18).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(b, "rotation:z", 0.0, 0.12)
 	_dust_puff(GopherActor.cell_pos(c))
 	if intro_dust.has(c):
 		var pile: Node3D = intro_dust[c]
@@ -719,15 +729,22 @@ static func _make_suitcase() -> Node3D:
 	return root
 
 
-static func _make_broom() -> Node3D:
+## 掃把：原點是握把（雙手的位置），grip_h 是握把離地的高度。
+## 掃把往前斜：上端靠在肩膀後面，刷子在腳前面碰地。
+static func _make_broom(grip_h: float) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Broom"
 	var tilt := Node3D.new()
-	tilt.rotation_degrees = Vector3(0, 0, 35)
+	tilt.rotation_degrees = Vector3(-20, 0, 0)
 	root.add_child(tilt)
-	Models.part(tilt, Models.cyl(0.025, 0.025, 1.1), Color("b08457"), Vector3(0, 0.25, 0))
-	Models.part(tilt, Models.cyl(0.07, 0.17, 0.32), Color("e3c27a"), Vector3(0, -0.42, 0))
-	Models.part(tilt, Models.cyl(0.075, 0.075, 0.05), Color("b5643c"), Vector3(0, -0.27, 0), Vector3.ONE, Vector3.ZERO, false)
+	var reach := grip_h / cos(deg_to_rad(20.0))  # 握把沿著掃把到地面的長度
+	var head_h := 0.2
+	var stick_bottom := -(reach - head_h)
+	var stick_top := 0.62
+	Models.part(tilt, Models.cyl(0.022, 0.022, stick_top - stick_bottom), Color("b08457"), Vector3(0, (stick_top + stick_bottom) / 2, 0))
+	# 扇形的刷子：寬、薄，平的那面朝前
+	Models.part(tilt, Models.cyl(0.07, 0.17, head_h), Color("e3c27a"), Vector3(0, stick_bottom - head_h / 2, 0), Vector3(1, 1, 0.35))
+	Models.part(tilt, Models.box(0.15, 0.04, 0.07), Color("b5643c"), Vector3(0, stick_bottom + 0.01, 0), Vector3.ONE, Vector3.ZERO, false)
 	return root
 
 
@@ -739,7 +756,7 @@ func _build_abandoned_props() -> void:
 		if not home_world.walkable(c):
 			continue
 		var pile := Node3D.new()
-		var center := GopherActor.cell_pos(c) + Vector3(randf_range(-0.12, 0.12), 0, randf_range(-0.12, 0.12))
+		var center := GopherActor.cell_pos(c) + Vector3(randf_range(-0.08, 0.08), 0, 0.3)
 		pile.position = center
 		Models.part(pile, Models.sphere(0.24), dust_mat, Vector3(0, 0.01, 0), Vector3(1.2, 0.18, 1.0), Vector3.ZERO, false)
 		Models.part(pile, Models.sphere(0.1), dust_mat.lightened(0.08), Vector3(0.2, 0.01, 0.12), Vector3(1, 0.3, 1), Vector3.ZERO, false)
@@ -863,7 +880,7 @@ func _intro_final_state() -> void:
 		a.position = spot
 		a.moving = false
 		a.visible = true
-		a.face_vector(VISITOR_LOOK)
+		a.face_vector(visitor_look(who))
 	var h := room._door_hinge()
 	if h != null:
 		h.rotation.y = 0.0

@@ -333,10 +333,20 @@ static func furniture(type: String) -> Node3D:
 			part(root, box(0.76, 0.05, 0.06), c, Vector3(0, 1.35, 0.06), Vector3.ONE, Vector3.ZERO, false)
 			part(root, box(1.0, 0.08, 0.16), c.darkened(0.1), Vector3(0, 0.88, 0.08))
 		"door":
-			part(root, box(0.86, 1.7, 0.08), c, Vector3(0, 0.85, 0.03))
-			part(root, sphere(0.43), c, Vector3(0, 1.7, 0.03), Vector3(1, 0.5, 0.18))
-			part(root, sphere(0.05), a, Vector3(0.28, 0.85, 0.09))
-			part(root, sphere(0.12), Color("9fd3e6"), Vector3(0, 1.4, 0.07), Vector3(1, 1, 0.2), Vector3.ZERO, false, true)
+			# 長方形的木板門（剛好塞滿門洞）：直木板、上下兩條橫木、斜撐，裡外兩面都有門把
+			part(root, box(0.84, 1.9, 0.07), c, Vector3(0, 0.95, 0.03))
+			for gx in [-0.21, 0.0, 0.21]:
+				part(root, box(0.014, 1.86, 0.074), c.darkened(0.28), Vector3(gx, 0.95, 0.03), Vector3.ONE, Vector3.ZERO, false)
+			var brace_len := sqrt(0.62 * 0.62 + 1.1 * 1.1)
+			var brace_deg := rad_to_deg(atan2(0.62, 1.1))
+			for side_z in [-1.0, 1.0]:
+				var zf: float = 0.03 + side_z * 0.045
+				part(root, box(0.78, 0.1, 0.025), c.darkened(0.12), Vector3(0, 0.38, zf), Vector3.ONE, Vector3.ZERO, false)
+				part(root, box(0.78, 0.1, 0.025), c.darkened(0.12), Vector3(0, 1.52, zf), Vector3.ONE, Vector3.ZERO, false)
+				part(root, box(0.08, brace_len, 0.022), c.darkened(0.12), Vector3(0, 0.95, zf), Vector3.ONE, Vector3(0, 0, brace_deg), false)
+				part(root, sphere(0.045), a, Vector3(0.3, 0.98, 0.03 + side_z * 0.075))
+				for hy in [0.38, 1.52]:
+					part(root, box(0.16, 0.05, 0.03), Color("4a3a30"), Vector3(-0.34, hy, 0.03 + side_z * 0.06), Vector3.ONE, Vector3.ZERO, false)
 		_:
 			part(root, box(0.8 * w, float(d.height), 0.8 * dp), c, Vector3(0, float(d.height) / 2, 0))
 	return root
