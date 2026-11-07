@@ -32,7 +32,9 @@
   "wolf": "派派狼",
   "rabbit": "派派兔",
   "crow": "拍拍鳥",
-  "gopher": "派派鼠"
+  "gopher": "派派鼠",
+  "tanuki": "狸老闆（市集）",
+  "turtle": "慢慢館長（圖書館）"
  },
  "areas": [
   {
@@ -1602,8 +1604,8 @@
    "difficulty": 2,
    "area": "G",
    "place": "market",
-   "npc": "crow",
-   "story": "拍拍鳥帶來一張去市集的清單，用空白隔開，切成串列。",
+   "npc": "tanuki",
+   "story": "狸老闆給的購物清單用空白隔開，切成串列。",
    "goal": "words = note.split()，print(words)。",
    "expected": "['麵包', '牛奶', '胡蘿蔔']",
    "status": "draft",
@@ -1710,8 +1712,8 @@
    "difficulty": 2,
    "area": "H",
    "place": "market",
-   "npc": "rabbit",
-   "story": "市集每樣東西都有名字和價錢，做成一張價目表。",
+   "npc": "tanuki",
+   "story": "狸老闆的攤位每樣東西都有名字和價錢，做成一張價目表。",
    "goal": "stock = {\"小花盆\": 2}，print(stock[\"小花盆\"])。",
    "expected": "2",
    "status": "needs_engine",
@@ -1918,16 +1920,16 @@
   },
   {
    "id": "Q_file_write",
-   "title": "寫日記",
+   "title": "寫借書紀錄",
    "concepts": [
     "file_write"
    ],
    "compound": false,
    "difficulty": 2,
    "area": "J",
-   "place": "treehouse",
-   "npc": "rabbit",
-   "story": "把今天的冒險寫進日記本。",
+   "place": "library",
+   "npc": "turtle",
+   "story": "慢慢館長請派派鼠把今天借的書寫進紀錄檔。",
    "goal": "open(\"diary.txt\", \"w\").write(…)。",
    "expected": "（日記檔）",
    "status": "needs_engine",
