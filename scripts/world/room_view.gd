@@ -25,6 +25,8 @@ var town_spot := ""
 var room_name := ""
 ## 家門口旁的森林信箱（屋外固定的擺設，不是屋裡的家具）
 var mailbox: Node3D = null
+var yard_blockers: Array = []  # 前院裡擋路的小東西：[Vector2(x, z), 半徑]
+var _route_grid: AStarGrid2D = null
 
 
 func build(w: WorldModel) -> void:
@@ -509,6 +511,9 @@ func build_outdoor(with_mailbox: bool = false) -> void:
 	var holder := Node3D.new()
 	holder.name = "Outdoor"
 	add_child(holder)
+	yard_blockers.clear()
+	_route_grid = null
+	_build_backdrop(holder)
 	_build_big_tree(holder)
 	_build_stream(holder)
 	_build_front_yard(holder)
@@ -523,12 +528,13 @@ func _build_big_tree(holder: Node3D) -> void:
 	var center := Vector3(w / 2.0, 0, -4.4)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261107
-	var barks: Array = [Models.mat(Color("6e4a30")), Models.mat(Color("7a5436")), Models.mat(Color("64432c"))]
+	var barks: Array = [bark_mat(Color("8a6244"), Vector2(3, 1.0)), bark_mat(Color("957050"), Vector2(2, 0.8)), bark_mat(Color("7f5a3e"), Vector2(3, 1.5))]
+	var trunk_bark := bark_mat(Color("8a6244"), Vector2(9, 3))
 	var groove := Models.mat(Color("4a3020"), false)
 	var moss := Models.mat(Color("7f9e5c"), false)
 	# 主幹
 	var main_h := 11.0
-	_cyl_between(holder, center + Vector3(0, GRASS_Y, 0), center + Vector3(0, main_h, 0), 3.5, 2.3, barks[0])
+	_cyl_between(holder, center + Vector3(0, GRASS_Y, 0), center + Vector3(0, main_h, 0), 3.5, 2.3, trunk_bark)
 	# 長在一起的副幹（讓樹幹表面一條一條鼓起來，像老神木）
 	for i in range(8):
 		var ang := i * TAU / 8.0 + rng.randf_range(-0.15, 0.15)
@@ -912,6 +918,7 @@ func _build_front_yard(holder: Node3D) -> void:
 		rk.position = Vector3(rng.randf_range(x0 + 0.5, x0 + 2.0) if i % 2 == 0 else rng.randf_range(x1 - 1.0, x1 - 0.4), GRASS_Y + 0.08, rng.randf_range(d + 4.0, z1 - 0.5))
 		rk.scale = Vector3(1.2, 0.75, 1.0)
 		holder.add_child(rk)
+		yard_blockers.append([Vector2(rk.position.x, rk.position.z), 0.55])
 
 
 func _place_nature(holder: Node3D, model_name: String, pos: Vector3, size: float, yaw: float) -> void:
@@ -959,6 +966,313 @@ func _build_forest(holder: Node3D) -> void:
 			else:
 				_place_nature(holder, tall[rng.randi() % tall.size()], p, rng.randf_range(2.6, 3.8), rng.randf() * 360)
 		gx += 2.8
+
+
+# ---------------- 樹皮材質 ----------------
+static var _bark_tex: Texture2D
+static var _bark_nrm: Texture2D
+
+
+## 樹皮：順著樹根／樹幹方向的深溝紋和隆起（貼圖的 y 方向＝圓柱的長邊）。上下左右都接得起來。
+static func _bark_images() -> void:
+	if _bark_tex != null:
+		return
+	var n := FastNoiseLite.new()
+	n.seed = 77
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.frequency = 1.0
+	n.fractal_octaves = 3
+	var fleck := FastNoiseLite.new()
+	fleck.seed = 9
+	fleck.frequency = 0.08
+	var sz := 256
+	var h := Image.create(sz, sz, false, Image.FORMAT_RGB8)
+	var col := Image.create(sz, sz, false, Image.FORMAT_RGB8)
+	for y in range(sz):
+		var fy := float(y) / sz
+		for x in range(sz):
+			var ang := TAU * x / sz
+			# 圓周方向用圓取樣（左右接得起來），長邊方向拉長，做成一條一條的溝；上下用兩段混合接起來
+			var a := n.get_noise_3d(cos(ang) * 1.6, sin(ang) * 1.6, fy * 1.1)
+			var b := n.get_noise_3d(cos(ang) * 1.6, sin(ang) * 1.6, (fy - 1.0) * 1.1)
+			var v := lerpf(a, b, fy)
+			var ridge := 1.0 - absf(v) * 2.4  # 接近 0 的地方是深溝
+			ridge = clampf(ridge, 0.0, 1.0)
+			var furrow := 1.0 - pow(ridge, 6.0)
+			var hv := clampf(furrow, 0.0, 1.0)
+			h.set_pixel(x, y, Color(hv, hv, hv))
+			var tone := lerpf(0.42, 1.08, hv) + fleck.get_noise_2d(x, y * 0.4) * 0.06
+			# 溝裡帶一點青苔綠
+			var mossy := clampf((0.35 - hv) * 2.0, 0.0, 1.0) * 0.35
+			col.set_pixel(x, y, Color(tone * (1.0 - mossy * 0.25), tone * (1.0 + mossy * 0.1), tone * (1.0 - mossy * 0.35)))
+	col.generate_mipmaps()
+	_bark_tex = ImageTexture.create_from_image(col)
+	h.bump_map_to_normal_map(5.0)
+	h.generate_mipmaps()
+	_bark_nrm = ImageTexture.create_from_image(h)
+
+
+## 樹皮材質（照圓柱本身的 UV 貼，溝紋順著樹根走）；reps＝圓周、長邊各重複幾次
+static func bark_mat(color: Color, reps: Vector2) -> StandardMaterial3D:
+	_bark_images()
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.albedo_texture = _bark_tex
+	m.normal_enabled = true
+	m.normal_texture = _bark_nrm
+	m.normal_scale = 1.2
+	m.roughness = 0.95
+	m.metallic_specular = 0.15
+	m.uv1_scale = Vector3(reps.x, reps.y, 1)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	m.next_pass = Models.mat(color).next_pass  # 一樣的描邊
+	return m
+
+
+# ---------------- 遠方背景：手繪的山和森林 ----------------
+static var _backdrop_tex: Texture2D
+
+
+## 一圈畫出來的遠景（遠山、山丘、樹林剪影），上面透明露出天空；左右接得起來
+static func _backdrop_texture() -> Texture2D:
+	if _backdrop_tex != null:
+		return _backdrop_tex
+	var W := 2048
+	var H := 512
+	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2026
+	# 每一層：[顏色, 山的基準高度(由上往下 0~1), 起伏, 樹的大小, 樹的密度, 尖樹比例]
+	var layers := [
+		[Color("b7c7bd"), 0.30, 0.10, 0.0, 0, 0.0],
+		[Color("a2b99f"), 0.44, 0.07, 0.035, 70, 0.3],
+		[Color("86a57c"), 0.56, 0.05, 0.05, 90, 0.35],
+		[Color("6c8f62"), 0.68, 0.03, 0.07, 110, 0.4],
+	]
+	for li in range(layers.size()):
+		var L: Array = layers[li]
+		var c: Color = L[0]
+		var base: float = L[1]
+		var amp: float = L[2]
+		var tree_r: float = L[3]
+		var count: int = L[4]
+		var pointy: float = L[5]
+		var tops := PackedFloat32Array()
+		tops.resize(W)
+		var ph1 := rng.randf() * TAU
+		var ph2 := rng.randf() * TAU
+		for x in range(W):
+			var t := TAU * x / W
+			var hill := base - amp * (0.6 * sin(t * 3 + ph1) + 0.4 * sin(t * 7 + ph2) + 0.2 * sin(t * 13 + ph1 * 2))
+			tops[x] = hill * H
+		# 圓圓的樹冠和尖尖的杉樹（左右接得起來）
+		for k in range(count):
+			var cx := rng.randf() * W
+			var r := tree_r * H * rng.randf_range(0.6, 1.25)
+			var hill_y := tops[int(cx) % W]
+			var cy := hill_y + r * 0.25
+			var sharp := rng.randf() < pointy
+			var span := int(r * (0.8 if sharp else 1.0)) + 1
+			for dxp in range(-span, span + 1):
+				var x := posmod(int(cx) + dxp, W)
+				var top: float
+				if sharp:
+					top = cy - r * 2.2 + absf(dxp) * 2.2 * 1.1
+				else:
+					var q := 1.0 - pow(float(dxp) / r, 2.0)
+					if q <= 0:
+						continue
+					top = cy - sqrt(q) * r
+				if top < tops[x]:
+					tops[x] = top
+		# 一欄一欄塗下去；最上面幾格亮一點（邊緣有光）
+		var rim := c.lightened(0.12)
+		for x in range(W):
+			var y0 := clampi(int(tops[x]), 0, H - 1)
+			img.fill_rect(Rect2i(x, y0, 1, H - y0), c)
+			img.fill_rect(Rect2i(x, y0, 1, 3), rim)
+	# 最底下一段淡淡的霧（跟草地接起來）
+	var haze := Color("8fae7a")
+	for y in range(int(H * 0.86), H):
+		var t2 := float(y - H * 0.86) / (H * 0.14)
+		for x in range(0, W, 1):
+			var p := img.get_pixel(x, y)
+			img.set_pixel(x, y, p.lerp(haze, t2))
+	img.generate_mipmaps()
+	_backdrop_tex = ImageTexture.create_from_image(img)
+	return _backdrop_tex
+
+
+func _build_backdrop(holder: Node3D) -> void:
+	var ring := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 34.0
+	cm.bottom_radius = 34.0
+	cm.height = 20.0
+	cm.cap_top = false
+	cm.cap_bottom = false
+	cm.radial_segments = 64
+	cm.rings = 1
+	ring.mesh = cm
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	m.alpha_scissor_threshold = 0.5
+	m.albedo_texture = _backdrop_texture()
+	m.uv1_scale = Vector3(2, 1, 1)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	m.disable_receive_shadows = true
+	ring.material_override = m
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.position = Vector3(world.width / 2.0, GRASS_Y + 10.0 - 1.2, world.depth / 2.0 + 2.0)
+	ring.name = "Backdrop"
+	holder.add_child(ring)
+
+
+# ---------------- 屋外怎麼走 ----------------
+## 前院裡這個點能不能站（避開房子、柵欄、菜園、蘑菇、信箱、石頭）；西邊柵欄缺口可以走到釣魚平台
+func outdoor_free(x: float, z: float) -> bool:
+	var d := float(world.depth)
+	var fs := fishing_spot()
+	if absf(z - fs.z) < 0.5 and x > stream_x(z) + 0.75 and x < yard_x0() + 0.5:
+		return Vector2(x, z).distance_to(Vector2(fs.x + 0.45, fs.z + 0.4)) > 0.4  # 柵欄缺口 → 釣魚平台（避開水桶）
+	if x < yard_x0() + 0.3 or x > yard_x1() - 0.3 or z < d + 0.45 or z > yard_z1() - 0.3:
+		return false
+	var p := Vector2(x, z)
+	if p.distance_to(Vector2(0, d)) < 0.95 or p.distance_to(Vector2(world.width, d)) < 0.95:
+		return false  # 房子轉角的樹幹
+	var gc := garden_center()
+	if absf(x - gc.x) < 1.95 and absf(z - gc.z) < 1.55:
+		return false
+	if p.distance_to(Vector2(gc.x - 1.9, gc.z - 1.3)) < 0.35:
+		return false  # 菜園木牌
+	var x1 := yard_x1()
+	var z1 := yard_z1()
+	if p.distance_to(Vector2(x1 - 0.8, z1 - 0.9)) < 0.85 or p.distance_to(Vector2(x1 - 1.45, z1 - 0.55)) < 0.7:
+		return false
+	if mailbox != null and is_instance_valid(mailbox) and p.distance_to(Vector2(mailbox.position.x, mailbox.position.z)) < 0.45:
+		return false
+	for bl in yard_blockers:
+		if p.distance_to(bl[0]) < bl[1]:
+			return false
+	return true
+
+
+const ROUTE_CELL := 0.3
+
+
+func _route_origin() -> Vector2:
+	return Vector2(stream_x(fishing_spot().z) - 0.5, float(world.depth))
+
+
+func _ensure_route_grid() -> void:
+	if _route_grid != null:
+		return
+	var o := _route_origin()
+	var nx := int(ceil((yard_x1() - o.x) / ROUTE_CELL)) + 1
+	var nz := int(ceil((yard_z1() - o.y) / ROUTE_CELL)) + 1
+	_route_grid = AStarGrid2D.new()
+	_route_grid.region = Rect2i(0, 0, nx, nz)
+	_route_grid.cell_size = Vector2(1, 1)
+	_route_grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	_route_grid.update()
+	for i in range(nx):
+		for j in range(nz):
+			if not outdoor_free(o.x + i * ROUTE_CELL, o.y + j * ROUTE_CELL):
+				_route_grid.set_point_solid(Vector2i(i, j), true)
+
+
+func _route_cell(p: Vector3) -> Vector2i:
+	var o := _route_origin()
+	return Vector2i(roundi((p.x - o.x) / ROUTE_CELL), roundi((p.z - o.y) / ROUTE_CELL))
+
+
+func _route_point(c: Vector2i) -> Vector3:
+	var o := _route_origin()
+	return Vector3(o.x + c.x * ROUTE_CELL, GRASS_Y, o.y + c.y * ROUTE_CELL)
+
+
+## 離 p 最近、可以站的地方
+func nearest_free(p: Vector3) -> Vector3:
+	_ensure_route_grid()
+	var c := _route_cell(p)
+	var reg := _route_grid.region
+	for r in range(0, 80):
+		var best := Vector2i(-1, -1)
+		var best_d := INF
+		for i in range(-r, r + 1):
+			for j in range(-r, r + 1):
+				if maxi(absi(i), absi(j)) != r:
+					continue
+				var cc := c + Vector2i(i, j)
+				if reg.has_point(cc) and not _route_grid.is_point_solid(cc):
+					var dd := _route_point(cc).distance_squared_to(Vector3(p.x, GRASS_Y, p.z))
+					if dd < best_d:
+						best_d = dd
+						best = cc
+		if best.x >= 0:
+			var q := _route_point(best)
+			# 本來的點就能站就用本來的點（不要對齊到格子）
+			if r == 0 and outdoor_free(p.x, p.z):
+				q = Vector3(p.x, GRASS_Y, p.z)
+			return q
+	return p
+
+
+func _segment_free(a: Vector3, b: Vector3) -> bool:
+	var n := int(a.distance_to(b) / 0.12) + 1
+	for i in range(n + 1):
+		var p := a.lerp(b, float(i) / n)
+		if not outdoor_free(p.x, p.z):
+			return false
+	return true
+
+
+## 屋外從 a 走到 b 的路線（繞過障礙物，盡量走直線）；回傳一串點（不含 a）。走不到回傳空陣列
+func outdoor_route(a: Vector3, b: Vector3) -> Array:
+	_ensure_route_grid()
+	var ca := _route_cell(a)
+	var cb := _route_cell(b)
+	var reg := _route_grid.region
+	if not reg.has_point(ca) or not reg.has_point(cb):
+		return []
+	var sa := _route_grid.is_point_solid(ca)
+	var sb := _route_grid.is_point_solid(cb)
+	_route_grid.set_point_solid(ca, false)
+	_route_grid.set_point_solid(cb, false)
+	var cells := _route_grid.get_id_path(ca, cb)
+	_route_grid.set_point_solid(ca, sa)
+	_route_grid.set_point_solid(cb, sb)
+	if cells.is_empty():
+		return []
+	var pts: Array = [a]
+	for c in cells:
+		pts.append(_route_point(c))
+	pts[-1] = b
+	# 拉直：能直直走到的就跳過中間的點
+	var out: Array = []
+	var i := 0
+	while i < pts.size() - 1:
+		var j := pts.size() - 1
+		while j > i + 1 and not _segment_free(pts[i], pts[j]):
+			j -= 1
+		out.append(pts[j])
+		i = j
+	for k in range(out.size()):
+		var p: Vector3 = out[k]
+		p.y = walk_height(p)
+		out[k] = p
+	return out
+
+
+## 站在這裡的高度（釣魚平台比草地高一點）
+func walk_height(p: Vector3) -> float:
+	var fs := fishing_spot()
+	if absf(p.x - (fs.x - 0.1)) < 0.7 and absf(p.z - fs.z) < 0.6:
+		return GRASS_Y + 0.14
+	return GRASS_Y
 
 
 ## 在兩點之間放一根圓柱（r0 在 a 端、r1 在 b 端）；squash 可以把截面壓扁

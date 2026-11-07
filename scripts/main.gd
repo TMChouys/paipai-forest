@@ -1304,11 +1304,26 @@ func _roam() -> void:
 	g.speed_scale = 0.8
 	var w := home_world
 	if g.position.z > w.depth:
-		await room.swing_door(true)
-		await _intro_walk(g, _door_outside(0.3))
-		await _intro_walk(g, GopherActor.cell_pos(_door_inside()))
-		w.gopher_cell = _door_inside()
-		room.swing_door(false)
+		# 在屋外：逛逛前院、看看胡蘿蔔、去溪邊，或回屋裡
+		var r := randf()
+		if r < 0.35:
+			await _auto_walk(g, GopherActor.cell_pos(_nearest_walkable(Vector2i(randi_range(1, w.width - 2), randi_range(2, w.depth - 2)))))
+		else:
+			var spots: Array = [
+				Vector3(randf_range(room.yard_x0() + 0.6, room.yard_x1() - 0.6), 0, randf_range(w.depth + 1.0, room.yard_z1() - 0.8)),
+				room.garden_center() + Vector3(-2.2, 0, randf_range(-0.8, 0.8)),
+				room.fishing_spot() + Vector3(0.35, 0, 0),
+				_door_outside(1.4),
+			]
+			var to: Vector3 = spots[0] if r < 0.7 else spots[randi() % spots.size()]
+			await _auto_walk(g, to)
+			await _idle_action(g)
+		roam_busy = false
+		return
+	# 在屋裡：偶爾出門走走
+	if randf() < 0.12:
+		await _auto_walk(g, Vector3(randf_range(room.yard_x0() + 0.6, room.yard_x1() - 0.6), 0, randf_range(w.depth + 1.2, room.yard_z1() - 0.8)))
+		await _idle_action(g)
 		roam_busy = false
 		return
 	var start := _nearest_walkable(w.gopher_cell)
@@ -1342,9 +1357,208 @@ func _roam() -> void:
 		path = path.slice(0, min(path.size(), 5))
 		await g.walk_path(path)
 		w.gopher_cell = path[-1]
-	elif randf() < 0.3:
-		await g.hop(0.15)
+	else:
+		await _idle_action(g)
 	roam_busy = false
+
+
+## 自己發呆時的小動作
+func _idle_action(g: GopherActor) -> void:
+	if click_walking or not is_instance_valid(g):
+		return
+	var outside := g.position.z > home_world.depth
+	var r := randf()
+	if r < 0.2:
+		await g.hop(0.15)
+	elif r < 0.4:
+		await g.play_once(["emote-yes", "interact-right"], 1.2)
+	elif r < 0.55:
+		var lines: Array = ["今天天氣真好～", "嗯……要做什麼呢？", "（伸個懶腰）"]
+		if outside:
+			lines += ["胡蘿蔔長得好快！", "溪水的聲音好好聽。", "這片森林好大喔。"]
+		else:
+			lines += ["這個家越來越像樣了。", "爺爺以前也住在這裡呢。"]
+		g.say(lines.pick_random(), "think")
+		await _roam_pause(2.0)
+	elif r < 0.75:
+		# 左看看、右看看
+		var y0 := g.target_yaw
+		g.target_yaw = y0 + 0.9
+		await _roam_pause(0.8)
+		g.target_yaw = y0 - 0.9
+		await _roam_pause(0.8)
+		g.target_yaw = y0
+
+
+## 等一下；玩家點地板叫派派鼠走的時候提早結束
+func _roam_pause(sec: float) -> void:
+	var until := Time.get_ticks_msec() + int(sec * 1000)
+	while Time.get_ticks_msec() < until and not click_walking and mode == "home":
+		await get_tree().process_frame
+
+
+# ---------------- 點哪裡就走去哪裡 ----------------
+var click_serial := 0
+var click_target := Vector3.ZERO
+var click_walking := false
+
+
+## 滑鼠指到的地面（屋裡是地板高度，屋外是草地高度）；沒有就回傳 null
+func _ground_under_mouse() -> Variant:
+	var mp := get_viewport().get_mouse_position()
+	var o := rig.cam.project_ray_origin(mp)
+	var n := rig.cam.project_ray_normal(mp)
+	if n.y > -0.001:
+		return null
+	var w := home_world
+	var p := o + n * ((0.0 - o.y) / n.y)
+	if p.x >= 0 and p.x < w.width and p.z >= 0 and p.z < w.depth:
+		return p
+	return o + n * ((RoomView.GRASS_Y - o.y) / n.y)
+
+
+func _click_walk_to(p: Vector3) -> void:
+	if room.gopher == null or intro_running:
+		return
+	click_target = p
+	click_serial += 1
+	_click_marker(p)
+	if not click_walking:
+		_click_walk_loop()
+
+
+## 點下去的地方冒一個小圈圈
+func _click_marker(p: Vector3) -> void:
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.16
+	tm.outer_radius = 0.22
+	ring.mesh = tm
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(1.0, 0.95, 0.75, 0.9)
+	ring.material_override = m
+	room.add_child(ring)
+	ring.position = p + Vector3(0, 0.03, 0)
+	ring.scale = Vector3(0.5, 0.3, 0.5)
+	var tw := ring.create_tween().set_parallel()
+	tw.tween_property(ring, "scale", Vector3(1.4, 0.3, 1.4), 0.5)
+	tw.tween_property(m, "albedo_color:a", 0.0, 0.5)
+	tw.chain().tween_callback(ring.queue_free)
+
+
+func _click_walk_loop() -> void:
+	click_walking = true
+	while roam_busy:  # 正在做別的事（坐著、走到一半）：等它收尾
+		await get_tree().process_frame
+		if mode != "home":
+			click_walking = false
+			return
+	roam_busy = true
+	var g := room.gopher
+	var serial := -1
+	var steps: Array = []
+	g.speed_scale = 1.0
+	while mode == "home" and is_instance_valid(g) and not intro_running:
+		var locked: bool = not steps.is_empty() and steps[0].get("lock", false)
+		if serial != click_serial and not locked:
+			serial = click_serial
+			steps = _route_to(g, click_target)
+			if steps.is_empty():
+				break
+		if steps.is_empty():
+			break
+		await _do_step(g, steps.pop_front())
+	if is_instance_valid(g):
+		g.moving = false
+		g.speed_scale = 0.8
+	roam_busy = false
+	roam_timer = randf_range(8.0, 12.0)  # 走到了先站一下，再自己找事做
+	click_walking = false
+
+
+## 自己動的時候走去某個點（屋裡、屋外都可以，會開門）
+func _auto_walk(g: GopherActor, to: Vector3) -> void:
+	var steps := _route_to(g, to)
+	for st in steps:
+		if click_walking or mode != "home" or not is_instance_valid(g):
+			break
+		await _do_step(g, st)
+	if is_instance_valid(g):
+		g.moving = false
+
+
+## 一步：{"cell"} 屋裡的格子、{"pos"} 屋外的點、{"door"} 開／關門；"lock" 的步驟中途不換路線（門口）
+func _do_step(g: GopherActor, st: Dictionary) -> void:
+	if st.has("door"):
+		if st.door:
+			g.moving = false
+			await room.swing_door(true)
+		else:
+			room.swing_door(false)
+		return
+	var to: Vector3
+	if st.has("cell"):
+		to = GopherActor.cell_pos(st.cell)
+	else:
+		to = st.pos
+	g.moving = true
+	g.face_vector(Vector3(to.x - g.position.x, 0, to.z - g.position.z))
+	var tw := g.create_tween()
+	tw.tween_property(g, "position", to, maxf(0.05, g.position.distance_to(to) * 0.34 / g.speed_scale))
+	await tw.finished
+	if st.has("cell"):
+		home_world.gopher_cell = st.cell
+
+
+## 從派派鼠現在的位置走到 to 的步驟；走不到回傳空陣列
+func _route_to(g: GopherActor, to: Vector3) -> Array:
+	var w := home_world
+	var inside_now := g.position.z < w.depth
+	var to_inside := to.x >= 0 and to.x < w.width and to.z >= 0 and to.z < w.depth
+	var steps: Array = []
+	var door_out := _door_outside(0.9)
+	if inside_now:
+		var start := _nearest_walkable(w.gopher_cell)
+		if to_inside:
+			var tc := _nearest_walkable(Vector2i(clampi(int(floor(to.x)), 0, w.width - 1), clampi(int(floor(to.z)), 0, w.depth - 1)))
+			var path := w.find_path(start, tc)
+			for c in path.slice(1):
+				steps.append({"cell": c})
+			return steps
+		var target := room.nearest_free(to)
+		var out_path := w.find_path(start, _door_inside())
+		if out_path.is_empty():
+			return []
+		for c in out_path.slice(1):
+			steps.append({"cell": c})
+		steps.append({"door": true, "lock": true})
+		steps.append({"pos": _door_outside(0.3), "lock": true})
+		steps.append({"pos": door_out, "lock": true})
+		steps.append({"door": false, "lock": true})
+		for p in room.outdoor_route(door_out, target):
+			steps.append({"pos": p})
+		return steps
+	# 在屋外
+	if to_inside:
+		var back := room.outdoor_route(g.position, door_out)
+		if back.is_empty() and g.position.distance_to(door_out) > 0.2:
+			return []
+		for p in back:
+			steps.append({"pos": p})
+		steps.append({"door": true, "lock": true})
+		steps.append({"pos": _door_outside(0.3), "lock": true})
+		steps.append({"cell": _door_inside(), "lock": true})
+		steps.append({"door": false, "lock": true})
+		var tc2 := _nearest_walkable(Vector2i(clampi(int(floor(to.x)), 0, w.width - 1), clampi(int(floor(to.z)), 0, w.depth - 1)))
+		var path2 := w.find_path(_door_inside(), tc2)
+		for c in path2.slice(1):
+			steps.append({"cell": c})
+		return steps
+	for p in room.outdoor_route(g.position, room.nearest_free(to)):
+		steps.append({"pos": p})
+	return steps
 
 
 func _use_furniture(uid: String) -> void:
@@ -1365,7 +1579,7 @@ func _use_furniture(uid: String) -> void:
 			g.target_yaw = RoomView.item_yaw(it) + 0.0
 			g.set_seated(true)
 			g.say("坐一下～", "say")
-			await get_tree().create_timer(3.0).timeout
+			await _roam_pause(3.0)
 			if is_instance_valid(g):
 				g.set_seated(false)
 		"sleep":
@@ -1374,13 +1588,13 @@ func _use_furniture(uid: String) -> void:
 			tw2.parallel().tween_property(g.model, "rotation:x", -PI / 2.2, 0.4)
 			await tw2.finished
 			g.say("Zzz…", "think")
-			await get_tree().create_timer(4.0).timeout
+			await _roam_pause(4.0)
 			var tw3 := create_tween()
 			tw3.tween_property(g.model, "rotation:x", 0.0, 0.3)
 			await tw3.finished
 		"read":
 			g.say("看書中…", "think")
-			await get_tree().create_timer(3.0).timeout
+			await _roam_pause(3.0)
 	if mode != "home":
 		return
 	var tw4 := create_tween()
@@ -1552,6 +1766,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open_letters()
 			elif uid2 != "":
 				_pick_existing(uid2)
+			else:
+				var gp: Variant = _ground_under_mouse()
+				if gp != null:
+					_click_walk_to(gp)
 		else:
 			_drop_held()
 	elif event is InputEventKey and event.pressed and not event.echo:
@@ -2062,6 +2280,9 @@ func _auto_shot(path: String) -> void:
 			_load_save()
 			save.intro_done = s == "fresh"
 			_enter_home()
+		elif s.begins_with("click:"):
+			var cxz: Array = s.substr(6).split(",")
+			_click_walk_to(Vector3(float(cxz[0]), 0, float(cxz[1])))
 		elif s == "hobbies":
 			visitor_quick = true
 			_start_visitor_life()
