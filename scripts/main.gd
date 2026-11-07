@@ -131,6 +131,15 @@ func _load_save() -> void:
 		var hf := FileAccess.open("res://data/home.json", FileAccess.READ)
 		var home: Dictionary = JSON.parse_string(hf.get_as_text())
 		save = {"version": 1, "home": home, "inventory": home.get("inventory", {}), "stars": {}, "codes": {}}
+	# 拍拍鳥的見面禮：舊存檔也補發一次森林信箱
+	if not save.has("gift_mailbox"):
+		save.gift_mailbox = true
+		var placed := false
+		for it in save.home.get("furniture", []):
+			if it.get("type", "") == "mailbox":
+				placed = true
+		if not placed and int(save.inventory.get("mailbox", 0)) == 0:
+			save.inventory["mailbox"] = 1
 	home_world = WorldModel.from_layout(save.home)
 	uid_counter = int(save.get("uid_counter", 100))
 

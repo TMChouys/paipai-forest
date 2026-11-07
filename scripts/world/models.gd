@@ -213,6 +213,19 @@ static func furniture(type: String) -> Node3D:
 			part(root, sphere(0.16), a, Vector3(0.1, 1.05, -0.05), Vector3(1, 1.6, 1))
 			part(root, cyl(0.025, 0.025, 0.6), Color("f28b82"), Vector3(-0.08, 0.7, -0.02), Vector3.ONE, Vector3(0, 0, 8))
 			part(root, sphere(0.14), Color("f28b82"), Vector3(-0.15, 0.98, -0.02), Vector3(1, 1.6, 1))
+		"mailbox":
+			# 森林信箱：木柱＋圓頂信箱，門朝前（+z），右邊有紅色小旗，門縫露出一封信
+			part(root, cyl(0.22, 0.26, 0.08), a.darkened(0.15), Vector3(0, 0.04, 0))  # 底座
+			part(root, box(0.12, 0.72, 0.12), a, Vector3(0, 0.44, 0))  # 木柱
+			part(root, box(0.42, 0.26, 0.6), c, Vector3(0, 0.93, 0))  # 信箱身體
+			part(root, cyl(0.21, 0.21, 0.6), c, Vector3(0, 1.06, 0), Vector3.ONE, Vector3(90, 0, 0))  # 圓頂
+			part(root, cyl(0.2, 0.2, 0.02), c.lightened(0.2), Vector3(0, 1.0, 0.305), Vector3(1, 1, 1), Vector3(90, 0, 0), false)  # 門
+			part(root, box(0.4, 0.13, 0.02), c.lightened(0.2), Vector3(0, 0.88, 0.305), Vector3.ONE, Vector3.ZERO, false)
+			part(root, sphere(0.03), Color("f6c85f"), Vector3(0, 0.98, 0.33), Vector3.ONE, Vector3.ZERO, false)  # 門把
+			part(root, box(0.26, 0.02, 0.14), Color("fff7ee"), Vector3(0.02, 1.16, 0.3), Vector3.ONE, Vector3(-20, 0, 6))  # 露出的信
+			part(root, box(0.03, 0.34, 0.03), INK, Vector3(0.24, 1.1, 0.12), Vector3.ONE, Vector3.ZERO, false)  # 旗桿
+			part(root, box(0.02, 0.12, 0.16), Color("e5534b"), Vector3(0.245, 1.21, 0.2))  # 紅旗
+			part(root, sphere(0.06), Color("7cc47a"), Vector3(-0.1, 1.27, -0.12), Vector3(1.4, 0.5, 1))  # 屋頂上的葉子
 		"crate":
 			part(root, box(0.78, 0.66, 0.78), c, Vector3(0, 0.33, 0))
 			for y in [0.12, 0.54]:
