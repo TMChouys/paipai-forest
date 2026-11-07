@@ -181,7 +181,7 @@ static func run_case(task: Dictionary, code: String, test: Dictionary) -> Dictio
 
 
 # ---------------- 對話任務 ----------------
-const NAMES := {"gopher": "派派鼠", "wolf": "派派狼", "rabbit": "派派兔"}
+const NAMES := {"gopher": "派派鼠", "wolf": "派派狼", "rabbit": "派派兔", "tanuki": "狸老闆", "turtle": "慢慢館長", "crow": "拍拍鳥"}
 
 
 static func _run_dialogue(task: Dictionary, sub: Dictionary, interp: Dictionary, test: Dictionary) -> Dictionary:

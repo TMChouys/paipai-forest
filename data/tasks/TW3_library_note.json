@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "id": "TW3_library_note",
+  "order": 104,
+  "track": "side",
+  "unlock_after_main": 1,
+  "difficulty": 1,
+  "title": "圖書館的借書筆記",
+  "concept": "註解 #",
+  "npc": "turtle",
+  "npc_line": "歡迎來到圖書館……要小聲喔。",
+  "sheet": {
+    "story": "慢慢館長推了推圓眼鏡：「歡迎來到圖書館……要小聲喔。借的書，寫在筆記裡就好，不用念出來。」\n在 Python 裡，[b]#[/b] 後面的字是[b]註解[/b]：寫給人看的筆記，電腦不會執行，派派鼠也不會說出來。",
+    "given": [
+      "派派鼠借的書是《森林植物圖鑑》。",
+      "註解寫在哪一行都可以，但要自己寫一行新的。"
+    ],
+    "howto": [
+      [
+        "# 借書：森林植物圖鑑",
+        "一行筆記：# 開頭，不會被念出來"
+      ],
+      [
+        "print(\"好的，我會小聲。\")",
+        "這一句才會說出來"
+      ]
+    ],
+    "rules": [
+      "自己寫一行註解，內容是「借書：森林植物圖鑑」。",
+      "派派鼠只說一句：好的，我會小聲。（一字不差）",
+      "只能用 print() 和註解。"
+    ],
+    "expected": "按「▶ 看示範」看派派鼠怎麼在圖書館小聲說話。"
+  },
+  "print_role": "dialogue",
+  "dialogue": [
+    {
+      "who": "turtle",
+      "say": "歡迎來到圖書館……要小聲喔。"
+    },
+    {
+      "who": "turtle",
+      "say": "借的書，寫在筆記裡就好，不用念出來。"
+    },
+    {
+      "who": "gopher"
+    },
+    {
+      "who": "turtle",
+      "say": "嗯……很好。慢慢看，不用急。"
+    }
+  ],
+  "room": {
+    "name": "鎮中心・圖書館",
+    "scene": "town",
+    "spot": "library",
+    "size": [
+      5,
+      2
+    ],
+    "gopher": {
+      "cell": [
+        2,
+        1
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "turtle",
+        "cell": [
+          2,
+          0
+        ],
+        "dir": "S"
+      }
+    ],
+    "spots": {},
+    "furniture": []
+  },
+  "goal_items": [],
+  "starter_code": "# 慢慢館長：歡迎來到圖書館……要小聲喔。\n# 慢慢館長：借的書，寫在筆記裡就好，不用念出來。\n\n# 1. 寫一行筆記（註解）：用 # 開頭，內容是「借書：森林植物圖鑑」\n\n\n# 2. 派派鼠小聲回答：好的，我會小聲。\n\n",
+  "given_vars": [],
+  "reference": "# 借書：森林植物圖鑑\nprint(\"好的，我會小聲。\")\n",
+  "tests": [
+    {
+      "name": "在圖書館借書",
+      "vars": {}
+    }
+  ],
+  "rules": [
+    {
+      "id": "only_print"
+    },
+    {
+      "id": "must_comment",
+      "prefix": "借書：",
+      "hint": "寫一行「# 借書：森林植物圖鑑」，# 後面的字不會被念出來。"
+    }
+  ],
+  "scoring": {
+    "overrides": {
+      "rule.must_comment": "block"
+    }
+  },
+  "builtins": [
+    "print"
+  ],
+  "reward": {
+    "furniture": "plant_book",
+    "message": "慢慢館長說：「這本《森林植物圖鑑》，就送你吧。慢慢看。」"
+  },
+  "author_notes": "註解：# 後面的字不執行。若把筆記寫成 print()，館長會聽到多的一句 → 對話對不上。"
+}

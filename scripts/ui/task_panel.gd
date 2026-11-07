@@ -288,7 +288,8 @@ static func build_sheet(t: Dictionary) -> String:
 	var s := ""
 	var sh: Dictionary = t.get("sheet", {})
 	var role: String = t.get("print_role", "action")
-	s += "[font_size=20][b]派派狼的任務單[/b][/font_size]\n"
+	var giver: String = RoomView.NAMES.get(t.get("npc", "wolf"), "派派狼")
+	s += "[font_size=20][b]%s的任務單[/b][/font_size]\n" % giver
 	var hidden := 0
 	for test in t.get("tests", []):
 		if test.get("hidden", false):
@@ -323,7 +324,7 @@ static func build_sheet(t: Dictionary) -> String:
 			s += "[color=#8a6a50]不符合句型的 print() 會變成對派派兔說的話，例如「%s」。[/color]\n" % UIKit.esc(t.get("speech_example", ""))
 	var rules: Array = sh.get("rules", [])
 	if not rules.is_empty():
-		s += "\n[bgcolor=#fde3dc][color=#b8473f][b] ⚠ 注意！規定 [/b][/color][/bgcolor] [color=#8a6a50]（派派狼很講究喔！）[/color]\n"
+		s += "\n[bgcolor=#fde3dc][color=#b8473f][b] ⚠ 注意！規定 [/b][/color][/bgcolor] [color=#8a6a50]（%s很講究喔！）[/color]\n" % giver
 		var i := 1
 		for r in rules:
 			s += "[color=#d9605a]▍[/color][color=#7a2f28]%d. %s[/color]\n" % [i, UIKit.esc(r)]

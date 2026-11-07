@@ -19,6 +19,8 @@ var report: ReportPanel
 var book: QuestBook
 var letters: LetterPanel
 var town: TownView
+var return_to_town := false  # 任務是在鎮上接的：離開任務回鎮上
+var offer: PanelContainer  # 鎮上居民的任務邀請
 var playback: Playback
 
 # 任務狀態
@@ -60,6 +62,10 @@ func _ready() -> void:
 	ui_layer.add_child(report)
 	ui_layer.add_child(book)
 	ui_layer.add_child(letters)
+	offer = PanelContainer.new()
+	offer.theme = UIKit.theme()
+	offer.visible = false
+	ui_layer.add_child(offer)
 	report.visible = false
 	panel.visible = false
 
@@ -199,7 +205,9 @@ func _total_stars() -> int:
 # ---------------- 家 ----------------
 func _enter_home() -> void:
 	mode = "home"
+	offer.visible = false
 	room.visible = true
+	room.scene = "house"
 	town.visible = false
 	hud.set_town_mode(false)
 	bubbles.avoid_side_panels = false
@@ -431,6 +439,12 @@ func _enter_town() -> void:
 			town.npcs[who].bubble_requested.connect(_on_bubble)
 	hud.set_town_mode(true)
 	hud.show_status("", Vector2.ZERO)
+	for who in town.npcs:
+		var todo := false
+		for t in _town_tasks(who):
+			if int(save.stars.get(t.id, 0)) == 0:
+				todo = true
+		town.set_mark(who, todo)
 	rig.follow_target = null
 	rig.screen_offset = 0.0
 	rig.frame_room(int(TownView.W), int(TownView.D), 0.95)
@@ -440,13 +454,93 @@ func _enter_town() -> void:
 
 
 func _town_input(event: InputEvent) -> void:
+	var mp := get_viewport().get_mouse_position()
 	if event is InputEventMouseMotion:
-		var who := town.actor_at(get_viewport().get_mouse_position(), rig.cam)
-		hud.show_status(TownView.NAMES[who] + "　點一下聊天" if who != "" else "", get_viewport().get_mouse_position())
+		var who := town.actor_at(mp, rig.cam)
+		if who != "":
+			var tip := "　有任務！" if not _town_tasks(who).is_empty() else "　點一下聊天"
+			hud.show_status(TownView.NAMES[who] + tip, mp)
+		elif town.board_at(mp, rig.cam):
+			hud.show_status("任務公告　點一下打開任務書", mp)
+		else:
+			hud.show_status("", Vector2.ZERO)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var who2 := town.actor_at(get_viewport().get_mouse_position(), rig.cam)
+		var who2 := town.actor_at(mp, rig.cam)
 		if who2 != "":
-			town.talk(who2)
+			var list := _town_tasks(who2)
+			if list.is_empty():
+				town.talk(who2)
+			else:
+				_show_offer(who2, list)
+		elif town.board_at(mp, rig.cam):
+			_open_book()
+		else:
+			offer.visible = false
+
+
+## 這位居民可以給的任務（已解鎖的）
+func _town_tasks(who: String) -> Array:
+	var out: Array = []
+	for t in tasks:
+		if t.get("npc", "") == who and t.get("room", {}).get("scene", "") == "town" and HomeHUD.is_unlocked(t, tasks, save.stars):
+			out.append(t)
+	return out
+
+
+## 居民邀請接任務：說出任務的開場白，下方出現小卡片
+func _show_offer(who: String, list: Array) -> void:
+	var a: GopherActor = town.npcs[who]
+	var first: Dictionary = list[0]
+	for t in list:
+		if int(save.stars.get(t.id, 0)) == 0:
+			first = t
+			break
+	a.hop(0.12)
+	a.say(first.npc_line, "say")
+	for c in offer.get_children():
+		c.queue_free()
+	offer.add_theme_stylebox_override("panel", UIKit.panel_style(UIKit.PAPER, 16, UIKit.INK, 2))
+	offer.anchor_left = 0.5
+	offer.anchor_right = 0.5
+	offer.anchor_top = 1.0
+	offer.anchor_bottom = 1.0
+	offer.offset_left = -230
+	offer.offset_right = 230
+	offer.offset_top = -60 - 46 * list.size()
+	offer.offset_bottom = -20
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	offer.add_child(v)
+	var head := HBoxContainer.new()
+	v.add_child(head)
+	var tl := UIKit.label(TownView.NAMES[who] + "的任務", 20)
+	tl.add_theme_font_override("font", UIKit.font_bold())
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(tl)
+	var x := UIKit.focusable(UIKit.button("×", func(): offer.visible = false, "下次再說"))
+	head.add_child(x)
+	for t in list:
+		var st := int(save.stars.get(t.id, 0))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		v.add_child(row)
+		var info := UIKit.label("%s　%s" % [t.title, "★".repeat(int(t.difficulty))], 17)
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info)
+		if st > 0:
+			row.add_child(UIKit.label("完成！", 15, UIKit.TEXT_GREEN))
+		var tid: String = t.id
+		var b := UIKit.focusable(UIKit.button("再挑戰" if st > 0 else "接下任務", func():
+			offer.visible = false
+			_enter_task(tid)))
+		if st == 0:
+			UIKit.primary(b)
+		row.add_child(b)
+	offer.visible = true
+
+
+func _hide_offer() -> void:
+	offer.visible = false
 
 
 func _open_letters() -> void:
@@ -916,6 +1010,8 @@ func _enter_task(id: String) -> void:
 	if task.is_empty():
 		return
 	_cancel_held()
+	return_to_town = mode == "town"
+	offer.visible = false
 	room.visible = true
 	town.visible = false
 	hud.set_town_mode(false)
@@ -947,8 +1043,10 @@ func _reset_task_room() -> void:
 	panel.submit_answer("")  # 還在等 input() 回答的執行就此作廢
 	bubbles.clear_all()
 	var w := WorldModel.from_layout(task.room)
+	room.scene = task.room.get("scene", "house")
+	room.town_spot = task.room.get("spot", "")
 	room.build(w)
-	room.set_grid_visible(true)  # 任務用格子座標
+	room.set_grid_visible(room.scene != "town")  # 任務用格子座標；鎮上的對話任務不需要
 	room.build_outdoor()
 	room.gopher.bubble_requested.connect(_on_bubble)
 	_spawn_task_npcs(w)
@@ -961,7 +1059,11 @@ func _exit_task() -> void:
 	playback.cancel()
 	_save_code()
 	_write_save()
-	_enter_home()
+	if return_to_town:
+		return_to_town = false
+		_enter_town()
+	else:
+		_enter_home()
 
 
 func _on_code_changed() -> void:
@@ -997,7 +1099,7 @@ func _play(timeline: Array, demo: bool, highlight: bool) -> bool:
 func _demo() -> void:
 	await _wait_playback_stop()
 	_reset_task_room()
-	panel.show_banner("示範中：這是派派狼期待的樣子（不是你的程式）")
+	panel.show_banner("示範中：這是%s期待的樣子（不是你的程式）" % RoomView.NAMES.get(task.get("npc", "wolf"), "派派狼"))
 	panel.log_system("— 示範開始 —", "#9fd3e6")
 	var res := TaskRunner.run_case(task, task.reference, task.tests[0])
 	var ok := await _play(res.timeline, true, false)
@@ -1062,7 +1164,7 @@ func _submit() -> void:
 	var code: String = panel.code.text
 	var rep := TaskChecker.evaluate(task, code)
 	last_report = rep
-	panel.log_system("— 交件！派派狼檢查中… —")
+	panel.log_system("— 交件！%s檢查中… —" % RoomView.NAMES.get(task.get("npc", "wolf"), "派派狼"))
 	if rep.cases.is_empty():
 		# 語法錯誤：程式根本沒辦法跑
 		_reset_task_room()
@@ -1176,11 +1278,17 @@ func _auto_shot(path: String) -> void:
 		elif s.begins_with("book_concept:"):
 			book._show_concept(s.substr(13))
 			await get_tree().create_timer(0.3).timeout
+		elif s.begins_with("star:"):
+			save.stars[s.substr(5)] = 3
 		elif s == "town":
 			await _enter_town()
 			await get_tree().create_timer(1.5).timeout
 		elif s.begins_with("talk:"):
-			town.talk(s.substr(5))
+			var who_t: String = s.substr(5)
+			if _town_tasks(who_t).is_empty():
+				town.talk(who_t)
+			else:
+				_show_offer(who_t, _town_tasks(who_t))
 			await get_tree().create_timer(0.4).timeout
 		elif s == "home":
 			_enter_home()

@@ -231,7 +231,7 @@ static func check_rules(task: Dictionary, ast: Dictionary, code: String) -> Arra
 								hit3[0] = true))
 				if not hit3[0]:
 					out.append({"code": "rule.var_in_print", "case": "", "line": 0,
-						"message": "print() 裡沒有用到變數 %s" % vname, "hint": "數字不要寫死，用 f-string 把 {%s} 放進句子裡。" % vname})
+						"message": "print() 裡沒有用到變數 %s" % vname, "hint": rule.get("hint", "數字不要寫死，用 f-string 把 {%s} 放進句子裡。" % vname)})
 			"must_call":
 				var fname: String = rule.name
 				var hit4 := [false]
@@ -241,6 +241,17 @@ static func check_rules(task: Dictionary, ast: Dictionary, code: String) -> Arra
 				if not hit4[0]:
 					out.append({"code": "rule.must_call", "case": "", "line": 0,
 						"message": "這一題要用 %s()，但程式裡沒有用到" % fname, "hint": rule.get("hint", "任務單的規定裡有寫要用 %s() 喔。" % fname)})
+			"must_comment":
+				# 要自己寫一行註解：# 後面的內容要用 prefix 開頭（題目給的說明註解不算）
+				var prefix: String = rule.prefix
+				var ok := false
+				for l in code.split("\n"):
+					var t := l.strip_edges()
+					if t.begins_with("#") and t.substr(1).strip_edges().begins_with(prefix):
+						ok = true
+				if not ok:
+					out.append({"code": "rule.must_comment", "case": "", "line": 0,
+						"message": "找不到「# %s…」這一行筆記" % prefix, "hint": rule.get("hint", "註解要用 # 開頭，後面接「%s」。" % prefix)})
 			"max_lines":
 				var cnt := 0
 				for l in code.split("\n"):

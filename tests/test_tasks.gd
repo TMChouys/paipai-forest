@@ -11,7 +11,7 @@ func codes(rep: Dictionary) -> Array:
 
 func run(t) -> void:
 	var tasks := TaskRunner.list_tasks()
-	t.check("7 tasks loaded", tasks.size() == 7, str(tasks.size()))
+	t.check("10 tasks loaded", tasks.size() == 10, str(tasks.size()))
 	var by_id := {}
 	for task in tasks:
 		by_id[task.id] = task
@@ -20,6 +20,28 @@ func run(t) -> void:
 		# 每個測資的標準答案都不能有動作失敗
 		for c in rep.cases:
 			t.check("ref no action fail: %s/%s" % [task.id, c.name], c.ref.action_fail.is_empty(), str(c.ref.action_fail))
+
+	# 鎮中心的任務
+	var tw2: Dictionary = by_id.TW2_member_card
+	var rw2 := TaskChecker.evaluate(tw2, "name = \"派派鼠\"
+print(\"派派鼠\")
+print(\"派派鼠\")
+")
+	t.check("TW2 hardcoded name fails hidden", not rw2.passed and "rule.var_in_print" in codes(rw2), str(codes(rw2)))
+	var tw3: Dictionary = by_id.TW3_library_note
+	var rw3 := TaskChecker.evaluate(tw3, "print(\"好的，我會小聲。\")
+")
+	t.check("TW3 missing comment", not rw3.passed and "rule.must_comment" in codes(rw3), str(codes(rw3)))
+	rw3 = TaskChecker.evaluate(tw3, "print(\"借書：森林植物圖鑑\")
+print(\"好的，我會小聲。\")
+")
+	t.check("TW3 note spoken aloud fails", not rw3.passed, str(codes(rw3)))
+	var tw1: Dictionary = by_id.TW1_group_photo
+	var rw1 := TaskChecker.evaluate(tw1, "print(\"派派鼠\")
+print(\"派派狼\")
+print(\"派派兔\")
+")
+	t.check("TW1 wrong order fails", not rw1.passed, str(codes(rw1)))
 
 	var t1: Dictionary = by_id.T01_print
 	var rep1 := TaskChecker.evaluate(t1, "print（\"走到椅子\"）\n")

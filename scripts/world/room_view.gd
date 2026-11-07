@@ -16,9 +16,12 @@ var ghosts: Node3D
 var gopher: GopherActor
 ## 來訪的角色：who → GopherActor（"wolf"、"rabbit"）
 var npcs: Dictionary = {}
-const NAMES := {"gopher": "派派鼠", "wolf": "派派狼", "rabbit": "派派兔"}
-const BUBBLE_H := {"gopher": 1.3, "wolf": 1.45, "rabbit": 1.6}
+const NAMES := {"gopher": "派派鼠", "wolf": "派派狼", "rabbit": "派派兔", "tanuki": "狸老闆", "turtle": "慢慢館長", "crow": "拍拍鳥"}
+const BUBBLE_H := {"gopher": 1.3, "wolf": 1.45, "rabbit": 1.6, "tanuki": 1.45, "turtle": 1.4, "crow": 1.4}
 var grid_visible := true
+## house = 樹屋（木地板、牆）；town = 鎮中心（任務格子放在 town_spot 那棟房子前面）
+var scene := "house"
+var town_spot := ""
 var room_name := ""
 
 
@@ -29,8 +32,9 @@ func build(w: WorldModel) -> void:
 	furniture_nodes.clear()
 	walls.clear()
 	npcs.clear()
-	_build_floor()
-	_build_walls()
+	if scene != "town":
+		_build_floor()
+		_build_walls()
 	_build_grid()
 	ghosts = Node3D.new()
 	ghosts.name = "Ghosts"
@@ -272,6 +276,16 @@ const OUTDOOR := [
 
 
 func build_outdoor() -> void:
+	if scene == "town":
+		# 鎮中心當背景：把整個鎮中心挪過來，讓任務格子剛好在 town_spot 前面
+		var tv := TownView.new()
+		tv.name = "TownBackdrop"
+		tv.backdrop = true
+		add_child(tv)
+		tv.build()
+		var anchor: Vector3 = TownView.SPOTS.get(town_spot, TownView.CENTER)
+		tv.position = Vector3(world.width / 2.0, 0, world.depth / 2.0) - anchor
+		return
 	var holder := Node3D.new()
 	holder.name = "Outdoor"
 	add_child(holder)

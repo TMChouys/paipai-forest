@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "id": "TW1_group_photo",
+  "order": 102,
+  "track": "side",
+  "unlock_after_main": 1,
+  "difficulty": 1,
+  "title": "郵局前的合照",
+  "concept": "一行一個 print()",
+  "npc": "crow",
+  "npc_line": "嘎！郵局前拍合照，誰要入鏡？",
+  "sheet": {
+    "story": "拍拍鳥架好木頭風箱相機：「嘎！郵局前拍合照，誰要入鏡？一個一個報名字！」\n程式會[b]從上到下一行一行[/b]執行：寫幾個 [b]print()[/b]，派派鼠就依序說幾句話。",
+    "given": [
+      "要入鏡的有三個人：派派鼠、派派兔、派派狼。",
+      "註解寫好了報名字的順序。"
+    ],
+    "howto": [
+      [
+        "print(\"派派鼠\")",
+        "說出第一個名字"
+      ],
+      [
+        "print(\"派派兔\")",
+        "下一行再說第二個名字"
+      ]
+    ],
+    "rules": [
+      "一個 print() 只說一個名字，照註解的順序說。",
+      "名字要和註解一字不差。",
+      "只能用 print()。"
+    ],
+    "expected": "按「▶ 看示範」看大家怎麼排好拍照。"
+  },
+  "print_role": "dialogue",
+  "dialogue": [
+    {
+      "who": "crow",
+      "say": "嘎！郵局前拍合照，誰要入鏡？"
+    },
+    {
+      "who": "crow",
+      "say": "一個一個報名字，我寫在照片背面！"
+    },
+    {
+      "who": "gopher"
+    },
+    {
+      "who": "gopher"
+    },
+    {
+      "who": "gopher"
+    },
+    {
+      "who": "crow",
+      "say": "三個人！看鏡頭——喀嚓！"
+    },
+    {
+      "who": "wolf",
+      "say": "我、我才沒有在笑！"
+    },
+    {
+      "who": "rabbit",
+      "say": "照片一定很可愛～"
+    }
+  ],
+  "room": {
+    "name": "鎮中心・郵局前",
+    "scene": "town",
+    "spot": "post_office",
+    "size": [
+      2,
+      4
+    ],
+    "gopher": {
+      "cell": [
+        1,
+        1
+      ],
+      "dir": "W"
+    },
+    "npcs": [
+      {
+        "who": "crow",
+        "cell": [
+          0,
+          1
+        ],
+        "dir": "E"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          1,
+          2
+        ],
+        "dir": "W"
+      },
+      {
+        "who": "wolf",
+        "cell": [
+          1,
+          0
+        ],
+        "dir": "W"
+      }
+    ],
+    "spots": {},
+    "furniture": []
+  },
+  "goal_items": [],
+  "starter_code": "# 拍拍鳥：嘎！郵局前拍合照，誰要入鏡？\n# 拍拍鳥：一個一個報名字，我寫在照片背面！\n\n# 派派鼠依序報出三個名字（一行一個 print）：\n# 1. 派派鼠\n# 2. 派派兔\n# 3. 派派狼\n\n",
+  "given_vars": [],
+  "reference": "print(\"派派鼠\")\nprint(\"派派兔\")\nprint(\"派派狼\")\n",
+  "tests": [
+    {
+      "name": "郵局前的合照",
+      "vars": {}
+    }
+  ],
+  "rules": [
+    {
+      "id": "only_print"
+    }
+  ],
+  "scoring": {},
+  "builtins": [
+    "print"
+  ],
+  "reward": {
+    "furniture": "group_photo",
+    "message": "拍拍鳥洗好照片送你：「郵局前的合照」！"
+  },
+  "author_notes": "鎮中心第一個任務：好幾行 print() 會從上到下依序執行。"
+}

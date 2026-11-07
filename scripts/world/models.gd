@@ -270,6 +270,23 @@ static func furniture(type: String) -> Node3D:
 			part(flag, box(0.03, 0.34, 0.03), INK, Vector3(0, 0.16, 0), Vector3.ONE, Vector3.ZERO, false)  # 旗桿
 			part(flag, box(0.02, 0.12, 0.16), Color("e5534b"), Vector3(0.005, 0.27, 0.08))  # 紅旗
 			part(root, sphere(0.06), Color("7cc47a"), Vector3(-0.1, 1.27, -0.12), Vector3(1.4, 0.5, 1))  # 屋頂上的葉子
+		"photo":
+			# 合照：木框裡有郵局的紅屋頂和三顆小頭
+			part(root, box(0.62, 0.5, 0.05), a, Vector3(0, 1.4, 0.03))
+			part(root, box(0.52, 0.4, 0.02), c, Vector3(0, 1.4, 0.06), Vector3.ONE, Vector3.ZERO, false)
+			part(root, box(0.52, 0.12, 0.022), Color("b5654f"), Vector3(0, 1.54, 0.065), Vector3.ONE, Vector3.ZERO, false)
+			for k in range(3):
+				var hc: Color = [Color("c98d5b"), Color("f3dcb8"), Color("8a8f99")][k]
+				part(root, sphere(0.06), hc, Vector3(-0.15 + k * 0.15, 1.33, 0.075), Vector3(1, 1, 0.3), Vector3.ZERO, false)
+		"jar":
+			part(root, cyl(0.09, 0.09, 0.2), c, Vector3(0, 0.1, 0))
+			part(root, cyl(0.075, 0.075, 0.05), Color("c8955f"), Vector3(0, 0.225, 0))  # 軟木塞
+			for p in [Vector3(-0.03, 0.05, 0.03), Vector3(0.035, 0.05, -0.01), Vector3(0, 0.11, 0.02), Vector3(-0.02, 0.15, -0.03)]:
+				part(root, sphere(0.032), a, p, Vector3.ONE, Vector3.ZERO, false)
+		"book":
+			part(root, box(0.3, 0.07, 0.22), c, Vector3(0, 0.035, 0), Vector3.ONE, Vector3(0, 12, 0))
+			part(root, box(0.28, 0.055, 0.2), a, Vector3(0.01, 0.036, 0), Vector3.ONE, Vector3(0, 12, 0), false)
+			part(root, sphere(0.035), Color("f2c14e"), Vector3(0.0, 0.072, 0.0), Vector3(1, 0.2, 1), Vector3.ZERO, false)
 		"crate":
 			part(root, box(0.78, 0.66, 0.78), c, Vector3(0, 0.33, 0))
 			for y in [0.12, 0.54]:

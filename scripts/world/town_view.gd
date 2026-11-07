@@ -22,7 +22,11 @@ const LINES := {
 	"rabbit": ["這裡的圖書館，我最喜歡了。", "慢慢逛，不用急喔。"],
 }
 
+## 任務在鎮上進行時，任務格子的中心要放在哪裡（每棟房子的門前）
+const SPOTS := {"library": Vector3(8.0, 0, 4.1), "post_office": Vector3(5.7, 0, 6.4), "market": Vector3(10.8, 0, 6.6)}
+
 var npcs: Dictionary = {}  # who → GopherActor
+var backdrop := false  # 當任務背景：不放居民（任務自己會放角色）
 var _line_i: Dictionary = {}
 var built := false
 
@@ -37,6 +41,9 @@ func build() -> void:
 	_market(Vector3(13.4, 0, 5.8))
 	_plaza_props()
 	_greenery()
+	built = true
+	if backdrop:
+		return
 	_spawn("turtle", Vector3(8.0, 0, 3.55), "S")
 	_spawn("crow", Vector3(5.3, 0, 7.6), "S")
 	_spawn("tanuki", Vector3(11.9, 0, 6.2), "W")
@@ -297,6 +304,15 @@ func _spawn(who: String, pos: Vector3, facing: String) -> GopherActor:
 	return a
 
 
+## 任務公告欄（點它打開任務書）
+const BOARD_POS := Vector3(5.2, 1.3, 3.7)
+
+
+func board_at(screen_pos: Vector2, cam: Camera3D) -> bool:
+	var p := global_transform * BOARD_POS
+	return not cam.is_position_behind(p) and cam.unproject_position(p).distance_to(screen_pos) < 60
+
+
 ## 滑鼠指到哪個居民（螢幕上離頭部附近 55 像素以內）
 func actor_at(screen_pos: Vector2, cam: Camera3D) -> String:
 	var best := ""
@@ -311,6 +327,30 @@ func actor_at(screen_pos: Vector2, cam: Camera3D) -> String:
 			best_d = dd
 			best = who
 	return best
+
+
+## 頭上的「！」：有還沒完成的任務
+func set_mark(who: String, on: bool) -> void:
+	if not npcs.has(who):
+		return
+	var a: GopherActor = npcs[who]
+	var m: Label3D = a.get_node_or_null("TaskMark")
+	if on and m == null:
+		m = Label3D.new()
+		m.name = "TaskMark"
+		m.text = "！"
+		m.font = UIKit.font_bold()
+		m.font_size = 128
+		m.pixel_size = 0.006
+		m.modulate = UIKit.ACCENT_LINE
+		m.outline_size = 18
+		m.outline_modulate = Color("fff8ec")
+		m.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		m.no_depth_test = true
+		m.position = Vector3(0, a.bubble_height + 0.25, 0)
+		a.add_child(m)
+	elif not on and m != null:
+		m.queue_free()
 
 
 func talk(who: String) -> void:

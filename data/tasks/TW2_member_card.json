@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "id": "TW2_member_card",
+  "order": 103,
+  "track": "side",
+  "unlock_after_main": 1,
+  "difficulty": 1,
+  "title": "市集的會員卡",
+  "concept": "變數",
+  "npc": "tanuki",
+  "npc_line": "歡迎光臨！要辦會員卡嗎？",
+  "sheet": {
+    "story": "狸老闆拿出一張空白的會員卡：「歡迎光臨！要辦會員卡嗎？請說一下名字。」\n名字已經存在[b]變數[/b] name 裡了。變數就像貼了標籤的盒子：[b]print(name)[/b] 會說出盒子裡裝的東西。",
+    "given": [
+      "程式第 1 行已經寫好 name = \"派派鼠\"。",
+      "交件時，狸老闆會偷偷換成別人的名字再辦一次卡！"
+    ],
+    "howto": [
+      [
+        "name = \"派派鼠\"",
+        "把「派派鼠」放進叫做 name 的盒子"
+      ],
+      [
+        "print(name)",
+        "說出 name 裡裝的東西（不加引號）"
+      ]
+    ],
+    "rules": [
+      "保留 name 這一行。",
+      "兩次都要用 print(name) 說出名字，不可以直接寫 print(\"派派鼠\")。"
+    ],
+    "expected": "按「▶ 看示範」看狸老闆怎麼辦會員卡。"
+  },
+  "print_role": "dialogue",
+  "dialogue": [
+    {
+      "who": "tanuki",
+      "say": "歡迎光臨！要辦會員卡嗎？"
+    },
+    {
+      "who": "tanuki",
+      "say": "請說一下名字，我寫在卡上。"
+    },
+    {
+      "who": "gopher"
+    },
+    {
+      "who": "tanuki",
+      "say": "{name}嗎？再說一次，我核對一下。"
+    },
+    {
+      "who": "gopher"
+    },
+    {
+      "who": "tanuki",
+      "say": "{name}，會員卡辦好了！歡迎常來！"
+    }
+  ],
+  "room": {
+    "name": "鎮中心・狸老闆雜貨攤",
+    "scene": "town",
+    "spot": "market",
+    "size": [
+      2,
+      4
+    ],
+    "gopher": {
+      "cell": [
+        0,
+        2
+      ],
+      "dir": "E"
+    },
+    "npcs": [
+      {
+        "who": "tanuki",
+        "cell": [
+          1,
+          2
+        ],
+        "dir": "W"
+      }
+    ],
+    "spots": {},
+    "furniture": []
+  },
+  "goal_items": [],
+  "starter_code": "name = \"派派鼠\"   # 會員卡上的名字（狸老闆檢查時會換名字）\n\n# 狸老闆：請說一下名字，我寫在卡上。\n# 派派鼠用 print(name) 說出名字\n\n\n# 狸老闆：○○嗎？再說一次，我核對一下。\n# 派派鼠再用 print(name) 說一次\n\n",
+  "given_vars": [
+    "name"
+  ],
+  "reference": "name = \"派派鼠\"\nprint(name)\nprint(name)\n",
+  "tests": [
+    {
+      "name": "派派鼠辦會員卡",
+      "vars": {
+        "name": "派派鼠"
+      }
+    },
+    {
+      "name": "隱藏測資：小松鼠",
+      "hidden": true,
+      "vars": {
+        "name": "小松鼠"
+      }
+    },
+    {
+      "name": "隱藏測資：蘑菇妹妹",
+      "hidden": true,
+      "vars": {
+        "name": "蘑菇妹妹"
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "name"
+    },
+    {
+      "id": "var_in_print",
+      "name": "name",
+      "hint": "名字不要寫死，用 print(name) 說出變數裡的名字。"
+    }
+  ],
+  "scoring": {},
+  "builtins": [
+    "print"
+  ],
+  "reward": {
+    "furniture": "acorn_jar",
+    "message": "狸老闆送你一罐「橡實糖罐」：「會員第一天，送你的！」"
+  },
+  "author_notes": "變數：把值放進有名字的盒子，print(name) 不加引號。隱藏測資換名字，抓出寫死的答案。"
+}

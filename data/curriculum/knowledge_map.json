@@ -930,56 +930,56 @@
   },
   {
    "id": "Q_comment",
-   "title": "派派兔的讀書筆記",
+   "title": "圖書館的借書筆記",
    "concepts": [
     "comment"
    ],
    "compound": false,
    "difficulty": 1,
    "area": "A",
-   "place": "treehouse",
-   "npc": "rabbit",
-   "story": "派派兔說：讀書時要在旁邊寫筆記，但筆記不用念出來。",
+   "place": "library",
+   "npc": "turtle",
+   "story": "圖書館要小聲：借的書用 # 寫成筆記，不用念出來。",
    "goal": "在程式裡寫一行 # 筆記，再用 print() 說一句「我寫好筆記了！」。",
    "expected": "我寫好筆記了！",
-   "status": "draft",
-   "game_task": null,
+   "status": "playable",
+   "game_task": "TW3_library_note",
    "notes": ""
   },
   {
    "id": "Q_print_multi",
-   "title": "拍拍鳥的合照名單",
+   "title": "郵局前的合照",
    "concepts": [
     "print_multi"
    ],
    "compound": false,
    "difficulty": 1,
    "area": "A",
-   "place": "front_yard",
+   "place": "post_office",
    "npc": "crow",
-   "story": "拍拍鳥要拍合照，請派派鼠一次報出三個名字。",
+   "story": "拍拍鳥要在郵局前拍合照，派派鼠一行一個 print() 報出三個名字。",
    "goal": "用一個 print()、逗號隔開，說出 派派鼠 派派狼 派派兔。",
    "expected": "派派鼠 派派狼 派派兔",
-   "status": "draft",
-   "game_task": null,
+   "status": "playable",
+   "game_task": "TW1_group_photo",
    "notes": ""
   },
   {
    "id": "Q_variable",
-   "title": "信箱的名牌",
+   "title": "市集的會員卡",
    "concepts": [
     "variable"
    ],
    "compound": false,
    "difficulty": 1,
    "area": "B",
-   "place": "front_yard",
-   "npc": "crow",
-   "story": "拍拍鳥送信時找不到名牌，派派鼠把名字存進變數 name 再念出來。",
+   "place": "market",
+   "npc": "tanuki",
+   "story": "狸老闆幫派派鼠辦會員卡，名字存在變數 name 裡，用 print(name) 說出來。",
    "goal": "name = \"派派鼠\"，然後 print(name)。",
    "expected": "派派鼠",
-   "status": "draft",
-   "game_task": null,
+   "status": "playable",
+   "game_task": "TW2_member_card",
    "notes": ""
   },
   {
