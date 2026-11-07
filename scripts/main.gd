@@ -1831,6 +1831,8 @@ func _use_furniture(uid: String) -> void:
 	var center := RoomView.item_pos(it, home_world)
 	g.face_vector(center - g.position)
 	await get_tree().create_timer(0.3).timeout
+	if not is_instance_valid(g) or mode != "home":
+		return  # 等的時候進了任務或換了場景，派派鼠已經換成新的
 	var use: String = WorldModel.def_of(it.type).get("use", "")
 	var back := g.position
 	match use:
@@ -1838,6 +1840,8 @@ func _use_furniture(uid: String) -> void:
 			var tw := create_tween()
 			tw.tween_property(g, "position", center + Vector3(0, 0.48, 0), 0.35)
 			await tw.finished
+			if not is_instance_valid(g) or mode != "home":
+				return
 			g.target_yaw = RoomView.item_yaw(it) + 0.0
 			g.set_seated(true)
 			g.say("坐一下～", "say")
@@ -1854,15 +1858,19 @@ func _use_furniture(uid: String) -> void:
 			tw2.tween_property(g, "position", lie, 0.4)
 			tw2.parallel().tween_property(g.model, "rotation:x", -PI / 2.2, 0.4)
 			await tw2.finished
+			if not is_instance_valid(g) or mode != "home":
+				return
 			g.say("Zzz…", "think")
 			await _roam_pause(4.0)
+			if not is_instance_valid(g) or mode != "home":
+				return
 			var tw3 := create_tween()
 			tw3.tween_property(g.model, "rotation:x", 0.0, 0.3)
 			await tw3.finished
 		"read":
 			g.say("看書中…", "think")
 			await _roam_pause(3.0)
-	if mode != "home":
+	if mode != "home" or not is_instance_valid(g):
 		return
 	var tw4 := create_tween()
 	tw4.tween_property(g, "position", back, 0.3)
@@ -2805,6 +2813,10 @@ func _auto_shot(path: String) -> void:
 						home_world.gopher_cell = nb
 			roam_busy = true
 			_use_furniture(uu)
+		elif s == "sheet_end":
+			# 任務單捲到最下面（測試用）
+			var sc: ScrollContainer = panel.sheet.get_parent()
+			sc.scroll_vertical = 99999
 		elif s.begins_with("trace:"):
 			# trace:秒數（測試用：每 0.25 秒印出三個角色的位置和最近距離）
 			var until_t := Time.get_ticks_msec() + int(float(s.substr(6)) * 1000)

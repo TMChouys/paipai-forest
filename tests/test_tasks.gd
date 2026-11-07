@@ -100,7 +100,7 @@ print(\"派派兔\")
 	var d1: Dictionary = by_id.D01_hello
 	var rd := TaskChecker.evaluate(d1, "print(\"你好！我是派派鼠。\")
 print(\"學姊好!請多指教。\")
-print(\"謝謝狼大哥！\")
+print(\"謝謝派狼老大！\")
 ")
 	t.check("D1 halfwidth ! -> listener confused", not rd.passed and "action.fail" in codes(rd), str(codes(rd)))
 	var punct_hint := false

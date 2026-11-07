@@ -18,7 +18,7 @@ signal answered(text: String)
 const SPEEDS := [1.0, 2.0, 4.0]
 
 var task: Dictionary
-var sheet: RichTextLabel
+var sheet: VBoxContainer  # 任務單：標題＋四段色塊（任務目標／撰寫規定／限制條件／預期演出）
 var code: CodeEdit
 var console: RichTextLabel
 var vars_label: RichTextLabel
@@ -85,20 +85,12 @@ func _build() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	lv.add_child(scroll)
-	sheet = RichTextLabel.new()
-	sheet.bbcode_enabled = true
-	sheet.fit_content = true
+	sheet = VBoxContainer.new()
 	sheet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sheet.selection_enabled = true
-	sheet.add_theme_font_override("mono_font", UIKit.mono())
-	sheet.add_theme_font_override("bold_font", UIKit.font_bold())
-	sheet.add_theme_font_size_override("normal_font_size", 16)
-	sheet.add_theme_font_size_override("bold_font_size", 16)
-	sheet.add_theme_font_size_override("mono_font_size", 16)
+	sheet.add_theme_constant_override("separation", 10)
 	scroll.add_child(sheet)
 	btn_demo = UIKit.button("▶  看示範（派派鼠演給你看）", func(): demo_pressed.emit(), "用標準答案演一遍，不會顯示程式碼")
-	btn_demo.add_theme_font_size_override("font_size", 18)
-	lv.add_child(btn_demo)
+	btn_demo.add_theme_font_size_override("font_size", 17)
 
 	# ---- 右：程式碼 ----
 	var right := PanelContainer.new()
@@ -113,7 +105,7 @@ func _build() -> void:
 	var rv := VBoxContainer.new()
 	rv.add_theme_constant_override("separation", 6)
 	right.add_child(rv)
-	rv.add_child(UIKit.label("程式碼（簡化版 Python）", 16))
+	rv.add_child(UIKit.label("程式碼", 16))
 	code = CodeEdit.new()
 	code.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	code.size_flags_stretch_ratio = 1.4
@@ -130,16 +122,20 @@ func _build() -> void:
 	code.add_theme_font_size_override("font_size", 18)
 	code.add_theme_constant_override("line_spacing", 6)
 	code.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	code.gutters_draw_bookmarks = true  # 錯誤行的行號旁邊畫一個記號
 	var cs := UIKit.panel_style(Color("fffdf6"), 10, UIKit.INK, 2)
+	cs.content_margin_left = 4  # 行號靠左，不要空一大格
 	code.add_theme_stylebox_override("normal", cs)
-	code.add_theme_stylebox_override("focus", UIKit.panel_style(Color("fffdf6"), 10, UIKit.ACCENT_LINE, 3))
+	var fs := UIKit.panel_style(Color("fffdf6"), 10, UIKit.ACCENT_LINE, 3)
+	fs.content_margin_left = 4
+	code.add_theme_stylebox_override("focus", fs)
 	# 示範／執行中不能編輯：換成淡一點的紙色，文字顏色不變（原本會變成灰底灰字）
-	code.add_theme_stylebox_override("read_only", UIKit.panel_style(Color("f6efe2"), 10, UIKit.INK, 2))
+	var ros := UIKit.panel_style(Color("f6efe2"), 10, UIKit.INK, 2)
+	ros.content_margin_left = 4
+	code.add_theme_stylebox_override("read_only", ros)
 	code.add_theme_color_override("font_color", Color("3b2a1e"))
 	code.add_theme_color_override("font_readonly_color", Color("3b2a1e"))
 	code.add_theme_color_override("current_line_color", Color(1, 0.86, 0.6, 0.25))
-	code.add_theme_color_override("line_number_color", UIKit.TEXT_MUTED)
+	code.add_theme_color_override("line_number_color", Color("bdb5ab"))  # 淡灰色行號
 	code.add_theme_color_override("bookmark_color", UIKit.TEXT_RED)
 	code.add_theme_color_override("executing_line_color", Color(0.4, 0.75, 1.0, 0.35))
 	code.add_theme_color_override("caret_color", UIKit.INK)
@@ -275,7 +271,7 @@ func load_task(t: Dictionary, saved_code: String) -> void:
 	var tag := "支線" if t.get("track", "main") == "side" else "任務 No.%d" % int(t.get("order", 0))
 	title_label.text = "%s・%s" % [tag, t.title]
 	title_sub.text = "%s　難度 %s" % [t.concept, "★".repeat(int(t.get("difficulty", 1)))]
-	sheet.text = build_sheet(t)
+	_fill_sheet(t)
 	code.text = saved_code if saved_code != "" else t.get("starter_code", "")
 	console.text = ""
 	set_vars({})
@@ -284,26 +280,106 @@ func load_task(t: Dictionary, saved_code: String) -> void:
 	log_system("把程式寫在上面，按「▶ 執行」讓派派鼠演出來；滿意了再按「★ 交件」。")
 
 
-static func build_sheet(t: Dictionary) -> String:
-	var s := ""
+## 任務單的四段：標題色塊＋淡淡同色的底，一眼分得出是哪一段
+const SECTIONS := {
+	"goal": ["任務目標", Color("cfe5b8"), Color("355e22"), Color("f3f9ec")],
+	"write": ["撰寫規定", Color("cfe0f3"), Color("2c5684"), Color("eff5fb")],
+	"limit": ["限制條件", Color("f8d3cb"), Color("a63d33"), Color("fdf1ee")],
+	"show": ["預期演出", Color("f8e4a8"), Color("7d5a0c"), Color("fdf8e6")],
+}
+
+
+static func _rtl(bb: String) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.selection_enabled = true
+	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	r.add_theme_font_override("mono_font", UIKit.mono())
+	r.add_theme_font_override("bold_font", UIKit.font_bold())
+	r.add_theme_font_size_override("normal_font_size", 16)
+	r.add_theme_font_size_override("bold_font_size", 16)
+	r.add_theme_font_size_override("mono_font_size", 16)
+	r.add_theme_color_override("default_color", UIKit.INK)
+	r.text = bb
+	return r
+
+
+static func _section(key: String, body: String, extra: Control = null) -> PanelContainer:
+	var d: Array = SECTIONS[key]
+	var card := PanelContainer.new()
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = d[3]
+	cs.set_corner_radius_all(10)
+	cs.border_color = d[1].darkened(0.08)
+	cs.set_border_width_all(2)
+	cs.content_margin_left = 0
+	cs.content_margin_right = 0
+	cs.content_margin_top = 0
+	cs.content_margin_bottom = 10
+	card.add_theme_stylebox_override("panel", cs)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	card.add_child(v)
+	var head := PanelContainer.new()
+	var hs := StyleBoxFlat.new()
+	hs.bg_color = d[1]
+	hs.corner_radius_top_left = 8
+	hs.corner_radius_top_right = 8
+	hs.content_margin_left = 12
+	hs.content_margin_right = 12
+	hs.content_margin_top = 4
+	hs.content_margin_bottom = 4
+	head.add_theme_stylebox_override("panel", hs)
+	var hl := UIKit.label(d[0], 17, d[2])
+	hl.add_theme_font_override("font", UIKit.font_bold())
+	head.add_child(hl)
+	v.add_child(head)
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_left", 12)
+	m.add_theme_constant_override("margin_right", 10)
+	var mv := VBoxContainer.new()
+	mv.add_theme_constant_override("separation", 8)
+	m.add_child(mv)
+	if body != "":
+		mv.add_child(_rtl(body))
+	if extra != null:
+		mv.add_child(extra)
+	v.add_child(m)
+	return card
+
+
+func _fill_sheet(t: Dictionary) -> void:
+	if btn_demo.get_parent() != null:
+		btn_demo.get_parent().remove_child(btn_demo)
+	for c in sheet.get_children():
+		c.queue_free()
+	var parts := build_sheet(t)
+	sheet.add_child(_rtl(parts.head))
+	sheet.add_child(_section("goal", parts.goal))
+	sheet.add_child(_section("write", parts.write))
+	sheet.add_child(_section("limit", parts.limit))
+	sheet.add_child(_section("show", parts.show, btn_demo))
+
+
+## 任務單內容：{head, goal, write, limit, show}（BBCode）
+static func build_sheet(t: Dictionary) -> Dictionary:
 	var sh: Dictionary = t.get("sheet", {})
 	var role: String = t.get("print_role", "action")
 	var giver: String = RoomView.NAMES.get(t.get("npc", "wolf"), "派派狼")
-	s += "[font_size=20][b]%s的任務單[/b][/font_size]\n" % giver
+	var head := "[font_size=20][b]%s的任務單[/b][/font_size]\n" % giver
+	head += "[color=#8a6a50]%s・難度 %s[/color]" % [UIKit.esc(t.get("concept", "")), "★".repeat(int(t.get("difficulty", 1)))]
 	var hidden := 0
 	for test in t.get("tests", []):
 		if test.get("hidden", false):
 			hidden += 1
-	s += "[color=#8a6a50]%s・難度 %s[/color]" % [UIKit.esc(t.get("concept", "")), "★".repeat(int(t.get("difficulty", 1)))]
-	if hidden > 0:
-		s += "\n[color=#b8473f]交件時還有 %d 組隱藏測資[/color]" % hidden
-	s += "\n\n"
-	s += "[b]任務內容[/b]\n%s\n\n" % sh.get("story", "")
-	if not sh.get("given", []).is_empty():
-		s += "[b]題目給你的東西[/b]\n"
-		for g in sh.given:
-			s += "・%s\n" % UIKit.esc(g)
-		s += "\n"
+	# 1. 任務目標
+	var goal := "%s" % sh.get("story", "")
+	for g in sh.get("given", []):
+		goal += "\n・%s" % UIKit.esc(g)
+	# 2. 撰寫規定
+	var s := ""
 	if role == "dialogue":
 		# 對話任務：說話的方式（不用句型表）
 		if not sh.get("howto", []).is_empty():
@@ -322,16 +398,21 @@ static func build_sheet(t: Dictionary) -> String:
 		s += "[/table]\n"
 		if role == "mixed":
 			s += "[color=#8a6a50]不符合句型的 print() 會變成對派派兔說的話，例如「%s」。[/color]\n" % UIKit.esc(t.get("speech_example", ""))
-	var rules: Array = sh.get("rules", [])
-	if not rules.is_empty():
-		s += "\n[bgcolor=#fde3dc][color=#b8473f][b] ⚠ 注意！規定 [/b][/color][/bgcolor] [color=#8a6a50]（%s很講究喔！）[/color]\n" % giver
-		var i := 1
-		for r in rules:
-			s += "[color=#d9605a]▍[/color][color=#7a2f28]%d. %s[/color]\n" % [i, UIKit.esc(r)]
-			i += 1
-	s += "\n[b]預期演出[/b]\n%s\n" % UIKit.esc(sh.get("expected", ""))
-	s += "\n[b]獎勵[/b]：%s\n" % UIKit.esc(WorldModel.def_of(t.get("reward", {}).get("furniture", "")).get("name", ""))
-	return s
+	var i := 1
+	for r in sh.get("rules", []):
+		s += "\n%d. %s" % [i, UIKit.esc(r)]
+		i += 1
+	# 3. 限制條件
+	var lim := ""
+	for r in sh.get("limits", []):
+		lim += ("\n" if lim != "" else "") + "・%s" % UIKit.esc(r)
+	if hidden > 0:
+		lim += ("\n" if lim != "" else "") + "・交件時還有 %d 組隱藏測資（%s會換別的情況再檢查）" % [hidden, giver]
+	if lim == "":
+		lim = "・沒有特別的限制，照撰寫規定寫就可以。"
+	# 4. 預期演出（看示範按鈕放在這一段）
+	var show := UIKit.esc(sh.get("expected", ""))
+	return {"head": head, "goal": goal, "write": s.strip_edges(), "limit": lim, "show": show}
 
 
 func log_output(text: String, demo: bool = false) -> void:
@@ -392,7 +473,6 @@ func highlight_line(line: int) -> void:
 func mark_error(line: int) -> void:
 	if line >= 1 and line <= code.get_line_count():
 		code.set_line_background_color(line - 1, Color(0.85, 0.28, 0.25, 0.22))
-		code.set_line_as_bookmarked(line - 1, true)
 		code.set_caret_line(line - 1)
 		code.set_caret_column(0)
 		code.center_viewport_to_caret()
@@ -402,7 +482,6 @@ func clear_marks() -> void:
 	code.clear_executing_lines()
 	for i in range(code.get_line_count()):
 		code.set_line_background_color(i, Color(0, 0, 0, 0))
-		code.set_line_as_bookmarked(i, false)
 
 
 func set_running(running: bool, paused: bool = false) -> void:
