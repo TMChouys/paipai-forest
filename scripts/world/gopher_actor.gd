@@ -111,7 +111,7 @@ func _update_anim() -> void:
 	var want := "walk" if moving else "idle"
 	if anthro:
 		if _seated:
-			want = "sit"
+			want = "idle"  # sit 動畫會把整個身體往下壓（是給別的座位高度做的），坐椅子用待機姿勢
 		elif carried != null and not moving:
 			want = "holding-both"
 		# 抱著或推著走：走路動畫＋雙手固定
@@ -167,12 +167,13 @@ func _process(delta: float) -> void:
 	t += delta
 	_update_face()
 	model.rotation.y = lerp_angle(model.rotation.y, target_yaw, clamp(delta * 12.0 * speed_scale, 0, 1))
-	if body == null:
-		return
 	if anim:
+		# 骨架動畫負責走路（獸人模型沒有 Body 節點，所以要先處理，不然走路動畫永遠不會播）
 		_update_anim()
-		# 骨架動畫負責走路，這裡只做推東西時的前傾
-		body.rotation.x = lerp(body.rotation.x, 0.18 if pushing else 0.0, delta * 8)
+		if body != null:
+			body.rotation.x = lerp(body.rotation.x, 0.18 if pushing else 0.0, delta * 8)
+		return
+	if body == null:
 		return
 	if moving:
 		walk_phase += delta * 11.0 * speed_scale

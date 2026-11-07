@@ -740,7 +740,7 @@ func _build_stream(holder: Node3D) -> void:
 			holder.add_child(bub)
 	if not UIKit.reduce_motion:
 		var tw := holder.create_tween().set_loops()
-		tw.tween_property(water, "uv1_offset", Vector3(0, 0, 1.0), 6.0).from(Vector3.ZERO)
+		tw.tween_property(water, "uv1_offset", Vector3.ZERO, 6.0).from(Vector3(0, 0, 1.0))  # 往南（下游）流
 	# 蘆葦
 	var reed := Models.mat(Color("7c9a55"), false)
 	for i in range(18):

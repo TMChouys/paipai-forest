@@ -2700,7 +2700,7 @@ func _auto_shot(path: String) -> void:
 		elif s == "submit":
 			await _submit()
 		elif s == "pos":
-			print("gopher ", room.gopher.position, " vis ", room.gopher.visible, " cam ", rig.cam.global_position, " gen ", intro_gen, " idle ", idle_time, " watch ", idle_watch, " play ", play_started)
+			print("gopher ", room.gopher.position, " vis ", room.gopher.visible, " cam ", rig.cam.global_position, " gen ", intro_gen, " idle ", idle_time, " watch ", idle_watch, " play ", play_started, " anim ", room.gopher.anim.current_animation if room.gopher.anim else "-")
 		elif s == "esc":
 			var ev := InputEventKey.new()
 			ev.keycode = KEY_ESCAPE
@@ -2778,6 +2778,8 @@ func _auto_shot(path: String) -> void:
 			print("inventory ", save.inventory)
 		elif s.begins_with("use:"):
 			# use:uid（測試用：派派鼠走到家具旁邊使用）
+			while roam_busy or click_walking:
+				await get_tree().process_frame
 			var uu: String = s.substr(4)
 			var it_u: Dictionary = home_world.items[uu]
 			for c in home_world.footprint(it_u):
