@@ -1321,7 +1321,7 @@ func _roam() -> void:
 		roam_busy = false
 		return
 	# 在屋裡：偶爾出門走走
-	if randf() < 0.12:
+	if randf() < 0.2:
 		await _auto_walk(g, Vector3(randf_range(room.yard_x0() + 0.6, room.yard_x1() - 0.6), 0, randf_range(w.depth + 1.2, room.yard_z1() - 0.8)))
 		await _idle_action(g)
 		roam_busy = false
