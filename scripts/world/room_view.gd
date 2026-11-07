@@ -565,6 +565,8 @@ func play_result(res: Dictionary, speed: float) -> void:
 			# 說錯了：聽的人聽不懂
 			var lis := actor(res.get("who", "wolf"))
 			var said: String = res.get("text", "")
+			if res.get("by_gopher", false) and said != "":
+				gopher.say(said, "say")  # 派派鼠說錯的那句留著，和「聽不懂」並排對照
 			if said.length() > 12:
 				said = said.substr(0, 12) + "…"
 			lis.say(("蛤？「%s」？聽不懂…" % said) if said != "" else "嗯？還沒說完喔…", "fail")

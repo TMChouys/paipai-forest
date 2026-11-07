@@ -29,6 +29,7 @@ var btn_speed: Button
 var btn_submit: Button
 var btn_demo: Button
 var title_label: Label
+var title_sub: Label
 var banner: Label
 var speed_i := 0
 var ask_box: PanelContainer
@@ -56,11 +57,15 @@ func _build() -> void:
 	th.add_theme_constant_override("separation", 10)
 	top.add_child(th)
 	title_label = UIKit.label("", 20)
-	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.add_theme_font_override("font", UIKit.font_bold())
 	title_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	th.add_child(title_label)
-	th.add_child(UIKit.button("格子 開／關", func(): grid_toggled.emit(), "顯示或隱藏地板格子與座標"))
-	th.add_child(UIKit.button("視角重設", func(): view_reset.emit(), "右鍵拖曳旋轉、中鍵拖曳平移、滾輪縮放、Q/E 轉 90 度"))
+	title_sub = UIKit.label("", 14, Color("8a6a50"))
+	title_sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_sub.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	th.add_child(title_sub)
+	th.add_child(UIKit.tertiary(UIKit.button("格子 開／關", func(): grid_toggled.emit(), "顯示或隱藏地板格子與座標")))
+	th.add_child(UIKit.tertiary(UIKit.button("視角重設", func(): view_reset.emit(), "右鍵拖曳旋轉、中鍵拖曳平移、滾輪縮放、Q/E 轉 90 度")))
 	th.add_child(UIKit.button("離開任務", func(): exit_pressed.emit()))
 
 	# ---- 左：任務單 ----
@@ -178,7 +183,7 @@ func _build() -> void:
 	console.add_theme_font_size_override("normal_font_size", 15)
 	cpanel.add_child(console)
 	var vbox := VBoxContainer.new()
-	vbox.custom_minimum_size.x = 120
+	vbox.custom_minimum_size.x = 150
 	bottom.add_child(vbox)
 	vbox.add_child(UIKit.label("變數", 14))
 	var vpanel := PanelContainer.new()
@@ -268,7 +273,8 @@ func speed() -> float:
 func load_task(t: Dictionary, saved_code: String) -> void:
 	task = t
 	var tag := "支線" if t.get("track", "main") == "side" else "任務 No.%d" % int(t.get("order", 0))
-	title_label.text = "%s　%s　｜　%s　%s" % [tag, t.title, t.concept, "★".repeat(int(t.get("difficulty", 1)))]
+	title_label.text = "%s・%s" % [tag, t.title]
+	title_sub.text = "%s　難度 %s" % [t.concept, "★".repeat(int(t.get("difficulty", 1)))]
 	sheet.text = build_sheet(t)
 	code.text = saved_code if saved_code != "" else t.get("starter_code", "")
 	console.text = ""
@@ -283,7 +289,14 @@ static func build_sheet(t: Dictionary) -> String:
 	var sh: Dictionary = t.get("sheet", {})
 	var role: String = t.get("print_role", "action")
 	s += "[font_size=20][b]派派狼的任務單[/b][/font_size]\n"
-	s += "[color=#8a6a50]%s・難度 %s[/color]\n\n" % [UIKit.esc(t.get("concept", "")), "★".repeat(int(t.get("difficulty", 1)))]
+	var hidden := 0
+	for test in t.get("tests", []):
+		if test.get("hidden", false):
+			hidden += 1
+	s += "[color=#8a6a50]%s・難度 %s[/color]" % [UIKit.esc(t.get("concept", "")), "★".repeat(int(t.get("difficulty", 1)))]
+	if hidden > 0:
+		s += "\n[color=#b8473f]交件時還有 %d 組隱藏測資[/color]" % hidden
+	s += "\n\n"
 	s += "[b]任務內容[/b]\n%s\n\n" % sh.get("story", "")
 	if not sh.get("given", []).is_empty():
 		s += "[b]題目給你的東西[/b]\n"
@@ -293,10 +306,10 @@ static func build_sheet(t: Dictionary) -> String:
 	if role == "dialogue":
 		# 對話任務：說話的方式（不用句型表）
 		if not sh.get("howto", []).is_empty():
-			s += "[b]怎麼說話[/b]\n[table=2]"
+			s += "[b]怎麼說話[/b]\n"
 			for h in sh.howto:
-				s += "[cell][code]%s[/code]  [/cell][cell]%s[/cell]" % [UIKit.esc(h[0]), UIKit.esc(h[1])]
-			s += "[/table]\n"
+				# 程式一行、說明下一行縮排（表格太窄會把字串從中間切斷）
+				s += "[code]%s[/code]\n[indent][color=#6b5242]%s[/color][/indent]\n" % [UIKit.esc(h[0]), UIKit.esc(h[1])]
 		s += "[color=#8a6a50]程式裡的 # 註解寫著每一句要說的話。說錯一個字，大家就聽不懂喔！[/color]\n"
 	else:
 		s += "[b]派派鼠聽得懂的話（句型表）[/b]\n"
@@ -308,18 +321,14 @@ static func build_sheet(t: Dictionary) -> String:
 		s += "[/table]\n"
 		if role == "mixed":
 			s += "[color=#8a6a50]不符合句型的 print() 會變成對派派兔說的話，例如「%s」。[/color]\n" % UIKit.esc(t.get("speech_example", ""))
-	s += "\n[b]規定[/b]（派派狼很講究喔！）\n"
-	var i := 1
-	for r in sh.get("rules", []):
-		s += "%d. %s\n" % [i, UIKit.esc(r)]
-		i += 1
+	var rules: Array = sh.get("rules", [])
+	if not rules.is_empty():
+		s += "\n[bgcolor=#fde3dc][color=#b8473f][b] ⚠ 注意！規定 [/b][/color][/bgcolor] [color=#8a6a50]（派派狼很講究喔！）[/color]\n"
+		var i := 1
+		for r in rules:
+			s += "[color=#d9605a]▍[/color][color=#7a2f28]%d. %s[/color]\n" % [i, UIKit.esc(r)]
+			i += 1
 	s += "\n[b]預期演出[/b]\n%s\n" % UIKit.esc(sh.get("expected", ""))
-	var hidden := 0
-	for test in t.get("tests", []):
-		if test.get("hidden", false):
-			hidden += 1
-	if hidden > 0:
-		s += "\n[color=#b8473f]交件時還有 %d 組隱藏測資。[/color]\n" % hidden
 	s += "\n[b]獎勵[/b]：%s\n" % UIKit.esc(WorldModel.def_of(t.get("reward", {}).get("furniture", "")).get("name", ""))
 	return s
 

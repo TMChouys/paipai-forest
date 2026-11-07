@@ -270,14 +270,14 @@ static func fill(text: String, env: Dictionary) -> String:
 ## 程式這句話（print 的內容或 input 的問題）對照劇本
 static func _match_beat(beats: Array, st: Dictionary, expected: Array, kind: String, got: String) -> Dictionary:
 	if st.bi >= beats.size():
-		return {"ok": false, "act": "dlg_fail", "who": _listener(beats, st.bi), "text": got,
+		return {"ok": false, "act": "dlg_fail", "who": _listener(beats, st.bi), "text": got, "by_gopher": kind == "print",
 			"reason": "大家都說完了，程式卻多說了「%s」" % got, "hint": "對話只有註解上的那幾句，多的請刪掉。"}
 	var b: Dictionary = beats[st.bi]
 	var want := "input" if b.get("ask", false) else "print"
 	var exp: String = expected[st.k] if st.k < expected.size() else ""
 	if kind != want:
 		var why := ("這裡應該用 input() 讓%s問：「%s」" % [NAMES.get(b.who, ""), exp]) if want == "input" 			else ("這裡應該用 print() 讓派派鼠回答：「%s」" % exp)
-		return {"ok": false, "act": "dlg_fail", "who": _listener(beats, st.bi), "text": got, "reason": why, "hint": "照著註解的順序一句一句寫。"}
+		return {"ok": false, "act": "dlg_fail", "who": _listener(beats, st.bi), "text": got, "by_gopher": kind == "print", "reason": why, "hint": "照著註解的順序一句一句寫。"}
 	if got != exp:
 		var hint := "註解上寫的是「%s」，要一字不差。" % exp
 		if got.strip_edges() == exp.strip_edges():
@@ -286,7 +286,7 @@ static func _match_beat(beats: Array, st: Dictionary, expected: Array, kind: Str
 			hint = "標點符號不一樣（全形／半形），應該是「%s」。" % exp
 		var who: String = b.who if want == "input" else _listener(beats, st.bi)
 		var reason := ("%s不知道要問什麼：「%s」" % [NAMES.get(who, ""), got]) if want == "input" 			else ("%s聽不懂「%s」" % [NAMES.get(who, ""), got])
-		return {"ok": false, "act": "dlg_fail", "who": who, "text": got, "reason": reason, "hint": hint}
+		return {"ok": false, "act": "dlg_fail", "who": who, "text": got, "by_gopher": kind == "print", "reason": reason, "hint": hint}
 	st.bi += 1
 	st.k += 1
 	if want == "input":

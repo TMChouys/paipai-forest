@@ -22,6 +22,8 @@ const CJK_FONTS := ["Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans TC
 static var _theme: Theme
 static var _mono: Font
 static var _bold: Font
+## 減少動態：打開後按鈕不彈跳、氣泡不放大（⋯ 選單切換，存在存檔裡）
+static var reduce_motion := false
 
 
 static func font() -> Font:
@@ -109,7 +111,9 @@ static func theme() -> Theme:
 		s.content_margin_bottom = 5
 		s.shadow_size = 2
 		match state:
-			"hover": s.bg_color = Color("ffd59a")
+			"hover":
+				s.bg_color = Color("ffd59a")
+				s.set_border_width_all(3)
 			"pressed":
 				s.bg_color = Color("f6b26b")
 				s.shadow_size = 0
@@ -118,7 +122,8 @@ static func theme() -> Theme:
 			"disabled": s.bg_color = Color("eadfce")
 			"focus":
 				s.draw_center = false
-				s.border_color = ACCENT
+				s.border_color = ACCENT_LINE
+				s.set_border_width_all(3)
 		t.set_stylebox(state, "Button", s)
 	t.set_color("font_color", "Button", INK)
 	t.set_color("font_hover_color", "Button", INK)
@@ -132,7 +137,9 @@ static func theme() -> Theme:
 		s.shadow_size = 4
 		s.shadow_offset = Vector2(0, 3)
 		match state:
-			"hover": s.bg_color = Color("f7b37a")
+			"hover":
+				s.bg_color = Color("f7b37a")
+				s.set_border_width_all(4)
 			"pressed":
 				s.bg_color = Color("e98a5a")
 				s.shadow_size = 1
@@ -152,6 +159,31 @@ static func theme() -> Theme:
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		t.set_color(c, "PrimaryButton", INK)
 	t.set_color("font_disabled_color", "PrimaryButton", Color(INK, 0.45))
+	# 第三層按鈕（格子、視角重設這類設定）：淡紙色、細框
+	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var s := panel_style(Color("fff8ec"), 12, INK, 1)
+		s.content_margin_top = 4
+		s.content_margin_bottom = 4
+		s.shadow_size = 0
+		match state:
+			"hover":
+				s.bg_color = Color("fff1d6")
+				s.set_border_width_all(2)
+			"pressed":
+				s.bg_color = Color("ffe2b8")
+				s.content_margin_top = 6
+				s.content_margin_bottom = 2
+			"disabled": s.bg_color = Color("f3ece0")
+			"focus":
+				s.draw_center = false
+				s.border_color = ACCENT_LINE
+				s.set_border_width_all(3)
+		t.set_stylebox(state, "TertiaryButton", s)
+	t.set_type_variation("TertiaryButton", "Button")
+	t.set_font_size("font_size", "TertiaryButton", 15)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		t.set_color(c, "TertiaryButton", INK)
+	t.set_color("font_focus_color", "Button", INK)
 	var tt := panel_style(Color("fffdf6"), 8, INK, 1)
 	t.set_stylebox("panel", "TooltipPanel", tt)
 	t.set_color("font_color", "TooltipLabel", INK)
@@ -165,6 +197,29 @@ static func button(text: String, cb: Callable, tip: String = "") -> Button:
 	b.tooltip_text = tip
 	b.focus_mode = Control.FOCUS_NONE
 	b.pressed.connect(cb)
+	b.button_down.connect(func(): squish(b))
+	return b
+
+
+## 按下時輕輕縮一下再彈回（0.12 秒）；減少動態時不做
+static func squish(c: Control) -> void:
+	if reduce_motion or not c.is_inside_tree():
+		return
+	c.pivot_offset = c.size / 2
+	c.scale = Vector2(0.94, 0.94)
+	var tw := c.create_tween()
+	tw.tween_property(c, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## 第三層按鈕：設定類，不搶眼。
+static func tertiary(b: Button) -> Button:
+	b.theme_type_variation = "TertiaryButton"
+	return b
+
+
+## 可以用鍵盤（Tab／Enter／空白鍵）操作的按鈕：面板裡的選擇用
+static func focusable(b: Button) -> Button:
+	b.focus_mode = Control.FOCUS_ALL
 	return b
 
 

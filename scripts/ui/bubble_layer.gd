@@ -59,9 +59,10 @@ func show_bubble(actor: Node3D, text: String, kind: String = "say", seconds: flo
 	p.add_child(tail)
 	p.set_meta("tail", tail)
 	add_child(p)
-	p.scale = Vector2(0.6, 0.6)
-	var tw := p.create_tween()
-	tw.tween_property(p, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if not UIKit.reduce_motion:
+		p.scale = Vector2(0.6, 0.6)
+		var tw := p.create_tween()
+		tw.tween_property(p, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	bubbles.append({"actor": actor, "panel": p, "until": Time.get_ticks_msec() + int(seconds * 1000)})
 
 

@@ -58,6 +58,7 @@ func _ready() -> void:
 	hud.grid_toggled.connect(func(): room.set_grid_visible(not room.grid_visible))
 	hud.view_reset.connect(func(): rig.reset_view())
 	hud.task_chosen.connect(_enter_task)
+	hud.reduce_motion_toggled.connect(_set_reduce_motion)
 	panel.grid_toggled.connect(func(): room.set_grid_visible(not room.grid_visible))
 	panel.view_reset.connect(func(): rig.reset_view())
 	panel.exit_pressed.connect(_exit_task)
@@ -74,6 +75,8 @@ func _ready() -> void:
 
 	tasks = TaskRunner.list_tasks()
 	_load_save()
+	UIKit.reduce_motion = save.get("reduce_motion", false)
+	hud.set_reduce_motion(UIKit.reduce_motion)
 	_enter_home()
 	# 自動截圖（開發驗證用）：godot -- --shot=res://…
 	for arg in OS.get_cmdline_user_args():
@@ -165,6 +168,47 @@ func _enter_home() -> void:
 	roam_busy = false
 	if not save.get("intro_done", false):
 		_play_intro()
+	else:
+		_update_task_cue()
+
+
+func _set_reduce_motion(on: bool) -> void:
+	UIKit.reduce_motion = on
+	save.reduce_motion = on
+	_write_save()
+	_update_task_cue()
+
+
+## 有新任務：「派派狼的任務」變成主要按鈕，派派狼頭上冒一個「！」
+func _update_task_cue() -> void:
+	var has_new := HomeHUD.has_new_task(tasks, save.stars)
+	hud.set_task_cue(has_new)
+	var wolf: GopherActor = room.npcs.get("wolf")
+	if wolf == null or not is_instance_valid(wolf):
+		return
+	var old := wolf.get_node_or_null("TaskMark")
+	if old:
+		old.free()
+	if not has_new or mode != "home" or intro_running:
+		return
+	var m := Label3D.new()
+	m.name = "TaskMark"
+	m.text = "！"
+	m.font = UIKit.font_bold()
+	m.font_size = 128
+	m.outline_size = 36
+	m.pixel_size = 0.006
+	m.modulate = Color("c8693a")
+	m.outline_modulate = Color("fff8ec")
+	m.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	m.no_depth_test = true
+	m.render_priority = 10
+	m.position = Vector3(0, wolf.bubble_height + 0.15, 0)
+	wolf.add_child(m)
+	if not UIKit.reduce_motion:
+		var tw := m.create_tween().set_loops()
+		tw.tween_property(m, "position:y", m.position.y + 0.08, 0.6).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(m, "position:y", m.position.y, 0.6).set_trans(Tween.TRANS_SINE)
 
 
 ## 派派狼和派派兔站在屋子西側外面（鏡頭從西南方看，這面牆會自動隱藏，看得到他們）
@@ -205,11 +249,28 @@ func _giver() -> GopherActor:
 
 # ---------------- 開場故事 ----------------
 var intro_running := false
+var intro_advance := false  # 點一下畫面：跳到下一句
+var intro_skip := false
+var intro_skip_btn: Button
 
 
 func _play_intro() -> void:
 	intro_running = true
+	intro_skip = false
+	intro_advance = false
 	roam_busy = true
+	hud.visible = false  # 開場時不顯示工具列，專心看故事
+	intro_skip_btn = UIKit.button("略過 ▶▶", func(): intro_skip = true, "直接跳過開場")
+	intro_skip_btn.anchor_left = 1
+	intro_skip_btn.anchor_right = 1
+	intro_skip_btn.anchor_top = 1
+	intro_skip_btn.anchor_bottom = 1
+	intro_skip_btn.offset_left = -130
+	intro_skip_btn.offset_right = -16
+	intro_skip_btn.offset_top = -56
+	intro_skip_btn.offset_bottom = -16
+	intro_skip_btn.theme = UIKit.theme()
+	ui_layer.add_child(intro_skip_btn)
 	var wolf: GopherActor = room.npcs.wolf
 	var rabbit: GopherActor = room.npcs.rabbit
 	var g := room.gopher
@@ -232,14 +293,20 @@ func _play_intro() -> void:
 		await g.walk_path(path)
 		w.gopher_cell = meet
 	if not is_instance_valid(wolf) or not is_instance_valid(rabbit) or mode != "home":
-		intro_running = false
+		_end_intro()
 		return  # 開場途中離開或房間重建了
 	g.face("W")
-	wolf.walk_to_point(wolf_spot, 1.0, "E")
-	await get_tree().create_timer(0.6).timeout
-	if is_instance_valid(rabbit):
-		await rabbit.walk_to_point(rabbit_spot, 1.0, "E")
-	await get_tree().create_timer(0.3).timeout
+	if intro_skip:
+		wolf.position = wolf_spot
+		rabbit.position = rabbit_spot
+		wolf.face("E")
+		rabbit.face("E")
+	else:
+		wolf.walk_to_point(wolf_spot, 1.0, "E")
+		await get_tree().create_timer(0.6).timeout
+		if is_instance_valid(rabbit):
+			await rabbit.walk_to_point(rabbit_spot, 1.0, "E")
+		await get_tree().create_timer(0.3).timeout
 	var lines := [
 		[wolf, "嘿！新來的，以後跟著我混。"],
 		[rabbit, "（推推眼鏡）我是派派兔，跟著派派狼一起來的～"],
@@ -248,17 +315,32 @@ func _play_intro() -> void:
 		[rabbit, "點派派狼接任務，學會 print() 就能跟我們聊天了！"],
 	]
 	for l in lines:
-		if mode != "home" or not is_instance_valid(l[0]):
+		if mode != "home" or not is_instance_valid(l[0]) or intro_skip:
 			break
 		var who: GopherActor = l[0]
 		who.say(l[1], "say")
-		await get_tree().create_timer(RoomView.talk_time(l[1]) + 0.5).timeout
+		# 停留時間和氣泡一樣依字數（每字 0.12 秒、至少 2.4 秒）；點畫面可以提早換下一句
+		var until := Time.get_ticks_msec() + int((maxf(2.4, 1.0 + String(l[1]).length() * 0.12) + 0.3) * 1000)
+		intro_advance = false
+		while Time.get_ticks_msec() < until and not intro_advance and not intro_skip:
+			await get_tree().process_frame
+	if intro_skip:
+		bubbles.clear_all()
 	save.intro_done = true
 	_write_save()
-	intro_running = false
-	roam_busy = false
+	_end_intro()
 	if mode == "home":
 		rig.reset_view()
+
+
+func _end_intro() -> void:
+	intro_running = false
+	roam_busy = false
+	if is_instance_valid(intro_skip_btn):
+		intro_skip_btn.queue_free()
+	if mode == "home":
+		hud.visible = true
+		_update_task_cue()
 
 
 func _on_bubble(actor: Node3D, text: String, kind: String) -> void:
@@ -504,6 +586,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if held.is_empty():
 			if intro_running:
+				intro_advance = true
 				return
 			if _wolf_under_mouse():
 				_open_board()
@@ -702,6 +785,10 @@ func _enter_task(id: String) -> void:
 	_write_save()
 	mode = "task"
 	bubbles.avoid_side_panels = true
+	if intro_running:
+		intro_skip = true  # 開場還沒演完就進任務：開場直接結束
+	if is_instance_valid(intro_skip_btn):
+		intro_skip_btn.queue_free()
 	hud.board.visible = false
 	hud.visible = false
 	hud.show_status("", Vector2.ZERO)
@@ -774,11 +861,11 @@ func _demo() -> void:
 	await _wait_playback_stop()
 	_reset_task_room()
 	panel.show_banner("示範中：這是派派狼期待的樣子（不是你的程式）")
-	panel.log_system("── 示範開始 ──", "#9fd3e6")
+	panel.log_system("— 示範開始 —", "#9fd3e6")
 	var res := TaskRunner.run_case(task, task.reference, task.tests[0])
 	var ok := await _play(res.timeline, true, false)
 	if ok:
-		panel.log_system("── 示範結束：換你寫程式囉！──", "#9fd3e6")
+		panel.log_system("— 示範結束：換你寫程式囉！—", "#9fd3e6")
 		room.gopher.happy()
 	panel.show_banner("")
 
@@ -787,7 +874,7 @@ func _run(step_mode: bool) -> void:
 	await _wait_playback_stop()
 	_reset_task_room()
 	_save_code()
-	panel.log_system("── 執行你的程式（用你自己寫的變數值）──")
+	panel.log_system("— 執行你的程式 —")
 	var my_run := run_id
 	# input()：程式停在 input() 時先演到那裡，請玩家回答，再帶著回答重跑（前面的部分已經演過了）
 	var answers: Array = []
@@ -838,7 +925,7 @@ func _submit() -> void:
 	var code: String = panel.code.text
 	var rep := TaskChecker.evaluate(task, code)
 	last_report = rep
-	panel.log_system("── 交件！派派狼檢查中… ──")
+	panel.log_system("— 交件！派派狼檢查中… —")
 	if rep.cases.is_empty():
 		# 語法錯誤：程式根本沒辦法跑
 		_reset_task_room()

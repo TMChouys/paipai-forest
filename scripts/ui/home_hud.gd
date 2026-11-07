@@ -7,6 +7,7 @@ signal open_board
 signal grid_toggled
 signal view_reset
 signal task_chosen(task_id: String)
+signal reduce_motion_toggled(on: bool)
 
 var tray: PanelContainer
 var tray_row: HBoxContainer
@@ -15,6 +16,8 @@ var status: Label
 var board: PanelContainer
 var board_list: VBoxContainer
 var stars_label: Label
+var btn_tasks: Button
+var more_menu: PopupMenu
 
 
 func _ready() -> void:
@@ -35,9 +38,8 @@ func _build() -> void:
 	stars_label = UIKit.label("★ 0", 18, UIKit.TEXT_WARN)
 	stars_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	th.add_child(stars_label)
-	var bq := UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點屋外的派派狼")
-	bq.add_theme_color_override("font_color", Color("8a3b1a"))
-	th.add_child(bq)
+	btn_tasks = UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點屋外的派派狼")
+	th.add_child(btn_tasks)
 	th.add_child(UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具"))
 	# 不常用的功能收進「⋯」選單
 	var more := MenuButton.new()
@@ -51,6 +53,9 @@ func _build() -> void:
 	pm.add_item("格子 開／關", 0)
 	pm.add_item("視角重設", 1)
 	pm.add_item("操作說明", 2)
+	pm.add_separator()
+	pm.add_check_item("減少動態", 3)
+	more_menu = pm
 	pm.id_pressed.connect(_on_more)
 	th.add_child(more)
 
@@ -147,6 +152,28 @@ func _on_more(id: int) -> void:
 			view_reset.emit()
 		2:
 			help.visible = not help.visible
+		3:
+			var i := more_menu.get_item_index(3)
+			var on := not more_menu.is_item_checked(i)
+			more_menu.set_item_checked(i, on)
+			reduce_motion_toggled.emit(on)
+
+
+func set_reduce_motion(on: bool) -> void:
+	more_menu.set_item_checked(more_menu.get_item_index(3), on)
+
+
+## 有還沒接過的任務時，「派派狼的任務」是首頁的主要按鈕
+func set_task_cue(has_new: bool) -> void:
+	btn_tasks.theme_type_variation = "PrimaryButton" if has_new else ""
+
+
+## 有沒有解鎖了、但還沒完成的任務
+static func has_new_task(tasks: Array, progress: Dictionary) -> bool:
+	for t in tasks:
+		if progress.get(t.id, 0) == 0 and is_unlocked(t, tasks, progress):
+			return true
+	return false
 
 
 func set_inventory(inv: Dictionary) -> void:
@@ -185,31 +212,45 @@ func show_status(text: String, pos: Vector2, bad: bool = false) -> void:
 func show_board(tasks: Array, progress: Dictionary) -> void:
 	for c in board_list.get_children():
 		c.queue_free()
+	var first_btn: Button = null
 	for t in tasks:
 		var unlocked := is_unlocked(t, tasks, progress)
 		var stars: int = progress.get(t.id, 0)
 		var row := PanelContainer.new()
 		var side: bool = t.get("track", "main") == "side"
-		row.add_theme_stylebox_override("panel", UIKit.panel_style(Color("f3eaff") if side else Color("fffdf6"), 12, UIKit.INK, 2))
+		row.add_theme_stylebox_override("panel", UIKit.panel_style(Color("fffdf6"), 12, UIKit.INK, 2))
+		if not unlocked:
+			row.modulate.a = 0.55  # 還沒解鎖：淡一點，不搶眼
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 10)
 		row.add_child(h)
 		var info := VBoxContainer.new()
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(info)
-		var tag := "支線・困難" if side else "任務 No.%d" % int(t.order)
-		info.add_child(UIKit.label("%s　%s" % [tag, t.title], 18))
+		var th := HBoxContainer.new()
+		th.add_theme_constant_override("separation", 8)
+		info.add_child(th)
+		th.add_child(_track_tag(side))
+		var tag := "困難" if side else "No.%d" % int(t.order)
+		th.add_child(UIKit.label("%s　%s" % [tag, t.title], 18))
 		var reward_name: String = WorldModel.def_of(t.reward.furniture).name
-		info.add_child(UIKit.label("%s　難度 %s　獎勵：%s" % [t.concept, "★".repeat(int(t.difficulty)), reward_name], 14, Color("8a6a50")))
+		var sub := "%s　難度 %s　獎勵：%s" % [t.concept, "★".repeat(int(t.difficulty)), reward_name]
+		if not unlocked:
+			sub = _lock_reason(t, tasks, progress)
+		info.add_child(UIKit.label(sub, 14, Color("8a6a50")))
+		if stars > 0:
+			h.add_child(_done_stamp())
 		var right := VBoxContainer.new()
 		h.add_child(right)
 		var sl := UIKit.label(("★".repeat(stars) + "☆".repeat(3 - stars)) if stars > 0 else "", 18, UIKit.TEXT_WARN)
 		sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		right.add_child(sl)
 		var id: String = t.id
-		var b := UIKit.button("接受任務" if stars == 0 else "再挑戰", func(): task_chosen.emit(id))
-		if stars == 0:
+		var b := UIKit.focusable(UIKit.button("接受任務" if stars == 0 else "再挑戰", func(): task_chosen.emit(id)))
+		if stars == 0 and unlocked:
 			UIKit.primary(b)
+			if first_btn == null:
+				first_btn = b
 		b.disabled = not unlocked
 		if not unlocked:
 			b.text = "未解鎖"
@@ -217,6 +258,49 @@ func show_board(tasks: Array, progress: Dictionary) -> void:
 		right.add_child(b)
 		board_list.add_child(row)
 	board.visible = true
+	# 鍵盤可以直接按 Enter 接下一個任務
+	if first_btn:
+		first_btn.grab_focus.call_deferred()
+
+
+## 主線／支線標籤（顏色＋文字，色盲也分得出來）
+static func _track_tag(side: bool) -> Label:
+	var l := UIKit.label("支線" if side else "主線", 14, UIKit.INK)
+	l.add_theme_font_override("font", UIKit.font_bold())
+	var st := UIKit.panel_style(Color("9fd18f") if side else Color("ffcf6b"), 8, UIKit.INK, 1)
+	st.shadow_size = 0
+	st.content_margin_left = 8
+	st.content_margin_right = 8
+	st.content_margin_top = 1
+	st.content_margin_bottom = 1
+	l.add_theme_stylebox_override("normal", st)
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return l
+
+
+## 「完成！」印章：歪歪地蓋在任務列右邊
+static func _done_stamp() -> Label:
+	var l := UIKit.label("完成！", 16, Color("2f5f8f"))
+	l.add_theme_font_override("font", UIKit.font_bold())
+	var st := UIKit.panel_style(Color("dbe4ee"), 8, Color("3a75b0"), 2)
+	st.shadow_size = 0
+	st.content_margin_top = 2
+	st.content_margin_bottom = 2
+	l.add_theme_stylebox_override("normal", st)
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	l.rotation = deg_to_rad(-12)
+	l.resized.connect(func(): l.pivot_offset = l.size / 2)
+	return l
+
+
+static func _lock_reason(t: Dictionary, tasks: Array, progress: Dictionary) -> String:
+	if t.get("track", "main") == "side":
+		return "完成 %d 個主線任務後解鎖" % int(t.get("unlock_after_main", 2))
+	var first := 999
+	for x in tasks:
+		if x.get("track", "main") == "main" and int(x.order) < int(t.order) and progress.get(x.id, 0) == 0:
+			first = mini(first, int(x.order))
+	return "先完成任務 No.%d" % first
 
 
 static func is_unlocked(t: Dictionary, tasks: Array, progress: Dictionary) -> bool:
