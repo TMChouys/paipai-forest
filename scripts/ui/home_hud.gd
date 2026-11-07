@@ -18,6 +18,7 @@ var home_only: Array = []
 var tray: PanelContainer
 var tray_row: HBoxContainer
 var help: Label
+var help_panel: PanelContainer
 var status: Label
 var board: PanelContainer
 var board_list: VBoxContainer
@@ -104,8 +105,9 @@ func _build() -> void:
 	help.offset_top = -34
 	help.offset_bottom = -8
 	help.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	help.visible = false  # 「⋯ → 操作說明」才顯示
+	help.visible = false  # 舊的一行說明（現在改用 help_panel）
 	add_child(help)
+	_build_help_panel()
 
 	status = UIKit.label("", 15)
 	status.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -163,12 +165,80 @@ func _on_more(id: int) -> void:
 		1:
 			view_reset.emit()
 		2:
-			help.visible = not help.visible
+			show_help()
 		3:
 			var i := more_menu.get_item_index(3)
 			var on := not more_menu.is_item_checked(i)
 			more_menu.set_item_checked(i, on)
 			reduce_motion_toggled.emit(on)
+
+
+# ---------------- 怎麼玩（操作說明視窗）----------------
+## 開場結束後跳出來一次；之後在「⋯ → 操作說明」打開
+func _build_help_panel() -> void:
+	help_panel = PanelContainer.new()
+	help_panel.anchor_left = 0.5
+	help_panel.anchor_right = 0.5
+	help_panel.anchor_top = 0.5
+	help_panel.anchor_bottom = 0.5
+	help_panel.offset_left = -330
+	help_panel.offset_right = 330
+	help_panel.offset_top = -270
+	help_panel.offset_bottom = 270
+	help_panel.add_theme_stylebox_override("panel", UIKit.panel_style(Color("fff8ec"), 20, UIKit.INK, 3))
+	help_panel.visible = false
+	add_child(help_panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	help_panel.add_child(v)
+	var title := UIKit.label("歡迎來到派派森林！", 24)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	# 玩法
+	var play := UIKit.label("怎麼玩", 18, UIKit.TEXT_INFO)
+	v.add_child(play)
+	var steps := UIKit.label("1. 找派派狼接任務，用 Python 寫程式幫大家的忙。
+2. 完成任務會拿到新家具，放進收藏冊。
+3. 把家具拿出來，佈置派派鼠的家！
+（不會的地方，去問派派兔，派派兔管任務書。）", 16)
+	steps.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(steps)
+	v.add_child(HSeparator.new())
+	# 操作
+	v.add_child(UIKit.label("操作", 18, UIKit.TEXT_INFO))
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 6)
+	v.add_child(grid)
+	var rows := [
+		["左鍵點地面", "派派鼠走過去"],
+		["左鍵點派派狼／派派兔", "走過去說話：接任務／看任務書"],
+		["左鍵點家具、前院花草", "拿起來，再點一下放下"],
+		["拿著時  R／Delete／Esc", "旋轉／收進收藏冊／取消"],
+		["W A S D", "移動視角"],
+		["右鍵拖曳、Q／E", "旋轉視角"],
+		["滾輪", "拉近、拉遠"],
+		["點信箱", "讀信"],
+	]
+	for r in rows:
+		var k := UIKit.label(r[0], 15, UIKit.INK)
+		k.add_theme_font_override("font", UIKit.font_bold())
+		grid.add_child(k)
+		grid.add_child(UIKit.label(r[1], 15, UIKit.TEXT_MUTED))
+	var tip := UIKit.label("這個說明可以在右上角「⋯ → 操作說明」再打開。", 13, UIKit.TEXT_MUTED)
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(tip)
+	var ok := UIKit.button("開始玩！", func(): help_panel.visible = false, "也可以按 Esc")
+	ok.theme_type_variation = "PrimaryButton"
+	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	ok.custom_minimum_size = Vector2(140, 44)
+	v.add_child(ok)
+
+
+func show_help() -> void:
+	board.visible = false
+	help_panel.visible = true
 
 
 func set_reduce_motion(on: bool) -> void:

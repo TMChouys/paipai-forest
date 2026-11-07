@@ -629,7 +629,15 @@ func _play_intro() -> void:
 	_write_save()
 	_end_intro()
 	if mode == "home":
-		rig.reset_view()
+		# 鏡頭停在門口，看得到派派鼠、派派狼、派派兔；不要一下子拉到很遠
+		rig.follow_target = null
+		rig.target_focus = Vector3(_door_x(home_world) + 0.3, 0.4, home_world.depth + 1.4)
+		rig.target_distance = 8.0
+		rig.target_yaw = deg_to_rad(-62.0)  # 斜一點，派派狼才不會擋住派派鼠
+		rig.target_pitch = deg_to_rad(-34.0)
+		await get_tree().create_timer(0.8).timeout
+		if mode == "home" and not intro_running:
+			hud.show_help()
 
 
 func _skip_intro() -> void:
@@ -1107,6 +1115,9 @@ func _intro_final_state() -> void:
 	var g := room.gopher
 	if g.carried != null and is_instance_valid(g.carried):
 		g.carried.queue_free()
+	var case_in_hand := g.model.get_node_or_null("Suitcase")
+	if case_in_hand != null:
+		case_in_hand.queue_free()  # 略過開場時行李還提在手上
 	g.carried = null
 	for c in room.find_children("Suitcase", "", false, false):
 		c.queue_free()
@@ -1408,8 +1419,12 @@ func _idle_action(g: Variant) -> void:
 		var y0: float = g.target_yaw
 		g.target_yaw = y0 + 0.9
 		await _roam_pause(0.8)
+		if not is_instance_valid(g):
+			return
 		g.target_yaw = y0 - 0.9
 		await _roam_pause(0.8)
+		if not is_instance_valid(g):
+			return
 		g.target_yaw = y0
 
 
@@ -1816,13 +1831,16 @@ func _input(event: InputEvent) -> void:
 	elif hud.board.visible:
 		hud.board.visible = false
 		get_viewport().set_input_as_handled()
+	elif hud.help_panel.visible:
+		hud.help_panel.visible = false
+		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if mode == "town" and not book.visible:
 		_town_input(event)
 		return
-	if mode != "home" or hud.board.visible or letters.visible:
+	if mode != "home" or hud.board.visible or letters.visible or hud.help_panel.visible:
 		return
 	if event is InputEventMouseMotion and not held.is_empty():
 		_update_held()
@@ -2613,6 +2631,8 @@ func _auto_shot(path: String) -> void:
 						home_world.gopher_cell = nb
 			roam_busy = true
 			_use_furniture(uu)
+		elif s == "skip":
+			_skip_intro()
 		elif s.begins_with("approach:"):
 			_approach(s.substr(9))
 		elif s == "hobbies":
