@@ -358,14 +358,33 @@ func _hobby_goal(who: String) -> Vector3:
 
 ## 訪客沿著前院的路線走（繞過柵欄、擺設和派派鼠）；走不到回傳 false
 func _visitor_go(a: GopherActor, who: String, gen: int, goal: Vector3) -> bool:
-	var route := room.outdoor_route(a.position, goal, a)
-	if route.is_empty():
-		return a.position.distance_to(goal) < 0.3
-	for p in route:
-		await _intro_walk(a, p)
-		if not _visitor_ok(who, gen):
+	for attempt in range(10):
+		var route := room.outdoor_route(a.position, goal, a)
+		if route.is_empty():
+			if a.position.distance_to(goal) < 0.3:
+				return true
+			if not await _visitor_wait(0.8, who, gen):
+				return false
+			continue
+		var blocked := false
+		for p in route:
+			var pp: Vector3 = p
+			while a.position.distance_to(pp) > 0.05:
+				var nxt := a.position.move_toward(pp, 0.5)
+				if _blocked_ahead(a, nxt):
+					blocked = true
+					break
+				await _intro_walk(a, nxt)
+				if not _visitor_ok(who, gen):
+					return false
+			if blocked:
+				break
+		if not blocked:
+			return true
+		a.moving = false
+		if not await _visitor_wait(0.6, who, gen):
 			return false
-	return true
+	return false
 
 
 func _visitor_loop(who: String, gen: int) -> void:
@@ -855,13 +874,13 @@ func _intro_story(gen: int) -> void:
 	wolf.face_vector(talk_spot - wolf.position)
 	rabbit.face_vector(talk_spot - rabbit.position)
 	var lines: Array = []
+	var cast := {"wolf": wolf, "rabbit": rabbit, "gopher": g}
 	for t in FIRST_MEET.wolf:
-		lines.append([wolf, t])
+		lines.append([cast[t[0]], t[1]])
 	for t in FIRST_MEET.rabbit:
-		lines.append([rabbit, t])
+		lines.append([cast[t[0]], t[1]])
 	lines += [
-		[g, "……？"],
-		[wolf, "怎麼不說話？在派派森林，要用 Python 的 print() 才能說話喔！"],
+		[wolf, "在派派森林，要用 Python 的 print() 才能說話喔！"],
 		[rabbit, "走到派派狼旁邊說說話，就能接任務。學會 print() 就能跟我們聊天了！"],
 		[wolf, "我們就在這裡等你，準備好就來找我！"],
 	]
@@ -1505,6 +1524,7 @@ func _click_walk_loop() -> void:
 	var g := room.gopher
 	var serial := -1
 	var steps: Array = []
+	var blocked_n := 0
 	g.speed_scale = 1.0
 	while mode == "home" and is_instance_valid(g) and not intro_running:
 		var locked: bool = not steps.is_empty() and steps[0].get("lock", false)
@@ -1522,6 +1542,21 @@ func _click_walk_loop() -> void:
 					click_serial += 1
 					continue
 			break
+		var nx: Dictionary = steps[0]
+		if nx.has("pos") and not nx.get("lock", false):
+			var goal_p: Vector3 = nx.pos
+			var sub := g.position.move_toward(goal_p, 0.5)
+			if _blocked_ahead(g, sub):
+				blocked_n += 1
+				if blocked_n > 8:
+					break
+				g.moving = false
+				await get_tree().create_timer(0.4).timeout
+				serial = -1  # 重新找路（避開擋在前面的人）
+				continue
+			if g.position.distance_to(goal_p) > 0.55:
+				await _do_step(g, {"pos": sub})
+				continue
 		await _do_step(g, steps.pop_front())
 	if is_instance_valid(g):
 		g.moving = false
@@ -1555,12 +1590,49 @@ func _leave_for_town() -> void:
 ## 自己動的時候走去某個點（屋裡、屋外都可以，會開門）
 func _auto_walk(g: GopherActor, to: Vector3) -> void:
 	var steps := _route_to(g, to)
-	for st in steps:
+	var tries := 0
+	while not steps.is_empty():
 		if click_walking or mode != "home" or not is_instance_valid(g):
 			break
-		await _do_step(g, st)
+		var st: Dictionary = steps[0]
+		if st.has("pos") and not st.get("lock", false):
+			var goal_p: Vector3 = st.pos
+			var sub := g.position.move_toward(goal_p, 0.5)
+			if _blocked_ahead(g, sub):
+				tries += 1
+				if tries > 4:
+					break
+				g.moving = false
+				await get_tree().create_timer(0.5).timeout
+				if not is_instance_valid(g):
+					return
+				steps = _route_to(g, to)
+				continue
+			if g.position.distance_to(goal_p) > 0.55:
+				await _do_step(g, {"pos": sub})
+				continue
+		await _do_step(g, steps.pop_front())
 	if is_instance_valid(g):
 		g.moving = false
+
+
+## 往 to 走一小步的路上，有沒有別的角色擋著（派派鼠、派派狼、派派兔都算）
+func _blocked_ahead(a: GopherActor, to: Vector3) -> bool:
+	var actors: Array = [room.gopher]
+	actors.append_array(room.npcs.values())
+	var p0 := Vector2(a.position.x, a.position.z)
+	var p1 := Vector2(to.x, to.z)
+	for b in actors:
+		if b == null or not is_instance_valid(b) or b == a or not b.visible:
+			continue
+		var q := Vector2(b.position.x, b.position.z)
+		if q.distance_to(p0) < 0.45:
+			continue  # 已經貼在一起了：讓它走開，不要卡住
+		var seg := p1 - p0
+		var t := 0.0 if seg.length_squared() < 0.0001 else clampf((q - p0).dot(seg) / seg.length_squared(), 0.0, 1.0)
+		if q.distance_to(p0 + seg * t) < 0.55:
+			return true
+	return false
 
 
 ## 一步：{"cell"} 屋裡的格子、{"pos"} 屋外的點、{"door"} 開／關門；"lock" 的步驟中途不換路線（門口）
@@ -2013,8 +2085,8 @@ func _npc_under_mouse() -> String:
 
 # ---------------- 跟派派狼、派派兔說話 ----------------
 const FIRST_MEET := {
-	"wolf": ["嘿！新來的，看你的樣子甚麼都不會。", "沒關係，以後跟著我混！我教你。"],
-	"rabbit": ["歡迎你加入派派森林！我也是剛來不久，", "我們一起學習吧！如果有不會的就問我，別客氣喔！"],
+	"wolf": [["wolf", "嘿！新來的！你叫啥？"], ["gopher", "……？"], ["wolf", ".............不會說話嗎？"], ["wolf", "看樣子你甚麼都不會，沒關係！以後跟著我混，我教你。"]],
+	"rabbit": [["rabbit", "歡迎你加入派派森林！我也是剛來不久，"], ["rabbit", "我們一起學習吧！如果有不會的就問我，別客氣喔！"]],
 }
 const RABBIT_TIPS := [
 	"有不會的就問我喔！",
@@ -2063,8 +2135,13 @@ func _talk(who: String) -> void:
 	a.face_vector(g.position - a.position)
 	if not save.get("met", {}).get(who, false):
 		for t in FIRST_MEET[who]:
-			a.say(t, "say")
-			await get_tree().create_timer(maxf(2.4, 1.0 + t.length() * 0.12)).timeout
+			var line: String = t[1]
+			if t[0] == "gopher":
+				g.confused()
+				g.say(line, "say")
+			else:
+				a.say(line, "say")
+			await get_tree().create_timer(maxf(2.4, 1.0 + line.length() * 0.12)).timeout
 			if mode != "home" or click_walking:
 				roam_busy = false
 				return
@@ -2631,6 +2708,15 @@ func _auto_shot(path: String) -> void:
 						home_world.gopher_cell = nb
 			roam_busy = true
 			_use_furniture(uu)
+		elif s.begins_with("trace:"):
+			# trace:秒數（測試用：每 0.25 秒印出三個角色的位置和最近距離）
+			var until_t := Time.get_ticks_msec() + int(float(s.substr(6)) * 1000)
+			while Time.get_ticks_msec() < until_t:
+				var gp3 := room.gopher.position
+				var wp: Vector3 = room.npcs.wolf.position
+				var rp: Vector3 = room.npcs.rabbit.position
+				print("t g(%.2f,%.2f) w(%.2f,%.2f) r(%.2f,%.2f) gw=%.2f gr=%.2f roam=%s click=%s" % [gp3.x, gp3.z, wp.x, wp.z, rp.x, rp.z, Vector2(gp3.x, gp3.z).distance_to(Vector2(wp.x, wp.z)), Vector2(gp3.x, gp3.z).distance_to(Vector2(rp.x, rp.z)), roam_busy, click_walking])
+				await get_tree().create_timer(0.25).timeout
 		elif s == "skip":
 			_skip_intro()
 		elif s.begins_with("approach:"):

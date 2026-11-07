@@ -1270,13 +1270,13 @@ func _begin_dynamic(ignore: Node3D) -> Array:
 	for a in actors:
 		if a == null or not is_instance_valid(a) or a == ignore or not a.visible:
 			continue
-		dyn_blockers.append([Vector2(a.position.x, a.position.z), 0.5])
+		dyn_blockers.append([Vector2(a.position.x, a.position.z), 0.8])
 	var marked: Array = []
 	var reg := _route_grid.region
 	for db in dyn_blockers:
 		var c := _route_cell(Vector3(db[0].x, 0, db[0].y))
-		for i in range(-2, 3):
-			for j in range(-2, 3):
+		for i in range(-3, 4):
+			for j in range(-3, 4):
 				var cc: Vector2i = c + Vector2i(i, j)
 				if reg.has_point(cc) and not _route_grid.is_point_solid(cc) and _route_point(cc).distance_to(Vector3(db[0].x, GRASS_Y, db[0].y)) < db[1]:
 					_route_grid.set_point_solid(cc, true)
