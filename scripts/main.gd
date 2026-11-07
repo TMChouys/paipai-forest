@@ -79,6 +79,8 @@ func _ready() -> void:
 	hud.town_toggled.connect(func():
 		if mode == "town":
 			_enter_home()
+		elif mode == "home" and not intro_running and held.is_empty() and room.gopher != null:
+			_click_walk_to(room.path_end_point())
 		else:
 			_enter_town())
 	letters.read_letter.connect(func(id):
@@ -234,16 +236,17 @@ func _enter_home() -> void:
 	bubbles.clear_all()
 	room.build(home_world)
 	room.set_grid_visible(false)  # 家裡不顯示格子（⋯ 選單可以打開）
-	if not save.has("yard"):
-		save.yard = room.default_yard()
+	if not save.has("yard") or int(save.get("yard_v", 0)) < 2:
+		save.yard = room.default_yard()  # 前院變大了：重新擺一次
+		save.yard_v = 2
 	room.yard_items = save.yard
 	room.build_outdoor(true)
 	room.gopher.bubble_requested.connect(_on_bubble)
 	_spawn_visitors(home_world)
 	rig.frame_room(home_world.width, home_world.depth)
 	# 家：鏡頭往門口挪一點，看得到門口外的派派狼、派派兔和信箱
-	rig.home_focus += Vector3(-0.3, 0, 2.3)
-	rig.home_distance *= 1.12
+	rig.home_focus += Vector3(0.4, 0, 3.2)
+	rig.home_distance *= 1.18
 	rig.reset_view()
 	rig.screen_offset = 0.0
 	rig.follow_target = null
@@ -1375,10 +1378,10 @@ func _roam() -> void:
 
 
 ## 自己發呆時的小動作
-func _idle_action(g: GopherActor) -> void:
+func _idle_action(g: Variant) -> void:
 	if click_walking or not is_instance_valid(g):
 		return
-	var outside := g.position.z > home_world.depth
+	var outside: bool = g.position.z > home_world.depth
 	var r := randf()
 	if r < 0.2:
 		await g.hop(0.15)
@@ -1394,7 +1397,7 @@ func _idle_action(g: GopherActor) -> void:
 		await _roam_pause(2.0)
 	elif r < 0.75:
 		# 左看看、右看看
-		var y0 := g.target_yaw
+		var y0: float = g.target_yaw
 		g.target_yaw = y0 + 0.9
 		await _roam_pause(0.8)
 		g.target_yaw = y0 - 0.9
@@ -1435,6 +1438,13 @@ func _click_walk_to(p: Vector3) -> void:
 	click_target = p
 	click_serial += 1
 	_click_marker(p)
+	if p.z > room.yard_z1() + 0.5:
+		rig.follow_target = room.gopher  # 走上森林小徑：鏡頭跟著
+		rig.target_distance = 10.0
+		rig.target_pitch = deg_to_rad(-55.0)
+	elif rig.follow_target == room.gopher:
+		rig.follow_target = null
+		rig.reset_view()
 	if not click_walking:
 		_click_walk_loop()
 
@@ -1488,6 +1498,21 @@ func _click_walk_loop() -> void:
 	roam_busy = false
 	roam_timer = randf_range(8.0, 12.0)  # 走到了先站一下，再自己找事做
 	click_walking = false
+	if mode == "home" and is_instance_valid(g) and g.position.z > room.path_end_z() - 2.0:
+		_leave_for_town()
+
+
+## 走到森林小徑的盡頭：出遠門去派森小鎮
+func _leave_for_town() -> void:
+	roam_busy = true
+	var g := room.gopher
+	g.face("S")
+	g.say("出發去派森小鎮囉！", "say")
+	await get_tree().create_timer(1.4).timeout
+	roam_busy = false
+	if mode == "home" and not click_walking:
+		rig.follow_target = null
+		_enter_town()
 
 
 ## 自己動的時候走去某個點（屋裡、屋外都可以，會開門）
@@ -1503,6 +1528,13 @@ func _auto_walk(g: GopherActor, to: Vector3) -> void:
 
 ## 一步：{"cell"} 屋裡的格子、{"pos"} 屋外的點、{"door"} 開／關門；"lock" 的步驟中途不換路線（門口）
 func _do_step(g: GopherActor, st: Dictionary) -> void:
+	if st.has("gate"):
+		if st.gate:
+			g.moving = false
+			await room.swing_gate(true)
+		else:
+			room.swing_gate(false)
+		return
 	if st.has("door"):
 		if st.door:
 			g.moving = false
@@ -1549,16 +1581,14 @@ func _route_to(g: GopherActor, to: Vector3) -> Array:
 		steps.append({"pos": _door_outside(0.3), "lock": true})
 		steps.append({"pos": door_out, "lock": true})
 		steps.append({"door": false, "lock": true})
-		for p in room.outdoor_route(door_out, target, g):
-			steps.append({"pos": p})
+		steps.append_array(_outdoor_steps(door_out, room.outdoor_route(door_out, target, g)))
 		return steps
 	# 在屋外
 	if to_inside:
 		var back := room.outdoor_route(g.position, door_out, g)
 		if back.is_empty() and g.position.distance_to(door_out) > 0.2:
 			return []
-		for p in back:
-			steps.append({"pos": p})
+		steps.append_array(_outdoor_steps(g.position, back))
 		steps.append({"door": true, "lock": true})
 		steps.append({"pos": _door_outside(0.3), "lock": true})
 		steps.append({"cell": _door_inside(), "lock": true})
@@ -1568,8 +1598,31 @@ func _route_to(g: GopherActor, to: Vector3) -> Array:
 		for c in path2.slice(1):
 			steps.append({"cell": c})
 		return steps
-	for p in room.outdoor_route(g.position, room.nearest_free(to, g), g):
-		steps.append({"pos": p})
+	steps.append_array(_outdoor_steps(g.position, room.outdoor_route(g.position, room.nearest_free(to, g), g)))
+	return steps
+
+
+## 屋外的點變成步驟；穿過柵欄小門的地方先開門、走過去、再關門
+func _outdoor_steps(from: Vector3, pts: Array) -> Array:
+	var steps: Array = []
+	var z1 := room.yard_z1()
+	var prev := from
+	for p in pts:
+		var pp: Vector3 = p
+		if (prev.z < z1) != (pp.z < z1):
+			var gx := room.path_x(z1)
+			var a := Vector3(gx, RoomView.GRASS_Y, z1 - 0.6)
+			var b := Vector3(gx, room.ground_y(gx, z1 + 0.6), z1 + 0.6)
+			if prev.z >= z1:
+				var tmp := a
+				a = b
+				b = tmp
+			steps.append({"pos": a})
+			steps.append({"gate": true, "lock": true})
+			steps.append({"pos": b, "lock": true})
+			steps.append({"gate": false, "lock": true})
+		steps.append({"pos": pp})
+		prev = pp
 	return steps
 
 

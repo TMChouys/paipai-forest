@@ -32,6 +32,7 @@ var yard_nodes: Dictionary = {}  # uid -> Node3D
 var yard_root: Node3D = null
 var dyn_blockers: Array = []  # 算路線時暫時擋路的角色：[Vector2, 半徑]
 var grass_plane: MeshInstance3D = null
+var gate_pivots: Array = []  # 柵欄小門的兩片門板（轉軸）
 
 
 func build(w: WorldModel) -> void:
@@ -637,11 +638,26 @@ func yard_x0() -> float:
 
 
 func yard_x1() -> float:
-	return world.width + 2.6
+	return world.width + 5.0
 
 
 func yard_z1() -> float:
-	return world.depth + 8.0
+	return world.depth + 12.0
+
+
+## 森林小徑：出了柵欄小門以後彎彎地往南，一直通到派派森林的邊緣（再過去就是往小鎮的遠路）
+func path_x(z: float) -> float:
+	var t := maxf(z - yard_z1(), 0.0)
+	return door_x(world) + 1.6 * sin(t * 0.16) * smoothstep(0.0, 4.0, t)
+
+
+func path_end_z() -> float:
+	return world.depth / 2.0 + 2.0 + 30.5
+
+
+func path_end_point() -> Vector3:
+	var z := path_end_z() - 0.8
+	return Vector3(path_x(z), ground_y(path_x(z), z), z)
 
 
 ## 派派狼釣魚的木平台（溪的東岸，前院西邊柵欄的缺口外）
@@ -800,12 +816,13 @@ func _build_front_yard(holder: Node3D) -> void:
 	if ResourceLoader.exists(stone_path):
 		var zz := d + 0.8
 		var k := 0
-		while zz < z1 + 6.0:
+		while zz < path_end_z():
 			var n := Models.glb(stone_path)
 			var wrap := Node3D.new()
 			wrap.add_child(n)
 			Models.fit(n, Vector3(1.0, 1.0, 1.0))
-			wrap.position = Vector3(dx + sin(k * 1.7) * 0.15, -0.1, zz)
+			var px := path_x(zz) + sin(k * 1.7) * 0.15
+			wrap.position = Vector3(px, ground_y(px, zz) + 0.01, zz)
 			wrap.rotation_degrees.y = k * 37
 			holder.add_child(wrap)
 			zz += 1.05
@@ -838,32 +855,69 @@ func _build_front_yard(holder: Node3D) -> void:
 		gp.material_override = wood_dark
 		gp.position = Vector3(gx, GRASS_Y + 0.47, z1)
 		holder.add_child(gp)
-	# 關著的柵欄小門（兩片，中間有門閂）
+	# 柵欄小門（兩片，平常關著；有人要出去才打開）
+	gate_pivots.clear()
 	for side in [-1.0, 1.0]:
-		var gcx: float = dx + side * 0.36
+		var pivot := Node3D.new()
+		pivot.position = Vector3(dx + side * 0.72, GRASS_Y, z1)
+		holder.add_child(pivot)
+		gate_pivots.append(pivot)
+		var lx: float = -side * 0.36  # 門板中心（相對轉軸）
 		for ky in [0.2, 0.55]:
 			var rail := MeshInstance3D.new()
 			rail.mesh = Models.box(0.66, 0.07, 0.05)
 			rail.material_override = wood
-			rail.position = Vector3(gcx, GRASS_Y + ky, z1)
-			holder.add_child(rail)
+			rail.position = Vector3(lx, ky, 0)
+			pivot.add_child(rail)
 		for kx in [-0.24, 0.0, 0.24]:
 			var pk := MeshInstance3D.new()
 			pk.mesh = Models.box(0.1, 0.62, 0.04)
 			pk.material_override = wood
-			pk.position = Vector3(gcx + kx, GRASS_Y + 0.36, z1 + 0.03)
-			holder.add_child(pk)
+			pk.position = Vector3(lx + kx, 0.36, 0.03)
+			pivot.add_child(pk)
 		var brace := MeshInstance3D.new()
 		brace.mesh = Models.box(0.05, 0.5, 0.03)
 		brace.material_override = wood_dark
-		brace.position = Vector3(gcx, GRASS_Y + 0.38, z1 + 0.06)
+		brace.position = Vector3(lx, 0.38, 0.06)
 		brace.rotation.z = side * 0.75
-		holder.add_child(brace)
-	var latch := MeshInstance3D.new()
-	latch.mesh = Models.box(0.16, 0.05, 0.05)
-	latch.material_override = Models.mat(Color("5e4a3a"))
-	latch.position = Vector3(dx, GRASS_Y + 0.45, z1 + 0.07)
-	holder.add_child(latch)
+		pivot.add_child(brace)
+		if side > 0:
+			var latch := MeshInstance3D.new()
+			latch.mesh = Models.box(0.16, 0.05, 0.05)
+			latch.material_override = Models.mat(Color("5e4a3a"))
+			latch.position = Vector3(-0.72, 0.45, 0.07)
+			pivot.add_child(latch)
+	# 森林小徑盡頭的路牌：往派森小鎮（要出遠門）
+	var ez := path_end_z() - 0.2
+	var ex := path_x(ez) + 0.9
+	var ey := ground_y(ex, ez)
+	var post2 := MeshInstance3D.new()
+	post2.mesh = Models.cyl(0.06, 0.07, 1.5)
+	post2.material_override = wood_dark
+	post2.position = Vector3(ex, ey + 0.75, ez)
+	holder.add_child(post2)
+	var board := MeshInstance3D.new()
+	board.mesh = Models.box(1.1, 0.3, 0.06)
+	board.material_override = wood
+	board.position = Vector3(ex - 0.25, ey + 1.25, ez)
+	holder.add_child(board)
+	var tip := MeshInstance3D.new()
+	tip.mesh = Models.cyl(0.0, 0.21, 0.2)
+	tip.material_override = wood
+	tip.position = Vector3(ex - 0.9, ey + 1.25, ez)
+	tip.rotation_degrees = Vector3(0, 0, 90)
+	tip.scale = Vector3(1, 1, 0.28)
+	holder.add_child(tip)
+	var sl := Label3D.new()
+	sl.text = "往派森小鎮"
+	sl.font = UIKit.font_bold()
+	sl.font_size = 40
+	sl.pixel_size = 0.0045
+	sl.modulate = Color("5a3d2b")
+	sl.outline_size = 0
+	sl.position = Vector3(ex - 0.25, ey + 1.25, ez - 0.04)
+	sl.rotation_degrees.y = 180
+	holder.add_child(sl)
 	# 胡蘿蔔園（派派兔常來澆水）
 	var gc := garden_center()
 	var soil := Models.mat(Color("54402e"), false)
@@ -945,12 +999,15 @@ func _build_forest(holder: Node3D) -> void:
 	rng.seed = 314
 	var tall := ["tree_oak", "tree_fat", "tree_default", "tree_detailed", "tree_oak", "tree_default"]
 	var low := ["plant_bushLarge", "plant_bush", "tree_small", "mushroom_redGroup", "mushroom_tanGroup", "stump_round", "rock_smallA"]
-	var gx := -16.0
-	while gx <= w + 16.0:
-		var gz := -14.0
-		while gz <= z1 + 12.0:
+	var ring_c := Vector3(w / 2.0, 0, d / 2.0 + 2.0)
+	var gx := ring_c.x - 32.0
+	while gx <= ring_c.x + 32.0:
+		var gz := ring_c.z - 32.0
+		while gz <= ring_c.z + 32.0:
 			var p := Vector3(gx + rng.randf_range(-1.0, 1.0), 0, gz + rng.randf_range(-1.0, 1.0))
-			gz += 2.8
+			gz += 3.0
+			if p.distance_to(ring_c) > 32.0:
+				continue  # 再過去是背景
 			if p.x > -2.0 and p.x < w + 2.0 and p.z > -1.5 and p.z < d + 0.8:
 				continue  # 房子
 			if p.x > yard_x0() - 0.8 and p.x < yard_x1() + 0.8 and p.z > d - 0.5 and p.z < z1 + 0.8:
@@ -959,15 +1016,19 @@ func _build_forest(holder: Node3D) -> void:
 				continue  # 溪流
 			if p.distance_to(Vector3(w / 2.0, 0, -4.4)) < 7.5:
 				continue  # 神木
-			if absf(p.x - door_x(world)) < 1.6 and p.z > z1:
-				continue  # 往南的小路
-			var south := p.z > d - 2.0 and p.x > -9.0 and p.x < w + 6.0
+			if p.z > z1 - 0.5 and absf(p.x - path_x(p.z)) < 1.9:
+				continue  # 森林小徑
+			# 鏡頭那一側（前院南邊一小段）只放矮樹叢，不擋住前院
+			var south := p.z > d - 2.0 and p.z < z1 + 6.0 and p.x > -9.0 and p.x < w + 9.0
+			# 小徑兩旁也只放矮的（鏡頭跟著派派鼠走小徑時看得到）
+			if p.z > z1 and absf(p.x - path_x(p.z)) < 4.2:
+				south = true
 			if south:
 				if rng.randf() < 0.55:
 					_place_nature(holder, low[rng.randi() % low.size()], p, rng.randf_range(0.7, 1.3), rng.randf() * 360)
 			else:
 				_place_nature(holder, tall[rng.randi() % tall.size()], p, rng.randf_range(2.6, 3.8), rng.randf() * 360)
-		gx += 2.8
+		gx += 3.0
 
 
 # ---------------- 樹皮材質 ----------------
@@ -1142,6 +1203,8 @@ func outdoor_free(x: float, z: float) -> bool:
 	for db in dyn_blockers:
 		if p.distance_to(db[0]) < db[1]:
 			return false
+	if z > yard_z1() - 0.4 and z < path_end_z() and absf(x - path_x(z)) < 0.55:
+		return true  # 柵欄小門 → 森林小徑
 	if absf(z - fs.z) < 0.55 and x > fs.x - 0.65 and x < yard_x0() + 0.5:
 		return p.distance_to(Vector2(fs.x + 0.45, fs.z + 0.4)) > 0.4  # 釣魚角（避開水桶）
 	if x < yard_x0() + 0.3 or x > yard_x1() - 0.3 or z < d + 0.55 or z > yard_z1() - 0.3:
@@ -1176,7 +1239,7 @@ func _ensure_route_grid() -> void:
 		return
 	var o := _route_origin()
 	var nx := int(ceil((yard_x1() - o.x) / ROUTE_CELL)) + 1
-	var nz := int(ceil((yard_z1() - o.y) / ROUTE_CELL)) + 1
+	var nz := int(ceil((path_end_z() - o.y) / ROUTE_CELL)) + 1
 	_route_grid = AStarGrid2D.new()
 	_route_grid.region = Rect2i(0, 0, nx, nz)
 	_route_grid.cell_size = Vector2(1, 1)
@@ -1326,7 +1389,8 @@ func _terrain_base(x: float, z: float) -> float:
 	var ox := maxf(maxf(-4.0 - x, x - (w + 4.0)), 0.0)
 	var oz := maxf(z - (yard_z1() + 2.0), 0.0)
 	var away := smoothstep(1.0, 7.0, maxf(ox, oz))
-	h += away * (0.6 + 0.5 * sin(x * 0.37 + 0.8) * cos(z * 0.29 + 0.3))
+	var off_path := 1.0 if z < yard_z1() else smoothstep(1.2, 3.5, absf(x - path_x(z)))
+	h += away * off_path * (0.6 + 0.5 * sin(x * 0.37 + 0.8) * cos(z * 0.29 + 0.3))
 	return minf(h, 11.0)
 
 
@@ -1496,7 +1560,7 @@ func default_yard() -> Array:
 	rng.seed = 5
 	var deco := ["yard_flower_red", "yard_flower_yellow", "yard_flower_purple", "yard_bush", "yard_flower_red", "yard_flower_purple"]
 	var k := 0
-	for i in range(40):
+	for i in range(64):
 		var px := rng.randf_range(x0 + 0.4, x1 - 0.4)
 		var pz := rng.randf_range(d + 0.7, z1 - 0.4)
 		var tp: String = deco[k % deco.size()]
@@ -1538,7 +1602,17 @@ func walk_height(p: Vector3) -> float:
 	var fs := fishing_spot()
 	if absf(p.x - (fs.x - 0.1)) < 0.7 and absf(p.z - fs.z) < 0.6:
 		return GRASS_Y + 0.14
-	return GRASS_Y
+	return ground_y(p.x, p.z)
+
+
+## 柵欄小門開關
+func swing_gate(open: bool) -> void:
+	if gate_pivots.size() < 2:
+		return
+	var tw := create_tween().set_parallel()
+	tw.tween_property(gate_pivots[0], "rotation:y", deg_to_rad(-100.0) if open else 0.0, 0.4).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(gate_pivots[1], "rotation:y", deg_to_rad(100.0) if open else 0.0, 0.4).set_trans(Tween.TRANS_SINE)
+	await tw.finished
 
 
 ## 在兩點之間放一根圓柱（r0 在 a 端、r1 在 b 端）；squash 可以把截面壓扁

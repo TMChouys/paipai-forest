@@ -50,7 +50,7 @@ func _build() -> void:
 	th.add_child(UIKit.button("任務書", func(): open_book.emit(), "派森小鎮所有的任務，用知識地圖排好"))
 	var btn_tray := UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具")
 	th.add_child(btn_tray)
-	town_btn = UIKit.button("去鎮上", func(): town_toggled.emit(), "到鎮中心的廣場逛逛：郵局、市集、圖書館")
+	town_btn = UIKit.button("出遠門", func(): town_toggled.emit(), "沿著森林小徑走出派派森林，到派森小鎮：郵局、市集、圖書館")
 	th.add_child(town_btn)
 	home_only = [stars_label, btn_tray]
 	# 不常用的功能收進「⋯」選單
@@ -216,8 +216,8 @@ func set_stars(n: int) -> void:
 ## 在鎮上：標題換成鎮中心，收起只有家裡用得到的按鈕
 func set_town_mode(on: bool) -> void:
 	title_label.text = "派森小鎮・鎮中心" if on else "派派鼠的樹屋"
-	town_btn.text = "回樹屋" if on else "去鎮上"
-	town_btn.tooltip_text = "回派派鼠的樹屋" if on else "到鎮中心的廣場逛逛：郵局、市集、圖書館"
+	town_btn.text = "回樹屋" if on else "出遠門"
+	town_btn.tooltip_text = "回派派森林的樹屋" if on else "沿著森林小徑走出派派森林，到派森小鎮：郵局、市集、圖書館"
 	for c in home_only:
 		c.visible = not on
 	if on:
