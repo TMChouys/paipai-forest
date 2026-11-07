@@ -9,6 +9,11 @@ signal view_reset
 signal task_chosen(task_id: String)
 signal reduce_motion_toggled(on: bool)
 signal open_book
+signal town_toggled  # 去鎮上／回樹屋
+
+var title_label: Label
+var town_btn: Button
+var home_only: Array = []
 
 var tray: PanelContainer
 var tray_row: HBoxContainer
@@ -35,14 +40,19 @@ func _build() -> void:
 	var th := HBoxContainer.new()
 	th.add_theme_constant_override("separation", 10)
 	top.add_child(th)
-	th.add_child(UIKit.label("派派鼠的樹屋", 22))
+	title_label = UIKit.label("派派鼠的樹屋", 22)
+	th.add_child(title_label)
 	stars_label = UIKit.label("★ 0", 18, UIKit.TEXT_WARN)
 	stars_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	th.add_child(stars_label)
 	btn_tasks = UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點屋外的派派狼")
 	th.add_child(btn_tasks)
 	th.add_child(UIKit.button("任務書", func(): open_book.emit(), "派森小鎮所有的任務，用知識地圖排好"))
-	th.add_child(UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具"))
+	var btn_tray := UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具")
+	th.add_child(btn_tray)
+	town_btn = UIKit.button("去鎮上", func(): town_toggled.emit(), "到鎮中心的廣場逛逛：郵局、市集、圖書館")
+	th.add_child(town_btn)
+	home_only = [stars_label, btn_tray]
 	# 不常用的功能收進「⋯」選單
 	var more := MenuButton.new()
 	more.text = "⋯"
@@ -201,6 +211,18 @@ func set_inventory(inv: Dictionary) -> void:
 
 func set_stars(n: int) -> void:
 	stars_label.text = "★ %d" % n
+
+
+## 在鎮上：標題換成鎮中心，收起只有家裡用得到的按鈕
+func set_town_mode(on: bool) -> void:
+	title_label.text = "派森小鎮・鎮中心" if on else "派派鼠的樹屋"
+	town_btn.text = "回樹屋" if on else "去鎮上"
+	town_btn.tooltip_text = "回派派鼠的樹屋" if on else "到鎮中心的廣場逛逛：郵局、市集、圖書館"
+	for c in home_only:
+		c.visible = not on
+	if on:
+		tray.visible = false
+		board.visible = false
 
 
 func show_status(text: String, pos: Vector2, bad: bool = false) -> void:

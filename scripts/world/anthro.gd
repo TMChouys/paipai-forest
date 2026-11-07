@@ -37,6 +37,12 @@ const DEFS := {
 		"extras": [{"shape": "hat", "color": "#3e5c46", "band": "#e8c35a"}]},
 	"neighbor_redpanda": {"body": "character-female-b", "animal": "RedPanda", "fur": "#8a3b26", "feet": "#3b2018", "shirt": "#f2c14e", "pants": "#6b8f5a",
 		"head_width": 0.54, "tail": {"from": "auto", "scale": 0.55}, "extras": []},
+	# 鎮中心的居民
+	"tanuki": {"body": "character-male-b", "animal": "Raccoon", "fur": "#7d6047", "feet": "#3d2e22", "shirt": "#d9a35f", "pants": "#6b5a48",
+		"head_width": 0.56, "tail": {"from": "auto", "scale": 0.6},
+		"extras": [{"shape": "hat", "color": "#9a5b45", "band": "#f2d58a"}]},
+	"turtle": {"body": "character-male-c", "proc": "turtle", "fur": "#a3b77f", "feet": "#8a9a6a", "shirt": "#c9b28f", "pants": "#7d725f", "head_width": 0.56},
+	"crow": {"body": "character-male-a", "proc": "crow", "fur": "#34465f", "feet": "#c9963f", "shirt": "#d8c7a6", "pants": "#4f5a6b", "head_width": 0.54},
 	"neighbor_fox": {"body": "character-female-c", "animal": "Fox", "fur": "#d9672e", "feet": "#3b2018", "shirt": "#7fb7d9", "pants": "#f2efe6",
 		"head_width": 0.54, "tail": {"from": "auto", "scale": 0.55}, "extras": []},
 }
@@ -123,6 +129,8 @@ static func from_glb(path: String, node_name: String, height: float = 1.0) -> No
 
 static func build(id: String, node_name: String, height: float = 1.0) -> Node3D:
 	var d: Dictionary = DEFS[id]
+	if d.has("proc"):
+		return build_proc(id, node_name, height)
 	var root := Node3D.new()
 	root.name = node_name
 	var body := Node3D.new()
@@ -240,6 +248,122 @@ static func build(id: String, node_name: String, height: float = 1.0) -> Node3D:
 		if c.material_override != null and c.material_override.next_pass != null and c.material_override != hm:
 			pass
 	# 動畫
+	var aps := inst.find_children("*", "AnimationPlayer", true, false)
+	if not aps.is_empty():
+		var ap: AnimationPlayer = aps[0]
+		ap.name = "Anim"
+		for an in ["idle", "walk", "sprint", "holding-both", "sit"]:
+			if ap.has_animation(an):
+				ap.get_animation(an).loop_mode = Animation.LOOP_LINEAR
+		root.set_meta("anim", ap)
+		root.set_meta("anthro", true)
+		ap.play("idle")
+	root.set_meta("skeleton", skel)
+	return root
+
+
+# ---------------- 程式拼的頭（沒有現成動物模型的居民：烏龜、烏鴉） ----------------
+## Kenney 人型身體＋用球、圓柱拼的頭與配件。頭的單位和 build() 一樣：頭寬 = head_width。
+static func build_proc(id: String, node_name: String, height: float = 1.0) -> Node3D:
+	var d: Dictionary = DEFS[id]
+	var root := Node3D.new()
+	root.name = node_name
+	var body := Node3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var inst: Node3D = (load(BODY_DIR + d.body + ".glb") as PackedScene).instantiate()
+	body.add_child(inst)
+	var skel: Skeleton3D = inst.find_children("*", "Skeleton3D", true, false)[0]
+	var tex := _body_texture(d)
+	var body_mats: Array = []
+	for mi in inst.find_children("*", "MeshInstance3D", true, false):
+		var m: MeshInstance3D = mi
+		if String(m.name).contains("head"):
+			m.visible = false
+			continue
+		var copy: BaseMaterial3D = (m.get_active_material(0) as BaseMaterial3D).duplicate()
+		copy.albedo_texture = tex
+		copy.rim_enabled = true
+		copy.rim = 0.4
+		copy.rim_tint = 0.7
+		m.set_surface_override_material(0, copy)
+		body_mats.append(copy)
+	var ba := BoneAttachment3D.new()
+	ba.bone_name = "head"
+	skel.add_child(ba)
+	var head := Node3D.new()
+	head.name = "Head"
+	ba.add_child(head)
+	var ta := BoneAttachment3D.new()
+	ta.bone_name = "torso"
+	skel.add_child(ta)
+	var torso := Node3D.new()
+	ta.add_child(torso)
+	var W: float = d.head_width
+	var r := W / 2.0
+	var y0 := r * 0.92 - 0.02  # 頭的中心（下巴貼在脖子上）
+	var fur := Color(d.fur)
+	var parts: Array = []  # 要加描邊的
+	var add := func(parent: Node3D, mesh: Mesh, color: Color, pos: Vector3, sc: Vector3 = Vector3.ONE, rot: Vector3 = Vector3.ZERO, line: bool = true) -> MeshInstance3D:
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.material_override = Models.mat(color, false).duplicate()
+		mi.position = pos
+		mi.scale = sc
+		mi.rotation_degrees = rot
+		parent.add_child(mi)
+		if line:
+			parts.append(mi)
+		return mi
+	match d.proc:
+		"turtle":
+			# 慢慢館長：圓圓的鼠尾草綠大頭、白眉毛、圓眼鏡、小毛線帽、背上的龜殼
+			add.call(head, Models.sphere(r), fur, Vector3(0, y0, 0), Vector3(1, 0.9, 0.95))
+			add.call(head, Models.sphere(r * 0.55), Color("cfd8ab"), Vector3(0, y0 - r * 0.32, r * 0.55), Vector3(1.15, 0.7, 0.75), Vector3.ZERO, false)
+			for sx in [-1, 1]:
+				var e := Vector3(0.36 * r * sx, y0 + r * 0.08, r * 0.86)
+				add.call(head, Models.sphere(r * 0.15), Color("2b1d14"), e, Vector3(1, 1.1, 0.7), Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.05), Color("ffffff"), e + Vector3(r * 0.05, r * 0.06, r * 0.08), Vector3.ONE, Vector3.ZERO, false)
+				add.call(head, Models.cyl(r * 0.27, r * 0.27, r * 0.03), Color("7a5236"), e + Vector3(0, 0, r * 0.12), Vector3.ONE, Vector3(90, 0, 0), false)  # 鏡框
+				add.call(head, Models.cyl(r * 0.22, r * 0.22, r * 0.035), Color("f7f0de"), e + Vector3(0, 0, r * 0.125), Vector3.ONE, Vector3(90, 0, 0), false)  # 鏡片
+				add.call(head, Models.sphere(r * 0.16), Color("f4efe4"), e + Vector3(r * 0.03 * sx, r * 0.36, -r * 0.02), Vector3(1.5, 0.55, 0.8), Vector3(0, 0, -12 * sx), false)  # 白眉毛
+				add.call(head, Models.sphere(r * 0.12), Color("e9a59a"), Vector3(0.62 * r * sx, y0 - r * 0.22, r * 0.66), Vector3(1, 0.6, 0.4), Vector3.ZERO, false)  # 腮紅
+			add.call(head, Models.box(r * 0.18, r * 0.04, r * 0.04), Color("7a5236"), Vector3(0, y0 + r * 0.08, r * 1.08), Vector3.ONE, Vector3.ZERO, false)  # 鼻樑架
+			add.call(head, Models.sphere(r * 0.5), Color("b5654f"), Vector3(0, y0 + r * 0.72, -r * 0.08), Vector3(1.5, 0.75, 1.4))  # 小毛線帽
+			add.call(head, Models.sphere(r * 0.13), Color("f2e6cc"), Vector3(0, y0 + r * 1.12, -r * 0.08), Vector3.ONE, Vector3.ZERO, false)  # 毛球
+			# 龜殼
+			add.call(torso, Models.sphere(0.3), Color("8f6e48"), Vector3(0, 0.12, -0.2), Vector3(1.05, 1.15, 0.62))
+			add.call(torso, Models.cyl(0.31, 0.31, 0.05), Color("c9a873"), Vector3(0, 0.12, -0.14), Vector3(1.05, 1, 1.15), Vector3(90, 0, 0), false)
+			for pp in [Vector3(0, 0.2, -0.36), Vector3(-0.13, 0.05, -0.34), Vector3(0.13, 0.05, -0.34), Vector3(0, -0.08, -0.33)]:
+				add.call(torso, Models.sphere(0.085), Color("b08c5c"), pp, Vector3(1, 1, 0.35), Vector3.ZERO, false)
+		"crow":
+			# 拍拍鳥：炭藍烏鴉、亮晶晶大眼睛、小呆毛、苔綠圍巾、木頭風箱相機
+			add.call(head, Models.sphere(r), fur, Vector3(0, y0, 0), Vector3(1, 0.95, 1))
+			add.call(head, Models.sphere(r * 0.62), Color("56647a"), Vector3(0, y0 - r * 0.15, r * 0.48), Vector3(1.2, 0.85, 0.6), Vector3.ZERO, false)
+			for sx in [-1, 1]:
+				var e := Vector3(0.38 * r * sx, y0 + r * 0.1, r * 0.82)
+				add.call(head, Models.sphere(r * 0.22), Color("fffaf0"), e, Vector3(1, 1.1, 0.6), Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.14), Color("1e1a18"), e + Vector3(0, -r * 0.02, r * 0.07), Vector3(1, 1.1, 0.6), Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.05), Color("ffffff"), e + Vector3(r * 0.05, r * 0.06, r * 0.13), Vector3.ONE, Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.11), Color("d98a8a"), Vector3(0.62 * r * sx, y0 - r * 0.25, r * 0.62), Vector3(1, 0.6, 0.4), Vector3.ZERO, false)
+			add.call(head, Models.cyl(0.0, r * 0.2, r * 0.55), Color("6e7380"), Vector3(0, y0 - r * 0.15, r * 1.12), Vector3(1, 1, 0.75), Vector3(90, 0, 0))  # 嘴
+			for i in range(3):
+				add.call(head, Models.sphere(r * 0.12), fur, Vector3((i - 1) * r * 0.14, y0 + r * 1.02, r * 0.1 - i * r * 0.05), Vector3(0.6, 1.8, 0.6), Vector3(-20, 0, (i - 1) * 25), false)  # 呆毛
+			add.call(head, Models.cyl(r * 0.78, r * 0.86, r * 0.32), Color("7f9a5a"), Vector3(0, -0.01, -r * 0.05))  # 苔綠圍巾
+			add.call(head, Models.box(r * 0.3, r * 0.6, r * 0.1), Color("7f9a5a"), Vector3(r * 0.35, -r * 0.4, r * 0.62), Vector3.ONE, Vector3(10, 0, 12))  # 圍巾尾巴
+			# 木頭風箱相機（掛在胸前）
+			add.call(torso, Models.box(0.2, 0.15, 0.1), Color("b07a4a"), Vector3(0, 0.08, 0.2))
+			add.call(torso, Models.box(0.14, 0.12, 0.08), Color("4a3a30"), Vector3(0, 0.08, 0.28), Vector3.ONE, Vector3.ZERO, false)  # 風箱
+			add.call(torso, Models.cyl(0.045, 0.045, 0.05), Color("2b2b30"), Vector3(0, 0.08, 0.34), Vector3.ONE, Vector3(90, 0, 0))
+			add.call(torso, Models.sphere(0.025), Color("9fd3e6"), Vector3(0, 0.08, 0.365), Vector3(1, 1, 0.4), Vector3.ZERO, false)
+	var head_h := r * 2.0 * 0.95
+	var total_h := 0.34 + head_h
+	var bs: float = height / total_h
+	inst.scale = Vector3.ONE * bs
+	for bm in body_mats:
+		bm.next_pass = Models.outline(0.008, bs)
+	for mi in parts:
+		(mi.material_override as BaseMaterial3D).next_pass = Models.outline(0.008, bs)
 	var aps := inst.find_children("*", "AnimationPlayer", true, false)
 	if not aps.is_empty():
 		var ap: AnimationPlayer = aps[0]

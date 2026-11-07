@@ -427,6 +427,12 @@ static func character(who: String) -> Node3D:
 			return gopher()
 		"rabbit":
 			return village_chief()
+		"tanuki":
+			return Anthro.build("tanuki", "Tanuki", 1.1)
+		"turtle":
+			return Anthro.build("turtle", "Turtle", 1.05)
+		"crow":
+			return Anthro.build("crow", "Crow", 1.05)
 		"wolf":
 			if ResourceLoader.exists("res://models/wolf/wolf_rigged.glb"):
 				return Anthro.from_glb("res://models/wolf/wolf_rigged.glb", "Wolf", 1.2)  # 高度含耳朵

@@ -18,6 +18,7 @@ var panel: TaskPanel
 var report: ReportPanel
 var book: QuestBook
 var letters: LetterPanel
+var town: TownView
 var playback: Playback
 
 # 任務狀態
@@ -38,6 +39,9 @@ func _ready() -> void:
 	add_child(rig)
 	room = RoomView.new()
 	add_child(room)
+	town = TownView.new()
+	town.visible = false
+	add_child(town)
 	playback = Playback.new()
 	add_child(playback)
 
@@ -66,6 +70,11 @@ func _ready() -> void:
 	hud.task_chosen.connect(_enter_task)
 	hud.reduce_motion_toggled.connect(_set_reduce_motion)
 	hud.open_book.connect(_open_book)
+	hud.town_toggled.connect(func():
+		if mode == "town":
+			_enter_home()
+		else:
+			_enter_town())
 	letters.read_letter.connect(func(id):
 		if not save.has("letters_read"):
 			save.letters_read = []
@@ -190,6 +199,9 @@ func _total_stars() -> int:
 # ---------------- 家 ----------------
 func _enter_home() -> void:
 	mode = "home"
+	room.visible = true
+	town.visible = false
+	hud.set_town_mode(false)
 	bubbles.avoid_side_panels = false
 	playback.cancel()
 	task = {}
@@ -401,6 +413,40 @@ func _open_book() -> void:
 	book.open(save.stars, func(gid: String) -> bool:
 		var t := _task_by_id(gid)
 		return not t.is_empty() and HomeHUD.is_unlocked(t, tasks, save.stars))
+
+
+# ---------------- 鎮中心 ----------------
+func _enter_town() -> void:
+	_cancel_held()
+	mode = "town"
+	playback.cancel()
+	bubbles.clear_all()
+	letters.close()
+	book.close()
+	room.visible = false
+	town.visible = true
+	if not town.built:
+		town.build()
+		for who in town.npcs:
+			town.npcs[who].bubble_requested.connect(_on_bubble)
+	hud.set_town_mode(true)
+	hud.show_status("", Vector2.ZERO)
+	rig.follow_target = null
+	rig.screen_offset = 0.0
+	rig.frame_room(int(TownView.W), int(TownView.D), 0.95)
+	await get_tree().create_timer(0.6).timeout
+	if mode == "town":
+		town.talk("crow")
+
+
+func _town_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		var who := town.actor_at(get_viewport().get_mouse_position(), rig.cam)
+		hud.show_status(TownView.NAMES[who] + "　點一下聊天" if who != "" else "", get_viewport().get_mouse_position())
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var who2 := town.actor_at(get_viewport().get_mouse_position(), rig.cam)
+		if who2 != "":
+			town.talk(who2)
 
 
 func _open_letters() -> void:
@@ -648,6 +694,9 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if mode == "town" and not book.visible:
+		_town_input(event)
+		return
 	if mode != "home" or hud.board.visible or letters.visible:
 		return
 	if event is InputEventMouseMotion and not held.is_empty():
@@ -867,6 +916,9 @@ func _enter_task(id: String) -> void:
 	if task.is_empty():
 		return
 	_cancel_held()
+	room.visible = true
+	town.visible = false
+	hud.set_town_mode(false)
 	_write_save()
 	mode = "task"
 	bubbles.avoid_side_panels = true
@@ -1124,6 +1176,15 @@ func _auto_shot(path: String) -> void:
 		elif s.begins_with("book_concept:"):
 			book._show_concept(s.substr(13))
 			await get_tree().create_timer(0.3).timeout
+		elif s == "town":
+			await _enter_town()
+			await get_tree().create_timer(1.5).timeout
+		elif s.begins_with("talk:"):
+			town.talk(s.substr(5))
+			await get_tree().create_timer(0.4).timeout
+		elif s == "home":
+			_enter_home()
+			await get_tree().create_timer(0.5).timeout
 		elif s == "letters":
 			_open_letters()
 			await get_tree().create_timer(0.5).timeout
@@ -1153,7 +1214,7 @@ func _auto_shot(path: String) -> void:
 		elif s.begins_with("look:"):
 			# look:wolf|rabbit|gopher,距離,俯角
 			var a: Array = s.substr(5).split(",")
-			var who: Node3D = room.actor(a[0])
+			var who: Node3D = town.npcs.get(a[0]) if mode == "town" else room.actor(a[0])
 			rig.follow_target = who
 			rig.target_distance = float(a[1])
 			rig.target_pitch = deg_to_rad(float(a[2]))
