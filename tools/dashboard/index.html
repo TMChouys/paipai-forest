@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>任務書管理台</title>
+<style>
+:root{
+  --paper:#fff8ec; --paper2:#fffdf6; --ink:#5a3d2b; --muted:#7a6a5a; --line:#d8c3a5;
+  --accent:#c8693a; --primary:#f4a261; --red:#b8473f; --green:#3d7a3d; --warn:#8f5f12;
+  --bg:#f3e3c8; --tag-single:#cfe3f5; --tag-comp:#f4a8a0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#2f2620; --paper2:#3a2f27; --ink:#f3e3c8; --muted:#c9b8a0; --line:#5e4a3a;
+    --accent:#f0a070; --primary:#c8693a; --red:#f08a80; --green:#9fd18f; --warn:#f2c66d;
+    --bg:#211a15; --tag-single:#35506a; --tag-comp:#6e3a34;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#2f2620; --paper2:#3a2f27; --ink:#f3e3c8; --muted:#c9b8a0; --line:#5e4a3a;
+  --accent:#f0a070; --primary:#c8693a; --red:#f08a80; --green:#9fd18f; --warn:#f2c66d;
+  --bg:#211a15; --tag-single:#35506a; --tag-comp:#6e3a34;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:2px solid var(--ink);padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+header h1{font-size:20px;margin:0 12px 0 0}
+.file{color:var(--muted);font-size:13px;flex:1;min-width:160px}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{background:#ffe2b8;border:2px solid var(--ink);border-radius:10px;padding:4px 12px;cursor:pointer;box-shadow:0 2px 0 rgba(90,61,43,.25)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button{background:#5a4332}}
+:root[data-theme="dark"] button{background:#5a4332}
+button:hover{border-width:3px;padding:3px 11px}
+button:active{transform:translateY(2px);box-shadow:none}
+button.primary{background:var(--primary);font-weight:700}
+button.danger{border-color:var(--red);color:var(--red);background:transparent}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.dirty{color:var(--red);font-weight:700}
+nav{display:flex;gap:6px;padding:10px 16px 0;flex-wrap:wrap}
+nav button{border-radius:10px 10px 0 0;border-bottom:none;background:var(--paper2)}
+nav button[aria-selected="true"]{background:var(--paper);border-width:3px;font-weight:700}
+main{background:var(--paper);margin:0 16px 16px;border:2px solid var(--ink);border-radius:0 14px 14px 14px;padding:14px;min-height:70vh}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.bar label{font-size:13px;color:var(--muted)}
+input,select,textarea{background:var(--paper2);border:2px solid var(--ink);border-radius:8px;padding:4px 8px}
+textarea{width:100%;min-height:60px;resize:vertical}
+.split{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+.list{max-height:72vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{position:sticky;top:0;background:var(--paper2);font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+tr.row{cursor:pointer}
+tr.row:hover{background:var(--paper2)}
+tr.sel{outline:3px solid var(--accent);outline-offset:-3px}
+.tag{display:inline-block;font-size:12px;font-weight:700;border:1px solid var(--ink);border-radius:8px;padding:0 6px;white-space:nowrap}
+.tag.single{background:var(--tag-single)}
+.tag.comp{background:var(--tag-comp)}
+.stars{color:var(--warn);letter-spacing:1px;white-space:nowrap}
+.st-playable{color:var(--green);font-weight:700}
+.st-needs_engine{color:var(--red)}
+.st-draft,.st-idea{color:var(--muted)}
+.form{border:2px solid var(--ink);border-radius:12px;padding:12px;background:var(--paper2)}
+.form h2{margin:0 0 8px;font-size:18px}
+.grid2{display:grid;grid-template-columns:90px minmax(0,1fr);gap:6px 10px;align-items:start}
+.grid2 input,.grid2 select,.grid2 textarea{width:100%;min-width:0}
+.split>*{min-width:0}
+.grid2>label{padding-top:6px;font-size:13px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px}
+.chip{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;cursor:pointer;background:var(--paper)}
+.chip.on{background:var(--primary);border-color:var(--ink);font-weight:700}
+.hint{font-size:13px;color:var(--muted)}
+.err{color:var(--red)}
+.ok{color:var(--green);font-weight:700}
+ul.issues{padding-left:20px}
+#mapSvg{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--paper2)}
+.node rect{stroke:var(--ink);stroke-width:1.5}
+.node text{fill:#3b2a1e;font-size:13px}
+.link{fill:none;stroke:var(--muted);stroke-width:1.6}
+.toast{position:fixed;right:16px;bottom:16px;background:var(--paper);border:2px solid var(--ink);border-radius:12px;padding:8px 14px;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>派森小鎮任務書・管理台</h1>
+  <span class="file" id="fileInfo">還沒開啟檔案</span>
+  <span id="dirty" class="dirty" hidden>有未儲存的修改</span>
+  <button id="btnOpen" title="選 data/curriculum/knowledge_map.json，之後可以直接存回去">開啟檔案…</button>
+  <button id="btnSave" class="primary" title="Ctrl+S">儲存</button>
+  <button id="btnDownload" title="下載一份 JSON">下載</button>
+  <button id="btnTheme" title="切換深淺色">深淺色</button>
+</header>
+<nav role="tablist">
+  <button role="tab" data-tab="tasks" aria-selected="true">任務</button>
+  <button role="tab" data-tab="concepts">概念與先備</button>
+  <button role="tab" data-tab="map">知識地圖</button>
+  <button role="tab" data-tab="check">檢查 <span id="issueCount"></span></button>
+  <button role="tab" data-tab="world">地點與角色</button>
+</nav>
+<main id="main"></main>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const MAP_URL = "../../data/curriculum/knowledge_map.json";
+let M = null, handle = null, dirty = false, tab = "tasks", selTask = null, selConcept = null;
+let taskSort = {key: "area", dir: 1};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const stars = n => "★".repeat(n) + "☆".repeat(5 - n);
+function toast(msg){const t=$("#toast");t.textContent=msg;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",2600);}
+function setDirty(v){dirty=v;$("#dirty").hidden=!v;}
+window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+try { const th = localStorage.getItem("qb-theme"); if (th) document.documentElement.dataset.theme = th; } catch {}
+$("#btnTheme").onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const nx = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = nx;
+  try { localStorage.setItem("qb-theme", nx); } catch {}
+};
+
+// ---------- 讀寫 ----------
+async function loadDefault(){
+  try {
+    const r = await fetch(MAP_URL, {cache: "no-store"});
+    if (!r.ok) throw new Error(r.status);
+    M = await r.json();
+    $("#fileInfo").textContent = "已讀取 data/curriculum/knowledge_map.json（要直接存回檔案，請按「開啟檔案…」選同一個檔）";
+    render();
+  } catch (e) {
+    $("#main").innerHTML = `<p>讀不到知識地圖。請在專案資料夾執行 <code>python -m http.server 8070</code>，再打開 <code>http://localhost:8070/tools/dashboard/</code>，或按「開啟檔案…」。</p>`;
+  }
+}
+$("#btnOpen").onclick = async () => {
+  try {
+    if (window.showOpenFilePicker) {
+      [handle] = await showOpenFilePicker({types: [{description: "JSON", accept: {"application/json": [".json"]}}]});
+      M = JSON.parse(await (await handle.getFile()).text());
+      $("#fileInfo").textContent = "編輯中：" + handle.name + "（儲存會直接寫回這個檔）";
+    } else {
+      const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json";
+      inp.onchange = async () => { M = JSON.parse(await inp.files[0].text()); $("#fileInfo").textContent = inp.files[0].name + "（這個瀏覽器只能用「下載」存檔）"; setDirty(false); render(); };
+      inp.click(); return;
+    }
+    setDirty(false); render();
+  } catch (e) { if (e.name !== "AbortError") toast("開啟失敗：" + e.message); }
+};
+function serialize(){ return JSON.stringify(M, null, 1) + "\n"; }
+async function save(){
+  if (!M) return;
+  const issues = validate();
+  if (issues.length && !confirm(`還有 ${issues.length} 個檢查問題，仍要儲存嗎？`)) return;
+  try {
+    if (!handle && window.showSaveFilePicker) handle = await showSaveFilePicker({suggestedName: "knowledge_map.json", types: [{description: "JSON", accept: {"application/json": [".json"]}}]});
+    if (!handle) return download();
+    const w = await handle.createWritable(); await w.write(serialize()); await w.close();
+    setDirty(false); toast("已儲存到 " + handle.name);
+  } catch (e) { if (e.name !== "AbortError") toast("儲存失敗：" + e.message); }
+}
+function download(){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([serialize()], {type: "application/json"}));
+  a.download = "knowledge_map.json"; a.click(); setDirty(false);
+}
+$("#btnSave").onclick = save; $("#btnDownload").onclick = download;
+document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); } });
+
+// ---------- 檢查（和 tools/curriculum/check_map.py 同一套規則） ----------
+function validate(){
+  const out = [], ids = new Set(M.concepts.map(c => c.id)), areas = new Set(M.areas.map(a => a.id));
+  if (ids.size !== M.concepts.length) out.push("概念 id 重複");
+  const pre = Object.fromEntries(M.concepts.map(c => [c.id, c.prereqs]));
+  for (const c of M.concepts) {
+    if (!areas.has(c.area)) out.push(`概念 ${c.id} 的範圍 ${c.area} 不存在`);
+    for (const p of c.prereqs) if (!ids.has(p)) out.push(`概念 ${c.id} 的先備 ${p} 不存在`);
+  }
+  const st = {};
+  const visit = (n, path) => {
+    if (st[n] === 1) { out.push("先備關係繞圈：" + [...path, n].join(" → ")); return; }
+    if (st[n] === 2) return;
+    st[n] = 1; for (const p of pre[n] || []) visit(p, [...path, n]); st[n] = 2;
+  };
+  Object.keys(pre).forEach(n => visit(n, []));
+  const tids = M.tasks.map(t => t.id);
+  if (new Set(tids).size !== tids.length) out.push("任務 id 重複");
+  for (const t of M.tasks) {
+    if (!t.concepts.length) out.push(`任務 ${t.id} 沒有概念`);
+    if (t.concepts.length > 1 && !t.compound) out.push(`任務 ${t.id} 有多個概念，要標成複合任務`);
+    if (t.compound && t.difficulty < 3) out.push(`任務 ${t.id} 是複合任務，難度要 ≥ 3`);
+    for (const c of t.concepts) if (!ids.has(c)) out.push(`任務 ${t.id} 的概念 ${c} 不存在`);
+    if (!(t.place in M.places)) out.push(`任務 ${t.id} 的地點 ${t.place} 不在地點清單`);
+    if (!(t.npc in M.npcs)) out.push(`任務 ${t.id} 的角色 ${t.npc} 不在角色清單`);
+    if (t.status === "playable" && !t.game_task) out.push(`任務 ${t.id} 標成可以玩，但沒有遊戲任務檔`);
+  }
+  const single = new Set(M.tasks.filter(t => !t.compound && t.concepts.length).map(t => t.concepts[0]));
+  for (const c of ids) if (!single.has(c)) out.push(`概念 ${c} 還沒有單一概念任務`);
+  return out;
+}
+
+// ---------- 畫面 ----------
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b));
+  render();
+});
+const areaName = id => (M.areas.find(a => a.id === id) || {}).name || id;
+const cName = id => (M.concepts.find(c => c.id === id) || {}).name || id;
+function render(){
+  if (!M) return;
+  const n = validate().length;
+  $("#issueCount").innerHTML = n ? `<span class="err">(${n})</span>` : "✓";
+  ({tasks: renderTasks, concepts: renderConcepts, map: renderMap, check: renderCheck, world: renderWorld})[tab]();
+}
+function changed(){ setDirty(true); render(); }
+
+function filtersHtml(){
+  return `<div class="bar">
+    <label>範圍 <select id="fArea"><option value="">全部</option>${M.areas.map(a => `<option value="${a.id}">${a.id} ${esc(a.name)}</option>`).join("")}</select></label>
+    <label>類型 <select id="fComp"><option value="">全部</option><option value="0">單一概念</option><option value="1">複合知識</option></select></label>
+    <label>狀態 <select id="fStatus"><option value="">全部</option>${Object.entries(M.status_names).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}</select></label>
+    <label>搜尋 <input id="fText" placeholder="標題、故事…" size="12"></label>
+    <button id="addTask">＋ 新任務</button>
+  </div>`;
+}
+let F = {area: "", comp: "", status: "", text: ""};
+function renderTasks(){
+  $("#main").innerHTML = `${filtersHtml()}<div class="split"><div class="list"><table><thead><tr>
+    <th data-k="area">範圍</th><th data-k="title">任務</th><th data-k="difficulty">難度</th><th data-k="status">狀態</th></tr></thead><tbody id="tb"></tbody></table></div>
+    <div id="form"></div></div>`;
+  for (const [k, id] of [["area", "fArea"], ["comp", "fComp"], ["status", "fStatus"], ["text", "fText"]]) {
+    const el = $("#" + id); el.value = F[k];
+    el.oninput = () => { F[k] = el.value; fillRows(); };
+  }
+  document.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
+    taskSort = {key: th.dataset.k, dir: taskSort.key === th.dataset.k ? -taskSort.dir : 1}; fillRows();
+  });
+  $("#addTask").onclick = () => {
+    const c = selConcept || M.concepts[0].id;
+    const t = {id: "Q_new_" + Date.now().toString(36), title: "新任務", concepts: [c], compound: false, difficulty: 1,
+      area: (M.concepts.find(x => x.id === c) || {}).area || "A", place: Object.keys(M.places)[0], npc: "wolf",
+      story: "", goal: "", expected: "", status: "idea", game_task: null, notes: ""};
+    M.tasks.push(t); selTask = t.id; changed();
+  };
+  fillRows(); renderTaskForm();
+}
+function fillRows(){
+  const rows = M.tasks.filter(t =>
+    (!F.area || t.area === F.area) && (F.comp === "" || String(+t.compound) === F.comp) &&
+    (!F.status || t.status === F.status) &&
+    (!F.text || (t.title + t.story + t.goal + t.id).includes(F.text)));
+  const k = taskSort.key;
+  rows.sort((a, b) => (a[k] > b[k] ? 1 : a[k] < b[k] ? -1 : a.difficulty - b.difficulty) * taskSort.dir);
+  $("#tb").innerHTML = rows.map(t => `<tr class="row ${t.id === selTask ? "sel" : ""}" data-id="${esc(t.id)}" tabindex="0">
+    <td>${esc(t.area)}</td>
+    <td><span class="tag ${t.compound ? "comp" : "single"}">${t.compound ? "複合" : "單一"}</span> ${esc(t.title)}
+      <div class="hint">${t.concepts.map(cName).map(esc).join(" ＋ ")}・${esc(M.places[t.place] || t.place)}</div></td>
+    <td class="stars">${stars(t.difficulty)}</td>
+    <td class="st-${t.status}">${esc(M.status_names[t.status] || t.status)}${t.game_task ? `<div class="hint">${esc(t.game_task)}</div>` : ""}</td></tr>`).join("");
+  document.querySelectorAll("tr.row").forEach(tr => {
+    const pick = () => { selTask = tr.dataset.id; fillRows(); renderTaskForm(); };
+    tr.onclick = pick; tr.onkeydown = e => { if (e.key === "Enter") pick(); };
+  });
+}
+function opt(obj, v){ return Object.entries(obj).map(([k, n]) => `<option value="${esc(k)}" ${k === v ? "selected" : ""}>${esc(n)}</option>`).join(""); }
+function renderTaskForm(){
+  const t = M.tasks.find(x => x.id === selTask);
+  if (!t) { $("#form").innerHTML = `<div class="form hint">點左邊的任務來編輯。<br>規則：一個任務只教一個概念；要組合兩個以上概念的任務一定是「複合知識」，難度至少 3。</div>`; return; }
+  const scale = M.difficulty_scale;
+  $("#form").innerHTML = `<div class="form"><h2>${esc(t.title)}</h2><div class="grid2">
+    <label>id</label><input id="t_id" value="${esc(t.id)}">
+    <label>標題</label><input id="t_title" value="${esc(t.title)}">
+    <label>概念</label><div><div class="chips" id="t_concepts">${M.concepts.map(c =>
+      `<span class="chip ${t.concepts.includes(c.id) ? "on" : ""}" data-c="${c.id}" title="${esc(c.summary)}">${esc(c.area)}・${esc(c.name)}</span>`).join("")}</div>
+      <div class="hint">選一個＝單一概念；選兩個以上會自動變成複合知識。</div></div>
+    <label>類型</label><div><span class="tag ${t.compound ? "comp" : "single"}">${t.compound ? "複合知識" : "單一概念"}</span></div>
+    <label>難度</label><div><select id="t_diff">${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${n === t.difficulty ? "selected" : ""}>${stars(n)} ${esc(scale[n])}</option>`).join("")}</select></div>
+    <label>範圍</label><select id="t_area">${opt(Object.fromEntries(M.areas.map(a => [a.id, a.id + " " + a.name])), t.area)}</select>
+    <label>地點</label><select id="t_place">${opt(M.places, t.place)}</select>
+    <label>委託人</label><select id="t_npc">${opt(M.npcs, t.npc)}</select>
+    <label>故事</label><textarea id="t_story">${esc(t.story)}</textarea>
+    <label>要寫的程式</label><textarea id="t_goal">${esc(t.goal)}</textarea>
+    <label>預期結果</label><input id="t_expected" value="${esc(t.expected)}">
+    <label>狀態</label><select id="t_status">${opt(M.status_names, t.status)}</select>
+    <label>遊戲任務檔</label><input id="t_game" value="${esc(t.game_task || "")}" placeholder="例如 D01_hello（data/tasks/ 的檔名）">
+    <label>備註</label><textarea id="t_notes" placeholder="難度理由、待辦…">${esc(t.notes)}</textarea>
+  </div><div class="bar" style="margin-top:10px"><button class="danger" id="t_del">刪除任務</button></div></div>`;
+  const bind = (id, key, conv = v => v) => $("#" + id).onchange = e => { t[key] = conv(e.target.value); if (key === "id") selTask = t.id; changed(); };
+  bind("t_id", "id"); bind("t_title", "title"); bind("t_diff", "difficulty", Number); bind("t_area", "area");
+  bind("t_place", "place"); bind("t_npc", "npc"); bind("t_story", "story"); bind("t_goal", "goal");
+  bind("t_expected", "expected"); bind("t_status", "status"); bind("t_game", "game_task", v => v.trim() || null); bind("t_notes", "notes");
+  document.querySelectorAll("#t_concepts .chip").forEach(ch => ch.onclick = () => {
+    const c = ch.dataset.c;
+    t.concepts = t.concepts.includes(c) ? t.concepts.filter(x => x !== c) : [...t.concepts, c];
+    t.compound = t.concepts.length > 1;
+    if (t.compound && t.difficulty < 3) t.difficulty = 3;
+    changed();
+  });
+  $("#t_del").onclick = () => { if (confirm(`刪除「${t.title}」？`)) { M.tasks = M.tasks.filter(x => x !== t); selTask = null; changed(); } };
+}
+
+function renderConcepts(){
+  $("#main").innerHTML = `<div class="bar"><button id="addC">＋ 新概念</button><span class="hint">先備關係不能繞圈；每個概念都要有一個單一概念任務。</span></div>
+  <div class="split"><div class="list"><table><thead><tr><th>範圍</th><th>概念</th><th>先備</th><th>引擎</th></tr></thead><tbody>${
+    M.concepts.map(c => `<tr class="row ${c.id === selConcept ? "sel" : ""}" data-id="${c.id}" tabindex="0"><td>${esc(c.area)}</td>
+    <td>${esc(c.name)}<div class="hint">${esc(c.id)}</div></td><td class="hint">${c.prereqs.map(cName).map(esc).join("、") || "—"}</td>
+    <td class="${c.engine === "ok" ? "st-playable" : "st-needs_engine"}">${c.engine === "ok" ? "支援" : "要擴充：" + esc(c.engine_needs.join("、"))}</td></tr>`).join("")
+  }</tbody></table></div><div id="cform"></div></div>`;
+  document.querySelectorAll("tr.row").forEach(tr => { const pick = () => { selConcept = tr.dataset.id; renderConcepts(); }; tr.onclick = pick; tr.onkeydown = e => { if (e.key === "Enter") pick(); }; });
+  $("#addC").onclick = () => { const c = {id: "c_" + Date.now().toString(36), area: "A", name: "新概念", summary: "", prereqs: [], textbook: "", engine: "ok", engine_needs: []}; M.concepts.push(c); selConcept = c.id; changed(); };
+  const c = M.concepts.find(x => x.id === selConcept);
+  if (!c) { $("#cform").innerHTML = `<div class="form hint">點左邊的概念來編輯。</div>`; return; }
+  const used = M.tasks.filter(t => t.concepts.includes(c.id));
+  $("#cform").innerHTML = `<div class="form"><h2>${esc(c.name)}</h2><div class="grid2">
+    <label>id</label><input id="c_id" value="${esc(c.id)}">
+    <label>名稱</label><input id="c_name" value="${esc(c.name)}">
+    <label>範圍</label><select id="c_area">${opt(Object.fromEntries(M.areas.map(a => [a.id, a.id + " " + a.name])), c.area)}</select>
+    <label>說明</label><textarea id="c_summary">${esc(c.summary)}</textarea>
+    <label>先備</label><div class="chips" id="c_pre">${M.concepts.filter(x => x.id !== c.id).map(x =>
+      `<span class="chip ${c.prereqs.includes(x.id) ? "on" : ""}" data-c="${x.id}">${esc(x.area)}・${esc(x.name)}</span>`).join("")}</div>
+    <label>教材</label><input id="c_tb" value="${esc(c.textbook)}">
+    <label>引擎</label><input id="c_needs" value="${esc(c.engine_needs.join(","))}" placeholder="空白＝直譯器已支援；例如 def,dict">
+    <label>任務</label><div class="hint">${used.map(t => `${t.compound ? "複合" : "單一"}・${esc(t.title)}`).join("<br>") || "<span class='err'>還沒有任務</span>"}</div>
+  </div><div class="bar" style="margin-top:10px"><button class="danger" id="c_del">刪除概念</button></div></div>`;
+  const bind = (id, key) => $("#" + id).onchange = e => { if (key === "id") { const old = c.id; c.id = e.target.value.trim(); M.concepts.forEach(x => x.prereqs = x.prereqs.map(p => p === old ? c.id : p)); M.tasks.forEach(t => t.concepts = t.concepts.map(p => p === old ? c.id : p)); selConcept = c.id; } else c[key] = e.target.value; changed(); };
+  bind("c_id", "id"); bind("c_name", "name"); bind("c_area", "area"); bind("c_summary", "summary"); bind("c_tb", "textbook");
+  $("#c_needs").onchange = e => { c.engine_needs = e.target.value.split(",").map(s => s.trim()).filter(Boolean); c.engine = c.engine_needs.length ? "needs" : "ok"; changed(); };
+  document.querySelectorAll("#c_pre .chip").forEach(ch => ch.onclick = () => { const p = ch.dataset.c; c.prereqs = c.prereqs.includes(p) ? c.prereqs.filter(x => x !== p) : [...c.prereqs, p]; changed(); });
+  $("#c_del").onclick = () => {
+    if (used.length) return toast("還有任務用到這個概念，先改任務。");
+    if (confirm(`刪除「${c.name}」？`)) { M.concepts = M.concepts.filter(x => x !== c); M.concepts.forEach(x => x.prereqs = x.prereqs.filter(p => p !== c.id)); selConcept = null; changed(); }
+  };
+}
+
+let mapArea = "";
+function renderMap(){
+  $("#main").innerHTML = `<div class="bar"><label>範圍 <select id="mArea"><option value="">全部（大圖）</option>${M.areas.map(a => `<option value="${a.id}" ${a.id === mapArea ? "selected" : ""}>${a.id} ${esc(a.name)}</option>`).join("")}</select></label>
+  <span class="hint">左到右＝先學到後學。點概念可以編輯。</span></div><svg id="mapSvg"></svg>`;
+  $("#mArea").onchange = e => { mapArea = e.target.value; renderMap(); };
+  const cs = M.concepts.filter(c => !mapArea || c.area === mapArea);
+  const ids = new Set(cs.map(c => c.id)), depth = {};
+  for (let i = 0; i < cs.length; i++) for (const c of cs) depth[c.id] = Math.max(0, ...c.prereqs.filter(p => ids.has(p)).map(p => (depth[p] ?? 0) + 1));
+  const cols = {};
+  cs.forEach(c => (cols[depth[c.id]] ||= []).push(c));
+  const W = 170, H = 30, GX = 50, GY = 10, pos = {};
+  let maxR = 0;
+  Object.entries(cols).forEach(([d, list]) => { maxR = Math.max(maxR, list.length); list.forEach((c, i) => pos[c.id] = {x: 10 + d * (W + GX), y: 10 + i * (H + GY)}); });
+  const svgW = 20 + Object.keys(cols).length * (W + GX), svgH = 20 + maxR * (H + GY);
+  const color = id => (M.areas.find(a => a.id === id) || {}).color || "#ffcf6b";
+  let s = `<defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L8,4L0,8z" fill="currentColor"/></marker></defs>`;
+  for (const c of cs) for (const p of c.prereqs) if (pos[p]) {
+    const a = pos[p], b = pos[c.id], mx = (a.x + W + b.x) / 2;
+    s += `<path class="link" marker-end="url(#arr)" style="color:var(--muted)" d="M${a.x + W},${a.y + H / 2} C${mx},${a.y + H / 2} ${mx},${b.y + H / 2} ${b.x},${b.y + H / 2}"/>`;
+  }
+  for (const c of cs) {
+    const p = pos[c.id], n = M.tasks.filter(t => t.concepts.includes(c.id)).length;
+    s += `<g class="node" data-c="${c.id}" style="cursor:pointer" tabindex="0"><rect x="${p.x}" y="${p.y}" width="${W}" height="${H}" rx="9" fill="${color(c.area)}"/>
+      <text x="${p.x + 8}" y="${p.y + 20}">${esc(c.area)}・${esc(c.name.length > 10 ? c.name.slice(0, 10) + "…" : c.name)} (${n})</text><title>${esc(c.summary)}</title></g>`;
+  }
+  const svg = $("#mapSvg"); svg.setAttribute("viewBox", `0 0 ${svgW} ${svgH}`); svg.style.height = Math.min(svgH, 4000) + "px"; svg.style.minWidth = Math.min(svgW, 4000) + "px"; svg.innerHTML = s;
+  svg.parentElement.style.overflowX = "auto";
+  svg.querySelectorAll(".node").forEach(g => g.onclick = () => { selConcept = g.dataset.c; tab = "concepts"; document.querySelector('nav [data-tab="concepts"]').click(); });
+}
+
+function renderCheck(){
+  const issues = validate();
+  const byArea = M.areas.map(a => {
+    const ts = M.tasks.filter(t => t.area === a.id);
+    const cnt = k => ts.filter(t => t.status === k).length;
+    return `<tr><td>${a.id} ${esc(a.name)}</td><td>${M.concepts.filter(c => c.area === a.id).length}</td><td>${ts.filter(t => !t.compound).length}</td><td>${ts.filter(t => t.compound).length}</td>
+      <td class="st-playable">${cnt("playable")}</td><td>${cnt("draft")}</td><td class="st-needs_engine">${cnt("needs_engine")}</td></tr>`;
+  }).join("");
+  $("#main").innerHTML = `<h2>${issues.length ? `<span class="err">有 ${issues.length} 個問題</span>` : `<span class="ok">✓ 知識地圖沒有問題</span>`}</h2>
+    ${issues.length ? `<ul class="issues">${issues.map(i => `<li class="err">${esc(i)}</li>`).join("")}</ul>` : ""}
+    <h2>進度總覽</h2><div class="list"><table><thead><tr><th>範圍</th><th>概念</th><th>單一任務</th><th>複合任務</th><th>可以玩</th><th>草稿</th><th>要擴充引擎</th></tr></thead><tbody>${byArea}</tbody></table></div>
+    <p class="hint">同一套規則也可以在命令列跑：<code>python -I tools/curriculum/check_map.py</code></p>`;
+}
+
+function renderWorld(){
+  const rows = (obj, kind) => Object.entries(obj).map(([k, v]) => `<tr><td><code>${esc(k)}</code></td><td><input data-k="${esc(k)}" data-kind="${kind}" value="${esc(v)}" size="28"></td>
+    <td class="hint">${M.tasks.filter(t => t[kind === "places" ? "place" : "npc"] === k).length} 個任務</td></tr>`).join("");
+  $("#main").innerHTML = `<p class="hint">地點和角色的故事設定寫在 <code>docs/story/story_bible.md</code>（storyteller Agent 維護）。這裡只管任務用到的代號與名稱。</p>
+    <div class="split"><div><h2>地點</h2><div class="list"><table><tbody>${rows(M.places, "places")}</tbody></table></div>
+      <div class="bar" style="margin-top:8px"><input id="newPlaceK" placeholder="代號，例如 town_square" size="16"><input id="newPlaceV" placeholder="名稱" size="14"><button id="addPlace">＋ 地點</button></div></div>
+    <div><h2>角色</h2><div class="list"><table><tbody>${rows(M.npcs, "npcs")}</tbody></table></div>
+      <div class="bar" style="margin-top:8px"><input id="newNpcK" placeholder="代號，例如 squirrel" size="16"><input id="newNpcV" placeholder="名稱" size="14"><button id="addNpc">＋ 角色</button></div></div></div>`;
+  document.querySelectorAll("input[data-k]").forEach(i => i.onchange = () => { M[i.dataset.kind][i.dataset.k] = i.value; changed(); });
+  const add = (kind, k, v) => { k = k.trim(); if (!/^[a-z_][a-z0-9_]*$/.test(k)) return toast("代號只能用小寫英文、數字、底線"); M[kind][k] = v.trim() || k; changed(); };
+  $("#addPlace").onclick = () => add("places", $("#newPlaceK").value, $("#newPlaceV").value);
+  $("#addNpc").onclick = () => add("npcs", $("#newNpcK").value, $("#newNpcV").value);
+}
+
+loadDefault();
+</script>
+</body>
+</html>

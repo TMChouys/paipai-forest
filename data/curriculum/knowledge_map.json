@@ -1,0 +1,2268 @@
+{
+ "schema": 1,
+ "world": "派森小鎮",
+ "note": "派森小鎮任務書的知識地圖。概念 concepts 用 prereqs 串成先備關係；任務 tasks 一個只教一個概念，concepts 超過一個的一定是 compound（複合知識）任務。由管理者儀表板或 curriculum-planner Agent 維護。",
+ "difficulty_scale": {
+  "1": "單一概念，照著句型改一個地方就完成",
+  "2": "單一概念，要自己組合句型或處理不同測資",
+  "3": "單一概念的進階用法，或兩個熟悉概念的複合應用",
+  "4": "複合知識：三個概念或需要自己設計流程",
+  "5": "複合知識＋演算法思考（搜尋、排序）"
+ },
+ "status_names": {
+  "playable": "可以玩",
+  "draft": "草稿（引擎已支援）",
+  "needs_engine": "草稿（要先擴充直譯器）",
+  "idea": "點子"
+ },
+ "places": {
+  "treehouse": "派派鼠的樹屋（主屋）",
+  "front_yard": "樹屋前院（信箱、胡蘿蔔園）",
+  "sky_top": "天空樹頂",
+  "forest_path": "派派森林小徑",
+  "creek": "溪畔釣魚角",
+  "lavender": "薰衣草原",
+  "vault": "螢光寶庫",
+  "dungeon": "派森地下城（老樹根下）"
+ },
+ "npcs": {
+  "wolf": "派派狼",
+  "rabbit": "派派兔",
+  "crow": "拍拍鳥",
+  "gopher": "派派鼠"
+ },
+ "areas": [
+  {
+   "id": "A",
+   "name": "程式起步",
+   "summary": "print、註解：讓派派鼠開口說話",
+   "textbook": "零基礎入門班 ch1–ch2；運算思維 Ch1–2",
+   "color": "#ffcf6b",
+   "order": 1
+  },
+  {
+   "id": "B",
+   "name": "變數與資料型態",
+   "summary": "把東西存起來、數字和文字不一樣",
+   "textbook": "零基礎入門班 ch2；運算思維 Ch2",
+   "color": "#f4a261",
+   "order": 2
+  },
+  {
+   "id": "C",
+   "name": "運算子",
+   "summary": "計算、比較、且／或／不是",
+   "textbook": "零基礎入門班 ch2；運算思維 Ch3",
+   "color": "#e9c46a",
+   "order": 3
+  },
+  {
+   "id": "D",
+   "name": "字串與輸入輸出",
+   "summary": "input、f-string、字串的小工具",
+   "textbook": "零基礎入門班 ch3、ch7；運算思維 Ch2",
+   "color": "#9fd18f",
+   "order": 4
+  },
+  {
+   "id": "E",
+   "name": "選擇結構",
+   "summary": "if／else：依情況做不同的事",
+   "textbook": "零基礎入門班 ch4；運算思維 Ch4",
+   "color": "#8fc1e3",
+   "order": 5
+  },
+  {
+   "id": "F",
+   "name": "迴圈",
+   "summary": "for、while：重複做事",
+   "textbook": "零基礎入門班 ch5；運算思維 Ch5",
+   "color": "#b8a1e3",
+   "order": 6
+  },
+  {
+   "id": "G",
+   "name": "串列與元組",
+   "summary": "一次存很多東西",
+   "textbook": "零基礎入門班 ch6；運算思維 Ch6",
+   "color": "#f2a7b8",
+   "order": 7
+  },
+  {
+   "id": "H",
+   "name": "字典與集合",
+   "summary": "用名字找東西、不重複的收藏",
+   "textbook": "零基礎入門班 ch8；運算思維 Ch6",
+   "color": "#d4b483",
+   "order": 8
+  },
+  {
+   "id": "I",
+   "name": "函式與模組",
+   "summary": "把做法包起來重複使用",
+   "textbook": "零基礎入門班 ch7；運算思維 Ch7",
+   "color": "#9ad0c2",
+   "order": 9
+  },
+  {
+   "id": "J",
+   "name": "檔案與例外",
+   "summary": "把日記存起來、出錯也不慌",
+   "textbook": "零基礎入門班 ch9；運算思維 Ch8",
+   "color": "#c9b79c",
+   "order": 10
+  },
+  {
+   "id": "K",
+   "name": "演算法應用",
+   "summary": "搜尋、排序：把學過的組合起來",
+   "textbook": "零基礎入門班 ch8 延伸",
+   "color": "#e07a5f",
+   "order": 11
+  }
+ ],
+ "concepts": [
+  {
+   "id": "print",
+   "area": "A",
+   "name": "print() 說一句話",
+   "summary": "用 print(\"…\") 讓派派鼠把字說出來。",
+   "prereqs": [],
+   "textbook": "入門班 1.5 / 運算思維 2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "comment",
+   "area": "A",
+   "name": "註解 #",
+   "summary": "# 後面是寫給人看的筆記，電腦不會執行。",
+   "prereqs": [
+    "print"
+   ],
+   "textbook": "入門班 2.1",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "print_multi",
+   "area": "A",
+   "name": "print 一次說好幾個",
+   "summary": "print(a, b) 用逗號隔開，一次印出好幾個值。",
+   "prereqs": [
+    "print"
+   ],
+   "textbook": "入門班 3.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "variable",
+   "area": "B",
+   "name": "變數",
+   "summary": "name = \"派派鼠\"：把值存進有名字的盒子。",
+   "prereqs": [
+    "print"
+   ],
+   "textbook": "入門班 2.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "bool",
+   "area": "B",
+   "name": "布林值 True / False",
+   "summary": "只有「對」和「不對」兩種值。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 2.3.5",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "types",
+   "area": "B",
+   "name": "數字和文字不一樣",
+   "summary": "3 + 4 是 7，\"3\" + \"4\" 是 \"34\"：整數、小數、字串是不同型態。",
+   "prereqs": [
+    "variable",
+    "arith"
+   ],
+   "textbook": "入門班 2.3.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "convert",
+   "area": "B",
+   "name": "型態轉換 int() / str()",
+   "summary": "把文字變數字、數字變文字。",
+   "prereqs": [
+    "types"
+   ],
+   "textbook": "入門班 2.3.6",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "reassign",
+   "area": "B",
+   "name": "更新變數",
+   "summary": "carrots = carrots + 1：用舊的值算出新的值。",
+   "prereqs": [
+    "variable",
+    "arith"
+   ],
+   "textbook": "入門班 2.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "arith",
+   "area": "C",
+   "name": "四則運算 + - * /",
+   "summary": "讓電腦幫你算加減乘除。",
+   "prereqs": [
+    "print"
+   ],
+   "textbook": "入門班 2.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "floordiv_mod",
+   "area": "C",
+   "name": "整數除法 // 與餘數 %",
+   "summary": "平分東西：每人幾個、剩下幾個。",
+   "prereqs": [
+    "arith",
+    "variable"
+   ],
+   "textbook": "入門班 2.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "aug_assign",
+   "area": "C",
+   "name": "複合指定 +=",
+   "summary": "fish += 1 是 fish = fish + 1 的簡寫。",
+   "prereqs": [
+    "reassign"
+   ],
+   "textbook": "入門班 2.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "compare",
+   "area": "C",
+   "name": "比較運算子",
+   "summary": "> < == != 比大小，結果是 True / False。",
+   "prereqs": [
+    "arith",
+    "bool"
+   ],
+   "textbook": "入門班 2.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "logic",
+   "area": "C",
+   "name": "邏輯運算 and / or / not",
+   "summary": "「而且」「或是」「不是」把條件接起來。",
+   "prereqs": [
+    "compare"
+   ],
+   "textbook": "入門班 2.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "str_concat",
+   "area": "D",
+   "name": "字串相加 +",
+   "summary": "\"親愛的\" + name：把文字接在一起。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 3.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "str_repeat",
+   "area": "D",
+   "name": "字串乘法 *",
+   "summary": "\"喀嚓\" * 3：把文字重複好幾次。",
+   "prereqs": [
+    "str_concat",
+    "arith"
+   ],
+   "textbook": "入門班 3.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "input",
+   "area": "D",
+   "name": "input() 問問題",
+   "summary": "input(\"問題\") 會等玩家回答，回答一定是文字。",
+   "prereqs": [
+    "print",
+    "variable"
+   ],
+   "textbook": "入門班 3.2.5",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "input_number",
+   "area": "D",
+   "name": "把回答變成數字",
+   "summary": "int(input()) 讓回答可以拿來算。",
+   "prereqs": [
+    "input",
+    "convert"
+   ],
+   "textbook": "入門班 3.2.5",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "fstring",
+   "area": "D",
+   "name": "f-string",
+   "summary": "f\"{name}好\"：把變數的值放進句子裡。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 3.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "len",
+   "area": "D",
+   "name": "len() 數長度",
+   "summary": "len(\"派派鼠\") 是 3：數一數有幾個字。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 3.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "str_index",
+   "area": "D",
+   "name": "字串索引 s[0]",
+   "summary": "從 0 開始數，拿出第幾個字。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 3.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "str_in",
+   "area": "D",
+   "name": "in：裡面有沒有",
+   "summary": "\"寶庫\" in letter：信裡有沒有提到寶庫。",
+   "prereqs": [
+    "str_concat",
+    "bool"
+   ],
+   "textbook": "入門班 3.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "str_methods",
+   "area": "D",
+   "name": "字串方法",
+   "summary": "upper()、replace()、strip()：幫文字整理儀容。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 7.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "if",
+   "area": "E",
+   "name": "if：如果…就…",
+   "summary": "條件成立才做。",
+   "prereqs": [
+    "compare"
+   ],
+   "textbook": "入門班 4.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "if_else",
+   "area": "E",
+   "name": "if / else",
+   "summary": "成立做這個，不成立做那個。",
+   "prereqs": [
+    "if"
+   ],
+   "textbook": "入門班 4.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "elif",
+   "area": "E",
+   "name": "elif 多種情況",
+   "summary": "很多種情況，依序檢查。",
+   "prereqs": [
+    "if_else"
+   ],
+   "textbook": "入門班 4.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "nested_if",
+   "area": "E",
+   "name": "巢狀 if",
+   "summary": "if 裡面還有 if：先檢查大門，再檢查小門。",
+   "prereqs": [
+    "if_else"
+   ],
+   "textbook": "入門班 4.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "for_range",
+   "area": "F",
+   "name": "for 與 range(n)",
+   "summary": "重複 n 次。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 5.1",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "range_args",
+   "area": "F",
+   "name": "range(起, 止, 間隔)",
+   "summary": "從幾數到幾、一次跳幾格。",
+   "prereqs": [
+    "for_range"
+   ],
+   "textbook": "入門班 5.1.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "for_str",
+   "area": "F",
+   "name": "逐字走訪字串",
+   "summary": "for ch in word：一個字一個字拿出來。",
+   "prereqs": [
+    "for_range",
+    "str_index"
+   ],
+   "textbook": "入門班 5.1",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "accumulate",
+   "area": "F",
+   "name": "累加",
+   "summary": "迴圈裡一直加：算出總數。",
+   "prereqs": [
+    "for_range",
+    "aug_assign"
+   ],
+   "textbook": "入門班 5.1",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "while",
+   "area": "F",
+   "name": "while 迴圈",
+   "summary": "條件成立就一直做，直到不成立。",
+   "prereqs": [
+    "compare",
+    "aug_assign"
+   ],
+   "textbook": "入門班 5.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "break",
+   "area": "F",
+   "name": "break 提早離開",
+   "summary": "找到了就停。",
+   "prereqs": [
+    "while",
+    "if"
+   ],
+   "textbook": "入門班 5.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "continue",
+   "area": "F",
+   "name": "continue 跳過這次",
+   "summary": "這個不要，換下一個。",
+   "prereqs": [
+    "for_range",
+    "if"
+   ],
+   "textbook": "入門班 5.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "nested_loop",
+   "area": "F",
+   "name": "巢狀迴圈",
+   "summary": "迴圈裡還有迴圈：一排一排、一棵一棵。",
+   "prereqs": [
+    "for_range"
+   ],
+   "textbook": "入門班 5.4",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "list",
+   "area": "G",
+   "name": "建立串列",
+   "summary": "[\"蘑菇燈\", \"小花盆\"]：一個變數存很多東西。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 6.1",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "list_index",
+   "area": "G",
+   "name": "串列索引",
+   "summary": "photos[0]：拿出第幾個。",
+   "prereqs": [
+    "list"
+   ],
+   "textbook": "入門班 6.2",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "for_list",
+   "area": "G",
+   "name": "走訪串列",
+   "summary": "for p in photos：每一個都看一遍。",
+   "prereqs": [
+    "list",
+    "for_range"
+   ],
+   "textbook": "入門班 6.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "list_in",
+   "area": "G",
+   "name": "in：在不在串列裡",
+   "summary": "\"小花盆\" in items。",
+   "prereqs": [
+    "list",
+    "str_in"
+   ],
+   "textbook": "入門班 6.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "split",
+   "area": "G",
+   "name": "split() 切成串列",
+   "summary": "把一句話切成很多個詞。",
+   "prereqs": [
+    "list",
+    "str_methods"
+   ],
+   "textbook": "入門班 7.3",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "list_append",
+   "area": "G",
+   "name": "append() 加進去",
+   "summary": "收藏冊多了一件家具。",
+   "prereqs": [
+    "list"
+   ],
+   "textbook": "入門班 6.3",
+   "engine": "needs",
+   "engine_needs": [
+    "list_methods"
+   ]
+  },
+  {
+   "id": "list_remove",
+   "area": "G",
+   "name": "remove() / pop() 拿出來",
+   "summary": "把東西從串列拿掉。",
+   "prereqs": [
+    "list_append"
+   ],
+   "textbook": "入門班 6.3",
+   "engine": "needs",
+   "engine_needs": [
+    "list_methods"
+   ]
+  },
+  {
+   "id": "list_sort",
+   "area": "G",
+   "name": "排序 sort() / sorted()",
+   "summary": "由小到大排好。",
+   "prereqs": [
+    "list"
+   ],
+   "textbook": "入門班 6.3",
+   "engine": "needs",
+   "engine_needs": [
+    "list_methods"
+   ]
+  },
+  {
+   "id": "list_slice",
+   "area": "G",
+   "name": "切片 [a:b]",
+   "summary": "拿出一段。",
+   "prereqs": [
+    "list_index"
+   ],
+   "textbook": "入門班 6.2",
+   "engine": "needs",
+   "engine_needs": [
+    "slice"
+   ]
+  },
+  {
+   "id": "tuple",
+   "area": "G",
+   "name": "元組",
+   "summary": "不能改的串列。",
+   "prereqs": [
+    "list"
+   ],
+   "textbook": "入門班 8.1",
+   "engine": "needs",
+   "engine_needs": [
+    "tuple"
+   ]
+  },
+  {
+   "id": "dict",
+   "area": "H",
+   "name": "字典",
+   "summary": "{\"蘑菇燈\": 3}：用名字找值。",
+   "prereqs": [
+    "list_index"
+   ],
+   "textbook": "入門班 8.3",
+   "engine": "needs",
+   "engine_needs": [
+    "dict"
+   ]
+  },
+  {
+   "id": "dict_update",
+   "area": "H",
+   "name": "字典新增與修改",
+   "summary": "d[key] = value。",
+   "prereqs": [
+    "dict"
+   ],
+   "textbook": "入門班 8.3",
+   "engine": "needs",
+   "engine_needs": [
+    "dict"
+   ]
+  },
+  {
+   "id": "dict_get",
+   "area": "H",
+   "name": "get() 與 in 查字典",
+   "summary": "查不到也不會出錯。",
+   "prereqs": [
+    "dict"
+   ],
+   "textbook": "入門班 8.3",
+   "engine": "needs",
+   "engine_needs": [
+    "dict"
+   ]
+  },
+  {
+   "id": "dict_loop",
+   "area": "H",
+   "name": "走訪字典 items()",
+   "summary": "每一組名字和值都看一遍。",
+   "prereqs": [
+    "dict",
+    "for_list"
+   ],
+   "textbook": "入門班 8.3",
+   "engine": "needs",
+   "engine_needs": [
+    "dict"
+   ]
+  },
+  {
+   "id": "set",
+   "area": "H",
+   "name": "集合",
+   "summary": "不重複的收藏。",
+   "prereqs": [
+    "list"
+   ],
+   "textbook": "入門班 8.2",
+   "engine": "needs",
+   "engine_needs": [
+    "set"
+   ]
+  },
+  {
+   "id": "builtin",
+   "area": "I",
+   "name": "內建函式 max / min / abs / round",
+   "summary": "電腦內建的小工具。",
+   "prereqs": [
+    "arith"
+   ],
+   "textbook": "入門班 7.1",
+   "engine": "ok",
+   "engine_needs": []
+  },
+  {
+   "id": "def",
+   "area": "I",
+   "name": "定義函式 def",
+   "summary": "把一串動作取個名字。",
+   "prereqs": [
+    "print"
+   ],
+   "textbook": "入門班 7.2",
+   "engine": "needs",
+   "engine_needs": [
+    "def"
+   ]
+  },
+  {
+   "id": "param",
+   "area": "I",
+   "name": "參數",
+   "summary": "呼叫時把東西交給函式。",
+   "prereqs": [
+    "def",
+    "variable"
+   ],
+   "textbook": "入門班 7.2",
+   "engine": "needs",
+   "engine_needs": [
+    "def"
+   ]
+  },
+  {
+   "id": "return",
+   "area": "I",
+   "name": "回傳值 return",
+   "summary": "函式算完把答案交回來。",
+   "prereqs": [
+    "param"
+   ],
+   "textbook": "入門班 7.2",
+   "engine": "needs",
+   "engine_needs": [
+    "def"
+   ]
+  },
+  {
+   "id": "scope",
+   "area": "I",
+   "name": "區域變數與全域變數",
+   "summary": "函式裡的變數只在裡面有效。",
+   "prereqs": [
+    "return"
+   ],
+   "textbook": "入門班 7.2",
+   "engine": "needs",
+   "engine_needs": [
+    "def"
+   ]
+  },
+  {
+   "id": "random",
+   "area": "I",
+   "name": "random 模組",
+   "summary": "擲骰子、抽籤。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 7.1",
+   "engine": "needs",
+   "engine_needs": [
+    "module_random"
+   ]
+  },
+  {
+   "id": "time_mod",
+   "area": "I",
+   "name": "time / datetime 模組",
+   "summary": "現在幾點、等一下。",
+   "prereqs": [
+    "variable"
+   ],
+   "textbook": "入門班 7.1",
+   "engine": "needs",
+   "engine_needs": [
+    "module_time"
+   ]
+  },
+  {
+   "id": "file_write",
+   "area": "J",
+   "name": "寫入檔案",
+   "summary": "把日記寫進檔案。",
+   "prereqs": [
+    "str_concat"
+   ],
+   "textbook": "入門班 9.1",
+   "engine": "needs",
+   "engine_needs": [
+    "file"
+   ]
+  },
+  {
+   "id": "file_read",
+   "area": "J",
+   "name": "讀取檔案",
+   "summary": "把信從檔案讀出來。",
+   "prereqs": [
+    "file_write",
+    "for_list"
+   ],
+   "textbook": "入門班 9.1",
+   "engine": "needs",
+   "engine_needs": [
+    "file"
+   ]
+  },
+  {
+   "id": "try",
+   "area": "J",
+   "name": "try / except",
+   "summary": "出錯也不慌，好好處理。",
+   "prereqs": [
+    "input_number"
+   ],
+   "textbook": "入門班 9.2",
+   "engine": "needs",
+   "engine_needs": [
+    "try"
+   ]
+  }
+ ],
+ "tasks": [
+  {
+   "id": "Q_print",
+   "title": "嘿！新來的",
+   "concepts": [
+    "print"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "A",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "派派狼第一次來拜訪，派派鼠要用 print() 打招呼。",
+   "goal": "用 print() 依序說出註解寫的三句話。",
+   "expected": "你好！我是派派鼠。",
+   "status": "playable",
+   "game_task": "D01_hello",
+   "notes": ""
+  },
+  {
+   "id": "Q_print_2",
+   "title": "小椅子想曬太陽",
+   "concepts": [
+    "print"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "A",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔請派派鼠用句型表裡的 print() 指令，一步一步把椅子搬到窗邊。",
+   "goal": "照句型表，用好幾個 print() 下指令。",
+   "expected": "（椅子到窗邊）",
+   "status": "playable",
+   "game_task": "T01_print",
+   "notes": "舊任務：句型表動作任務，print 的第二個練習。"
+  },
+  {
+   "id": "Q_comment",
+   "title": "派派兔的讀書筆記",
+   "concepts": [
+    "comment"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "A",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔說：讀書時要在旁邊寫筆記，但筆記不用念出來。",
+   "goal": "在程式裡寫一行 # 筆記，再用 print() 說一句「我寫好筆記了！」。",
+   "expected": "我寫好筆記了！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_print_multi",
+   "title": "拍拍鳥的合照名單",
+   "concepts": [
+    "print_multi"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "A",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "拍拍鳥要拍合照，請派派鼠一次報出三個名字。",
+   "goal": "用一個 print()、逗號隔開，說出 派派鼠 派派狼 派派兔。",
+   "expected": "派派鼠 派派狼 派派兔",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_variable",
+   "title": "信箱的名牌",
+   "concepts": [
+    "variable"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "B",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "拍拍鳥送信時找不到名牌，派派鼠把名字存進變數 name 再念出來。",
+   "goal": "name = \"派派鼠\"，然後 print(name)。",
+   "expected": "派派鼠",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_bool",
+   "title": "門鎖好了嗎？",
+   "concepts": [
+    "bool"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "B",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "出門冒險前，派派狼要確認門鎖。",
+   "goal": "door_locked = True，print(door_locked)。",
+   "expected": "True",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_types",
+   "title": "派派兔的奇怪秤",
+   "concepts": [
+    "types"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "B",
+   "place": "lavender",
+   "npc": "rabbit",
+   "story": "派派兔把兩包薰衣草的重量寫成文字，結果秤出 34 克？",
+   "goal": "比較 print(3 + 4) 和 print(\"3\" + \"4\")，說出兩個結果。",
+   "expected": "7 / 34",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_convert",
+   "title": "照片的編號",
+   "concepts": [
+    "convert"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "B",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "拍拍鳥的照片編號是數字，要接在文字後面得先轉成文字。",
+   "goal": "n = 5；print(\"第\" + str(n) + \"張照片\")。",
+   "expected": "第5張照片",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_reassign",
+   "title": "胡蘿蔔又長一根",
+   "concepts": [
+    "reassign"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "B",
+   "place": "front_yard",
+   "npc": "rabbit",
+   "story": "胡蘿蔔園每天多長一根，派派兔請派派鼠更新數量。",
+   "goal": "carrots = 3，再寫 carrots = carrots + 1，說出新的數量。",
+   "expected": "4",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_arith",
+   "title": "一共幾顆橡果？",
+   "concepts": [
+    "arith"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "C",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "派派狼帶了 3 顆，派派兔帶了 4 顆，一共幾顆？",
+   "goal": "print(3 + 4)：讓電腦算。",
+   "expected": "7",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_floordiv_mod",
+   "title": "平分橡果",
+   "concepts": [
+    "floordiv_mod"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "C",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "17 顆橡果分給 3 個人，每人幾顆？剩幾顆？",
+   "goal": "用 // 算每人幾顆、% 算剩幾顆。",
+   "expected": "5 / 2",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_aug_assign",
+   "title": "溪畔釣魚計數",
+   "concepts": [
+    "aug_assign"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "C",
+   "place": "creek",
+   "npc": "wolf",
+   "story": "派派狼每釣到一條魚就喊一聲，派派鼠用 += 記數。",
+   "goal": "fish = 0，寫兩次 fish += 1，說出 fish。",
+   "expected": "2",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_compare",
+   "title": "誰的胡蘿蔔比較長？",
+   "concepts": [
+    "compare"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "C",
+   "place": "front_yard",
+   "npc": "rabbit",
+   "story": "派派兔的胡蘿蔔 12 公分，派派鼠的 9 公分。",
+   "goal": "print(12 > 9)。",
+   "expected": "True",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_logic",
+   "title": "可以出發去螢光寶庫嗎？",
+   "concepts": [
+    "logic"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "C",
+   "place": "vault",
+   "npc": "wolf",
+   "story": "派派狼說：要有燈「而且」有水才可以出發。",
+   "goal": "has_lamp 和 has_water 都設好，print(has_lamp and has_water)。",
+   "expected": "True",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_str_concat",
+   "title": "信的開頭",
+   "concepts": [
+    "str_concat"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "D",
+   "place": "front_yard",
+   "npc": "rabbit",
+   "story": "派派兔教派派鼠寫回信，開頭要寫「親愛的」加上名字。",
+   "goal": "name = \"派派狼\"，print(\"親愛的\" + name)。",
+   "expected": "親愛的派派狼",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_str_repeat",
+   "title": "喀嚓喀嚓喀嚓",
+   "concepts": [
+    "str_repeat"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "D",
+   "place": "sky_top",
+   "npc": "crow",
+   "story": "拍拍鳥的木頭相機連拍三張。",
+   "goal": "print(\"喀嚓\" * 3)。",
+   "expected": "喀嚓喀嚓喀嚓",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_input",
+   "title": "你叫什麼名字？",
+   "concepts": [
+    "input"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "D",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔問新鄰居的名字，派派鼠把回答念出來。",
+   "goal": "name = input(\"你叫什麼名字？\")，再 print(name)。",
+   "expected": "（玩家輸入的名字）",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_input_number",
+   "title": "要幾顆橡果？",
+   "concepts": [
+    "input_number"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "D",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "派派狼問要幾顆橡果，回答要變成數字才能多給一顆。",
+   "goal": "n = int(input())，print(n + 1)。",
+   "expected": "（輸入 3 → 4）",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_fstring",
+   "title": "照片背面的說明",
+   "concepts": [
+    "fstring"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "D",
+   "place": "sky_top",
+   "npc": "crow",
+   "story": "拍拍鳥在照片背面寫上誰在哪裡。",
+   "goal": "name、place 兩個變數，print(f\"{name}在{place}\")。",
+   "expected": "派派鼠在天空樹頂",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_len",
+   "title": "信寫了幾個字？",
+   "concepts": [
+    "len"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "D",
+   "place": "front_yard",
+   "npc": "rabbit",
+   "story": "派派兔想知道回信有多長。",
+   "goal": "print(len(letter))。",
+   "expected": "（字數）",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_str_index",
+   "title": "地下城密碼的第一個字",
+   "concepts": [
+    "str_index"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "D",
+   "place": "dungeon",
+   "npc": "wolf",
+   "story": "地下城門口寫著密碼，第一個字就是開門口令。",
+   "goal": "code = \"螢光寶庫\"，print(code[0])。",
+   "expected": "螢",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_str_in",
+   "title": "信裡有提到寶庫嗎？",
+   "concepts": [
+    "str_in"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "D",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "拍拍鳥送來一封信，派派狼只想知道有沒有提到「寶庫」。",
+   "goal": "print(\"寶庫\" in letter)。",
+   "expected": "True",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_str_methods",
+   "title": "幫忙改錯字",
+   "concepts": [
+    "str_methods"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "D",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔的筆記把「蘿蔔」寫成「羅蔔」。",
+   "goal": "用 replace() 改好再 print。",
+   "expected": "胡蘿蔔要澆水",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_if",
+   "title": "下雨要帶傘",
+   "concepts": [
+    "if"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "E",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "如果在下雨，派派鼠就要說「帶傘！」。",
+   "goal": "rain = True；if rain: print(\"帶傘！\")。",
+   "expected": "帶傘！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_if_else",
+   "title": "下雨還是晴天？",
+   "concepts": [
+    "if_else"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "E",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "下雨就拿傘，晴天就搬椅子曬太陽。",
+   "goal": "if / else 兩種情況各說一句。",
+   "expected": "（依天氣不同）",
+   "status": "playable",
+   "game_task": "T03_if_rain",
+   "notes": ""
+  },
+  {
+   "id": "Q_elif",
+   "title": "薰衣草開了幾成？",
+   "concepts": [
+    "elif"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "E",
+   "place": "lavender",
+   "npc": "rabbit",
+   "story": "派派兔依花開的數量說「還沒開／開一半／全開了」。",
+   "goal": "if / elif / else 三種情況。",
+   "expected": "開一半",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_nested_if",
+   "title": "地下城的兩道門",
+   "concepts": [
+    "nested_if"
+   ],
+   "compound": false,
+   "difficulty": 3,
+   "area": "E",
+   "place": "dungeon",
+   "npc": "wolf",
+   "story": "先檢查有沒有燈，有燈再檢查有沒有鑰匙。",
+   "goal": "if 裡面再寫一個 if。",
+   "expected": "可以進去了！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_for_range",
+   "title": "喊三次「到！」",
+   "concepts": [
+    "for_range"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "F",
+   "place": "forest_path",
+   "npc": "wolf",
+   "story": "派派狼點名，派派鼠要喊三次。",
+   "goal": "for i in range(3): print(\"到！\")。",
+   "expected": "到！×3",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_range_args",
+   "title": "天空樹頂的階梯",
+   "concepts": [
+    "range_args"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "F",
+   "place": "sky_top",
+   "npc": "crow",
+   "story": "拍拍鳥一次跳兩階，數 2、4、6、8、10。",
+   "goal": "range(2, 11, 2)。",
+   "expected": "2 4 6 8 10",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_for_str",
+   "title": "一個字一個字念信",
+   "concepts": [
+    "for_str"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "F",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "拍拍鳥念信很慢，一次念一個字。",
+   "goal": "for ch in word: print(ch)。",
+   "expected": "派／派／鼠",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_accumulate",
+   "title": "一週撿了幾顆橡果",
+   "concepts": [
+    "accumulate"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "F",
+   "place": "forest_path",
+   "npc": "wolf",
+   "story": "一週七天每天撿 3 顆，用迴圈加起來。",
+   "goal": "total = 0；迴圈裡 total += 3。",
+   "expected": "21",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_while",
+   "title": "數螢火蟲",
+   "concepts": [
+    "while"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "F",
+   "place": "vault",
+   "npc": "wolf",
+   "story": "螢光寶庫裡，一直數到 5 隻螢火蟲就停。",
+   "goal": "while count < 5: count += 1。",
+   "expected": "1 2 3 4 5",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_break",
+   "title": "釣到就收竿",
+   "concepts": [
+    "break"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "F",
+   "place": "creek",
+   "npc": "wolf",
+   "story": "一直甩竿，釣到魚就停。",
+   "goal": "while True 裡用 break。",
+   "expected": "釣到了！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_continue",
+   "title": "跳過枯掉的花",
+   "concepts": [
+    "continue"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "F",
+   "place": "lavender",
+   "npc": "rabbit",
+   "story": "派派兔澆花，枯掉的那盆跳過。",
+   "goal": "for 裡用 if + continue。",
+   "expected": "（只說沒枯的花）",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_nested_loop",
+   "title": "胡蘿蔔園的格子",
+   "concepts": [
+    "nested_loop"
+   ],
+   "compound": false,
+   "difficulty": 3,
+   "area": "F",
+   "place": "front_yard",
+   "npc": "rabbit",
+   "story": "胡蘿蔔園有 2 排、每排 3 棵。",
+   "goal": "for 裡面再一個 for，說出每一棵的位置。",
+   "expected": "1-1 1-2 1-3 2-1 …",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_list",
+   "title": "相簿裡的照片",
+   "concepts": [
+    "list"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "G",
+   "place": "treehouse",
+   "npc": "crow",
+   "story": "拍拍鳥把照片地點列成一張清單。",
+   "goal": "photos = [\"森林\", \"薰衣草原\", \"寶庫\"]，print(photos)。",
+   "expected": "['森林', '薰衣草原', '寶庫']",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_list_index",
+   "title": "第一張是哪裡？",
+   "concepts": [
+    "list_index"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "G",
+   "place": "treehouse",
+   "npc": "crow",
+   "story": "相簿第一頁是哪一張照片？",
+   "goal": "print(photos[0])。",
+   "expected": "森林",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_for_list",
+   "title": "派派兔點名澆花",
+   "concepts": [
+    "for_list"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "G",
+   "place": "front_yard",
+   "npc": "rabbit",
+   "story": "花圃清單裡的每一盆都要澆水。",
+   "goal": "for f in flowers: print(f\"幫{f}澆水\")。",
+   "expected": "幫薰衣草澆水 …",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_list_in",
+   "title": "收藏冊裡有沒有？",
+   "concepts": [
+    "list_in"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "G",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔想知道收藏冊裡有沒有「小花盆」。",
+   "goal": "print(\"小花盆\" in items)。",
+   "expected": "True",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_split",
+   "title": "購物清單",
+   "concepts": [
+    "split"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "G",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "拍拍鳥送來的清單用空白隔開，切成串列。",
+   "goal": "words = note.split()，print(words)。",
+   "expected": "['麵包', '牛奶', '胡蘿蔔']",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_list_append",
+   "title": "收藏冊多一件",
+   "concepts": [
+    "list_append"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "G",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "完成任務拿到新家具，放進收藏冊。",
+   "goal": "items.append(\"蘑菇檯燈\")。",
+   "expected": "[… '蘑菇檯燈']",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_list_remove",
+   "title": "把家具拿出來擺",
+   "concepts": [
+    "list_remove"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "G",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "從收藏冊拿出一件擺到地上。",
+   "goal": "items.remove(\"小花盆\")。",
+   "expected": "（少了小花盆）",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_list_sort",
+   "title": "照片依日期排好",
+   "concepts": [
+    "list_sort"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "G",
+   "place": "treehouse",
+   "npc": "crow",
+   "story": "拍拍鳥的照片日期亂掉了。",
+   "goal": "dates.sort()。",
+   "expected": "[1, 3, 8]",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_list_slice",
+   "title": "前三張照片",
+   "concepts": [
+    "list_slice"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "G",
+   "place": "treehouse",
+   "npc": "crow",
+   "story": "只看相簿的前三張。",
+   "goal": "photos[0:3]。",
+   "expected": "（前三張）",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_tuple",
+   "title": "不能改的座標",
+   "concepts": [
+    "tuple"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "G",
+   "place": "sky_top",
+   "npc": "crow",
+   "story": "天空樹頂的位置是固定的。",
+   "goal": "spot = (3, 5)。",
+   "expected": "(3, 5)",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_dict",
+   "title": "家具的名牌",
+   "concepts": [
+    "dict"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "H",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "每件家具都有名字和數量。",
+   "goal": "stock = {\"小花盆\": 2}，print(stock[\"小花盆\"])。",
+   "expected": "2",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_dict_update",
+   "title": "又多一個小花盆",
+   "concepts": [
+    "dict_update"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "H",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "收到新的小花盆，數量加一。",
+   "goal": "stock[\"小花盆\"] += 1。",
+   "expected": "3",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_dict_get",
+   "title": "查不到也沒關係",
+   "concepts": [
+    "dict_get"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "H",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "查一件還沒有的家具，不要讓程式出錯。",
+   "goal": "stock.get(\"沙發\", 0)。",
+   "expected": "0",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_dict_loop",
+   "title": "整理收藏冊",
+   "concepts": [
+    "dict_loop"
+   ],
+   "compound": false,
+   "difficulty": 3,
+   "area": "H",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "把每件家具和數量都念一遍。",
+   "goal": "for k, v in stock.items()。",
+   "expected": "小花盆 3 …",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_set",
+   "title": "不重複的足跡",
+   "concepts": [
+    "set"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "H",
+   "place": "forest_path",
+   "npc": "wolf",
+   "story": "派派狼記下今天去過的地方，同一個地方只記一次。",
+   "goal": "places = set()；add()。",
+   "expected": "{'溪畔', '寶庫'}",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_builtin",
+   "title": "誰撿得最多？",
+   "concepts": [
+    "builtin"
+   ],
+   "compound": false,
+   "difficulty": 1,
+   "area": "I",
+   "place": "forest_path",
+   "npc": "wolf",
+   "story": "比一比三個人撿的橡果。",
+   "goal": "print(max(5, 8, 3))。",
+   "expected": "8",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_def",
+   "title": "派派鼠的招牌招呼",
+   "concepts": [
+    "def"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "I",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "派派狼說：每次見面都說一樣的話，乾脆包成一個招式。",
+   "goal": "def greet(): print(\"嗨！\")，然後呼叫兩次。",
+   "expected": "嗨！×2",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_param",
+   "title": "對誰打招呼？",
+   "concepts": [
+    "param"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "I",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "招呼要能換人。",
+   "goal": "def greet(name)。",
+   "expected": "嗨，派派兔！",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_return",
+   "title": "幫忙算橡果",
+   "concepts": [
+    "return"
+   ],
+   "compound": false,
+   "difficulty": 3,
+   "area": "I",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "函式算好總數交回來，再由派派鼠說出來。",
+   "goal": "def total(a, b): return a + b。",
+   "expected": "7",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_scope",
+   "title": "函式裡的秘密",
+   "concepts": [
+    "scope"
+   ],
+   "compound": false,
+   "difficulty": 3,
+   "area": "I",
+   "place": "dungeon",
+   "npc": "wolf",
+   "story": "函式裡的變數，出了函式就看不到。",
+   "goal": "比較函式內外的同名變數。",
+   "expected": "（兩個不同的值）",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_random",
+   "title": "拍拍鳥的抽籤",
+   "concepts": [
+    "random"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "I",
+   "place": "sky_top",
+   "npc": "crow",
+   "story": "拍拍鳥抽籤決定下週去哪裡拍照。",
+   "goal": "random.choice(places)。",
+   "expected": "（隨機地點）",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_time_mod",
+   "title": "現在幾點了？",
+   "concepts": [
+    "time_mod"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "I",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔看時鐘決定要不要泡茶。",
+   "goal": "time.localtime()。",
+   "expected": "（現在時間）",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_file_write",
+   "title": "寫日記",
+   "concepts": [
+    "file_write"
+   ],
+   "compound": false,
+   "difficulty": 2,
+   "area": "J",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "把今天的冒險寫進日記本。",
+   "goal": "open(\"diary.txt\", \"w\").write(…)。",
+   "expected": "（日記檔）",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_file_read",
+   "title": "讀回信",
+   "concepts": [
+    "file_read"
+   ],
+   "compound": false,
+   "difficulty": 3,
+   "area": "J",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "把信件檔案一行一行讀出來。",
+   "goal": "for line in open(\"letter.txt\")。",
+   "expected": "（信的每一行）",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "Q_try",
+   "title": "打錯也不怕",
+   "concepts": [
+    "try"
+   ],
+   "compound": false,
+   "difficulty": 3,
+   "area": "J",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "派派狼問數字，派派鼠卻回答「很多」。",
+   "goal": "try: int(input()) except: …",
+   "expected": "請輸入數字喔！",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "X_acorns",
+   "title": "帶了幾顆橡果？",
+   "concepts": [
+    "variable",
+    "arith",
+    "floordiv_mod",
+    "fstring"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "D",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "派派狼問派派鼠搬家帶了幾袋橡果、一共幾顆、能不能分一半。",
+   "goal": "用變數、計算和 f-string 回答三個問題。",
+   "expected": "我帶了3袋，每袋12顆！…",
+   "status": "playable",
+   "game_task": "D02_acorns",
+   "notes": "舊任務一次教好幾個概念，改列為複合任務；單一概念的入門任務在前面。"
+  },
+  {
+   "id": "X_questions",
+   "title": "派派狼的問題",
+   "concepts": [
+    "input",
+    "input_number",
+    "fstring"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "D",
+   "place": "treehouse",
+   "npc": "wolf",
+   "story": "派派狼考新來的：最喜歡吃什麼？一天吃幾顆橡果？",
+   "goal": "用 input() 讓派派狼問，再用 f-string 回答。",
+   "expected": "我最喜歡吃…！",
+   "status": "playable",
+   "game_task": "D03_questions",
+   "notes": "舊任務一次教好幾個概念，改列為複合任務；單一概念的入門任務在前面。"
+  },
+  {
+   "id": "X_long_table",
+   "title": "長桌要往前挪",
+   "concepts": [
+    "variable",
+    "fstring"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "D",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔請派派鼠把長桌往前推幾格，再回報推了幾格。",
+   "goal": "用變數決定格數，用 f-string 回報。",
+   "expected": "學姊，長桌往前推了2格",
+   "status": "playable",
+   "game_task": "T02_variable",
+   "notes": "舊任務一次教好幾個概念，改列為複合任務；單一概念的入門任務在前面。"
+  },
+  {
+   "id": "X_crate",
+   "title": "木箱有多重？",
+   "concepts": [
+    "compare",
+    "if_else"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "E",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "木箱太重就請派派狼幫忙，不重就自己搬（剛好等於上限時要特別注意）。",
+   "goal": "比較運算子＋if / else，注意邊界值。",
+   "expected": "（依重量不同）",
+   "status": "playable",
+   "game_task": "S01_crate_weight",
+   "notes": ""
+  },
+  {
+   "id": "X_guess",
+   "title": "猜猜我是誰",
+   "concepts": [
+    "input",
+    "if_else"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "E",
+   "place": "lavender",
+   "npc": "rabbit",
+   "story": "派派兔躲在薰衣草叢後面，派派鼠猜名字，猜對了她才出來。",
+   "goal": "input() 讀答案，if / else 判斷對不對。",
+   "expected": "答對了！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "X_ripe",
+   "title": "挑出成熟的胡蘿蔔",
+   "concepts": [
+    "for_list",
+    "if"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "G",
+   "place": "front_yard",
+   "npc": "rabbit",
+   "story": "胡蘿蔔長度清單裡，超過 10 公分的才拔。",
+   "goal": "for 走訪串列＋if 篩選。",
+   "expected": "拔起 12 公分的胡蘿蔔 …",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "X_door",
+   "title": "地下城的密碼門",
+   "concepts": [
+    "while",
+    "input",
+    "compare"
+   ],
+   "compound": true,
+   "difficulty": 4,
+   "area": "F",
+   "place": "dungeon",
+   "npc": "wolf",
+   "story": "老樹根下的地下城入口，答對密碼門才會開，答錯可以一直再試。",
+   "goal": "while 迴圈反覆 input()，直到答對。",
+   "expected": "門開了！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "X_total",
+   "title": "一週的橡果帳本",
+   "concepts": [
+    "accumulate",
+    "for_list",
+    "fstring"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "G",
+   "place": "forest_path",
+   "npc": "wolf",
+   "story": "派派狼記下一週每天撿的橡果，算出總數再報告。",
+   "goal": "迴圈累加串列，再用 f-string 說出總數。",
+   "expected": "這週一共撿了…顆！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "X_photo_machine",
+   "title": "拍拍鳥的照片編號機",
+   "concepts": [
+    "param",
+    "for_range",
+    "fstring"
+   ],
+   "compound": true,
+   "difficulty": 4,
+   "area": "I",
+   "place": "sky_top",
+   "npc": "crow",
+   "story": "拍拍鳥想要一台機器，自動幫照片編號。",
+   "goal": "寫一個有參數的函式，用迴圈呼叫它。",
+   "expected": "第1張：天空樹頂 …",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "X_mail_count",
+   "title": "郵件分類",
+   "concepts": [
+    "dict_loop",
+    "accumulate"
+   ],
+   "compound": true,
+   "difficulty": 4,
+   "area": "H",
+   "place": "front_yard",
+   "npc": "crow",
+   "story": "拍拍鳥要統計每個人收到幾封信。",
+   "goal": "字典記數量，走訪字典算總數。",
+   "expected": "派派狼：2 封 …",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "X_diary",
+   "title": "不怕打錯的日記本",
+   "concepts": [
+    "file_write",
+    "try",
+    "input"
+   ],
+   "compound": true,
+   "difficulty": 4,
+   "area": "J",
+   "place": "treehouse",
+   "npc": "rabbit",
+   "story": "派派兔的日記本要記下今天收成幾根胡蘿蔔，打錯也不會壞掉。",
+   "goal": "try 處理輸入錯誤，再寫進檔案。",
+   "expected": "日記寫好了！",
+   "status": "needs_engine",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "K_max",
+   "title": "最大顆的橡果",
+   "concepts": [
+    "for_list",
+    "if",
+    "variable"
+   ],
+   "compound": true,
+   "difficulty": 3,
+   "area": "K",
+   "place": "forest_path",
+   "npc": "wolf",
+   "story": "派派狼要從一袋橡果裡找出最大顆的（不能用 max）。",
+   "goal": "用迴圈和 if 自己找最大值。",
+   "expected": "最大的是 9 公克",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "K_search",
+   "title": "找出寶庫裡的那本書",
+   "concepts": [
+    "for_list",
+    "if",
+    "break"
+   ],
+   "compound": true,
+   "difficulty": 4,
+   "area": "K",
+   "place": "vault",
+   "npc": "wolf",
+   "story": "螢光寶庫的書架上一本一本找，找到就停。",
+   "goal": "循序搜尋：走訪＋比對＋break。",
+   "expected": "在第 4 格找到了！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "K_binary",
+   "title": "猜數字：寶箱密碼",
+   "concepts": [
+    "while",
+    "if_else",
+    "floordiv_mod",
+    "input_number"
+   ],
+   "compound": true,
+   "difficulty": 5,
+   "area": "K",
+   "place": "vault",
+   "npc": "wolf",
+   "story": "寶箱密碼是 1 到 100，每猜一次寶箱會說太大或太小，用最少次猜中。",
+   "goal": "二分搜尋。",
+   "expected": "第 7 次猜中！",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  },
+  {
+   "id": "K_bubble",
+   "title": "照片依日期排好（自己排）",
+   "concepts": [
+    "nested_loop",
+    "list_index",
+    "compare"
+   ],
+   "compound": true,
+   "difficulty": 5,
+   "area": "K",
+   "place": "treehouse",
+   "npc": "crow",
+   "story": "拍拍鳥的照片亂了，不用 sort()，一張一張兩兩比較換位置。",
+   "goal": "氣泡排序。",
+   "expected": "[1, 3, 5, 8]",
+   "status": "draft",
+   "game_task": null,
+   "notes": ""
+  }
+ ]
+}

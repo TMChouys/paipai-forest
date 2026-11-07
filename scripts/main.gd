@@ -16,6 +16,7 @@ var bubbles: BubbleLayer
 var hud: HomeHUD
 var panel: TaskPanel
 var report: ReportPanel
+var book: QuestBook
 var playback: Playback
 
 # 任務狀態
@@ -46,10 +47,12 @@ func _ready() -> void:
 	hud = HomeHUD.new()
 	panel = TaskPanel.new()
 	report = ReportPanel.new()
+	book = QuestBook.new()
 	ui_layer.add_child(hud)
 	ui_layer.add_child(panel)
 	ui_layer.add_child(bubbles)
 	ui_layer.add_child(report)
+	ui_layer.add_child(book)
 	report.visible = false
 	panel.visible = false
 
@@ -59,6 +62,10 @@ func _ready() -> void:
 	hud.view_reset.connect(func(): rig.reset_view())
 	hud.task_chosen.connect(_enter_task)
 	hud.reduce_motion_toggled.connect(_set_reduce_motion)
+	hud.open_book.connect(_open_book)
+	book.task_chosen.connect(func(id):
+		book.visible = false
+		_enter_task(id))
 	panel.grid_toggled.connect(func(): room.set_grid_visible(not room.grid_visible))
 	panel.view_reset.connect(func(): rig.reset_view())
 	panel.exit_pressed.connect(_exit_task)
@@ -285,7 +292,7 @@ func _play_intro() -> void:
 	rig.target_distance = 6.0
 	rig.target_yaw = deg_to_rad(8.0)
 	rig.target_pitch = deg_to_rad(-22.0)
-	g.say("（剛搬進派派森林的新家…）", "think")
+	g.say("（剛搬進派森小鎮的新家…）", "think")
 	# 派派鼠走到西牆邊
 	var meet := _nearest_walkable(Vector2i(0, w.depth - 4))
 	var path := w.find_path(_nearest_walkable(w.gopher_cell), meet)
@@ -311,7 +318,7 @@ func _play_intro() -> void:
 		[wolf, "嘿！新來的，以後跟著我混。"],
 		[rabbit, "（推推眼鏡）我是派派兔，跟著派派狼一起來的～"],
 		[g, "……？"],
-		[wolf, "怎麼不說話？在派派森林，要用 Python 的 print() 才能說話喔！"],
+		[wolf, "怎麼不說話？在派森小鎮，要用 Python 的 print() 才能說話喔！"],
 		[rabbit, "點派派狼接任務，學會 print() 就能跟我們聊天了！"],
 	]
 	for l in lines:
@@ -349,6 +356,14 @@ func _on_bubble(actor: Node3D, text: String, kind: String) -> void:
 		return
 	var secs := maxf(2.4, 1.0 + text.length() * 0.12)
 	bubbles.show_bubble(actor, text, kind, maxf(secs, 3.2) if kind == "fail" else secs)
+
+
+func _open_book() -> void:
+	_cancel_held()
+	hud.board.visible = false
+	book.open(save.stars, func(gid: String) -> bool:
+		var t := _task_by_id(gid)
+		return not t.is_empty() and HomeHUD.is_unlocked(t, tasks, save.stars))
 
 
 func _open_board() -> void:
@@ -563,6 +578,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if report.visible:
 		report.visible = false
+		get_viewport().set_input_as_handled()
+	elif book.visible:
+		book.close()
 		get_viewport().set_input_as_handled()
 	elif hud.board.visible:
 		hud.board.visible = false
@@ -1029,6 +1047,15 @@ func _auto_shot(path: String) -> void:
 			ev.keycode = KEY_ESCAPE
 			ev.pressed = true
 			Input.parse_input_event(ev)
+			await get_tree().create_timer(0.3).timeout
+		elif s == "book":
+			_open_book()
+			await get_tree().create_timer(0.5).timeout
+		elif s.begins_with("book_area:"):
+			book._show_area(s.substr(10))
+			await get_tree().create_timer(0.3).timeout
+		elif s.begins_with("book_concept:"):
+			book._show_concept(s.substr(13))
 			await get_tree().create_timer(0.3).timeout
 		elif s == "board":
 			_open_board()

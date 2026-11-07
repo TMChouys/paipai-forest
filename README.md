@@ -80,3 +80,12 @@ data/furniture.json 家具定義；data/home.json 新玩家的家
 - 正式 3D 模型：派派鼠、派派兔、派派狼由混元 3D（Hunyuan3D-2）生成，經 `tools/blender/rig_hy3d.py` 修正並上骨架（`models/gopher/gopher_rigged.glb`、`models/rabbit/rabbit_rigged.glb`、`models/wolf/wolf_rigged.glb`；用法 `blender -b -P rig_hy3d.py -- kenney.glb 原檔.glb 輸出.glb gopher|rabbit|wolf`）、小椅子（`models/chair.glb`，陽光小椅子用 `model_tint` 染黃）。其餘家具仍是程式拼的佔位模型；Thrixel 免費額度剩 13 方塊，雕塑次數 2026-12-01 重置。換模型：把 GLB 放進 `models/`，在 `furniture.json` 填 `model`（可選 `model_fill` `model_yaw` `model_tint`），會自動縮放貼地並加描邊。
 - Kenney 模型（CC0，免費可商用，不需標註；授權檔在 `models/kenney/License-*.txt`）：Furniture Kit 的桌子、圓桌、書櫃、盆栽、沙發、邊桌、長椅、衣帽架、復古電視、收音機、書、小盆栽；Nature Kit 與 Fantasy Town Kit 的樹、花、灌木、蘑菇、石子路、柵欄、路燈、噴水池、攤位、推車（屋外小鎮景色，見 `room_view.gd` 的 `OUTDOOR`）。載入時會自動校正 Kenney 偏白的顏色並套繪本色票（`models.gd` 的 `KENNEY_PALETTE`）。
 - 管理員的任務設計器（第二版）。
+
+## 派森小鎮任務書與教學進度
+
+- **任務書（遊戲內）**：家裡上方的「任務書」按鈕。左頁是知識範圍（A 程式起步 … K 演算法應用）與進度，右頁是這一章的知識地圖（箭頭＝要先學會），點概念會列出它的任務：「單一概念」或「複合知識」、難度 ★1–5、地點、委託人。已經做成遊戲的任務可以直接開始，其他顯示「準備中」。
+- **知識地圖資料**：`data/curriculum/knowledge_map.json`（概念、先備關係、任務、難度、狀態）。檢查：`python -I tools/curriculum/check_map.py`。
+- **管理者儀表板**：在專案資料夾執行 `python -m http.server 8070`，打開 `http://localhost:8070/tools/dashboard/`。可以編輯任務與概念、看知識地圖、檢查規則；按「開啟檔案…」選 `knowledge_map.json` 後「儲存」會直接寫回檔案（Chrome / Edge）。
+- **故事聖經**：`docs/story/story_bible.md`。
+- **Agents**（使用者層級，`~/.claude/agents/`）：`storyteller` 維護故事聖經並向使用者提問；`curriculum-planner` 依故事設計任務、評估難度、把草稿做成可玩任務。
+- `教材/` 是本機參考用的有版權教材，不進 git（`.gitignore`），也不讓 Godot 匯入（`教材/.gdignore`）。

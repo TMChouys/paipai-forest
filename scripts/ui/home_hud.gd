@@ -8,6 +8,7 @@ signal grid_toggled
 signal view_reset
 signal task_chosen(task_id: String)
 signal reduce_motion_toggled(on: bool)
+signal open_book
 
 var tray: PanelContainer
 var tray_row: HBoxContainer
@@ -40,6 +41,7 @@ func _build() -> void:
 	th.add_child(stars_label)
 	btn_tasks = UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點屋外的派派狼")
 	th.add_child(btn_tasks)
+	th.add_child(UIKit.button("任務書", func(): open_book.emit(), "派森小鎮所有的任務，用知識地圖排好"))
 	th.add_child(UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具"))
 	# 不常用的功能收進「⋯」選單
 	var more := MenuButton.new()
