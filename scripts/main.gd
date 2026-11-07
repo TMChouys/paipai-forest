@@ -1670,8 +1670,13 @@ func _use_furniture(uid: String) -> void:
 			if is_instance_valid(g):
 				g.set_seated(false)
 		"sleep":
+			# 躺在床的正中間：頭靠枕頭（床的 -z 那頭），腳在床尾，臉朝上
+			var bed_yaw := RoomView.item_yaw(it)
+			var lie := center + Basis(Vector3.UP, bed_yaw) * Vector3(0, 0.62, 0.42)
+			g.target_yaw = bed_yaw
+			g.model.rotation.y = bed_yaw
 			var tw2 := create_tween()
-			tw2.tween_property(g, "position", center + Vector3(0, 0.5, 0.2), 0.4)
+			tw2.tween_property(g, "position", lie, 0.4)
 			tw2.parallel().tween_property(g.model, "rotation:x", -PI / 2.2, 0.4)
 			await tw2.finished
 			g.say("Zzz…", "think")
@@ -1832,7 +1837,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.show_status(d.name + tip, get_viewport().get_mouse_position())
 		elif _npc_under_mouse() != "":
 			var nn := _npc_under_mouse()
-			hud.show_status(("派派狼：走過去說話（接任務）" if nn == "wolf" else "派派兔：走過去說話") , get_viewport().get_mouse_position())
+			hud.show_status(("派派狼：走過去說話（接任務）" if nn == "wolf" else "派派兔：走過去說話（任務書）") , get_viewport().get_mouse_position())
 		elif _yard_under_mouse() != "":
 			var yt: String = _yard_item(_yard_under_mouse()).get("type", "")
 			hud.show_status(WorldModel.def_of(yt).name + "　點一下拿起來", get_viewport().get_mouse_position())
@@ -2029,7 +2034,7 @@ func _near_point(a: GopherActor, g: GopherActor) -> Vector3:
 	return a.position + dir.normalized() * 0.85
 
 
-## 走到了：面對面說話。第一次見面先自我介紹；派派狼接著打開任務板，派派兔給一點小提示
+## 走到了：面對面說話。第一次見面先自我介紹；派派狼接著打開任務板，派派兔打開任務書
 func _talk(who: String) -> void:
 	var a: GopherActor = room.npcs.get(who)
 	var g := room.gopher
@@ -2049,9 +2054,11 @@ func _talk(who: String) -> void:
 		_write_save()
 	roam_busy = false
 	roam_timer = 10.0
+	# 派派狼給任務；派派兔管任務書
 	if who == "wolf":
 		_open_board()
 	else:
+		_open_book()
 		a.say(RABBIT_TIPS.pick_random(), "say")
 
 
@@ -2594,6 +2601,18 @@ func _auto_shot(path: String) -> void:
 			_pick_yard(s.substr(11))
 			_store_held()
 			print("inventory ", save.inventory)
+		elif s.begins_with("use:"):
+			# use:uid（測試用：派派鼠走到家具旁邊使用）
+			var uu: String = s.substr(4)
+			var it_u: Dictionary = home_world.items[uu]
+			for c in home_world.footprint(it_u):
+				for dn in WorldModel.DIR_ORDER:
+					var nb: Vector2i = c + WorldModel.DIRS[dn]
+					if home_world.walkable(nb):
+						room.gopher.position = GopherActor.cell_pos(nb)
+						home_world.gopher_cell = nb
+			roam_busy = true
+			_use_furniture(uu)
 		elif s.begins_with("approach:"):
 			_approach(s.substr(9))
 		elif s == "hobbies":

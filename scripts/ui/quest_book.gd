@@ -1,6 +1,6 @@
 class_name QuestBook
 extends Control
-## 派森小鎮任務書：用知識地圖列出所有任務。
+## 派派兔的任務書：用知識地圖列出所有任務（點派派兔、或上方的「任務書」打開）。
 ## 左頁：知識範圍（章節）目錄與進度；右頁上：這一章的概念地圖（先備關係連線）；右頁下：選到的概念有哪些任務。
 
 signal task_chosen(task_id: String)
@@ -78,7 +78,7 @@ func _build() -> void:
 	var lv := VBoxContainer.new()
 	lv.add_theme_constant_override("separation", 6)
 	left.add_child(lv)
-	var t := UIKit.label("派森小鎮任務書", 24)
+	var t := UIKit.label("派派兔的任務書", 24)
 	t.add_theme_font_override("font", UIKit.font_bold())
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lv.add_child(t)
