@@ -17,6 +17,7 @@ var hud: HomeHUD
 var panel: TaskPanel
 var report: ReportPanel
 var book: QuestBook
+var letters: LetterPanel
 var playback: Playback
 
 # 任務狀態
@@ -48,11 +49,13 @@ func _ready() -> void:
 	panel = TaskPanel.new()
 	report = ReportPanel.new()
 	book = QuestBook.new()
+	letters = LetterPanel.new()
 	ui_layer.add_child(hud)
 	ui_layer.add_child(panel)
 	ui_layer.add_child(bubbles)
 	ui_layer.add_child(report)
 	ui_layer.add_child(book)
+	ui_layer.add_child(letters)
 	report.visible = false
 	panel.visible = false
 
@@ -63,6 +66,18 @@ func _ready() -> void:
 	hud.task_chosen.connect(_enter_task)
 	hud.reduce_motion_toggled.connect(_set_reduce_motion)
 	hud.open_book.connect(_open_book)
+	letters.read_letter.connect(func(id):
+		if not save.has("letters_read"):
+			save.letters_read = []
+		if not save.letters_read.has(id):
+			save.letters_read.append(id)
+		_update_mailbox_flag()
+		_write_save())
+	letters.move_pressed.connect(func():
+		for k in home_world.items:
+			if home_world.items[k].type == "mailbox":
+				_pick_existing(k)
+				return)
 	book.task_chosen.connect(func(id):
 		book.visible = false
 		_enter_task(id))
@@ -180,6 +195,7 @@ func _enter_home() -> void:
 	report.visible = false
 	hud.set_inventory(save.inventory)
 	hud.set_stars(_total_stars())
+	_update_mailbox_flag()
 	roam_timer = 1.5
 	roam_busy = false
 	if not save.get("intro_done", false):
@@ -373,6 +389,26 @@ func _open_book() -> void:
 	book.open(save.stars, func(gid: String) -> bool:
 		var t := _task_by_id(gid)
 		return not t.is_empty() and HomeHUD.is_unlocked(t, tasks, save.stars))
+
+
+func _open_letters() -> void:
+	_cancel_held()
+	hud.show_status("", Vector2.ZERO)
+	if not save.has("letters_read"):
+		save.letters_read = []
+	letters.open(save.stars, save.letters_read)
+
+
+## 信箱的紅旗：有沒讀的信就舉起來，讀完就放下
+func _update_mailbox_flag() -> void:
+	if room == null or home_world == null:
+		return
+	var up := LetterPanel.unread_count(letters.data, save.stars, save.get("letters_read", [])) > 0
+	for k in home_world.items:
+		if home_world.items[k].type == "mailbox" and room.furniture_nodes.has(k):
+			var flag: Node3D = room.furniture_nodes[k].find_child("Flag", true, false)
+			if flag != null:
+				flag.rotation_degrees.x = 0.0 if up else 90.0
 
 
 func _open_board() -> void:
@@ -591,13 +627,16 @@ func _input(event: InputEvent) -> void:
 	elif book.visible:
 		book.close()
 		get_viewport().set_input_as_handled()
+	elif letters.visible:
+		letters.close()
+		get_viewport().set_input_as_handled()
 	elif hud.board.visible:
 		hud.board.visible = false
 		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if mode != "home" or hud.board.visible:
+	if mode != "home" or hud.board.visible or letters.visible:
 		return
 	if event is InputEventMouseMotion and not held.is_empty():
 		_update_held()
@@ -605,7 +644,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		var uid := _item_under_mouse()
 		if uid != "":
 			var d := WorldModel.def_of(home_world.items[uid].type)
-			hud.show_status(d.name + ("（固定）" if d.get("fixed", false) else "　點一下拿起來"), get_viewport().get_mouse_position())
+			var tip := "（固定）" if d.get("fixed", false) else "　點一下拿起來"
+			if d.get("builder", "") == "mailbox":
+				var n := LetterPanel.unread_count(letters.data, save.stars, save.get("letters_read", []))
+				tip = "　點一下讀信" + ("（%d 封新信）" % n if n > 0 else "")
+			hud.show_status(d.name + tip, get_viewport().get_mouse_position())
 		elif _wolf_under_mouse():
 			hud.show_status("派派狼：有任務要給你！", get_viewport().get_mouse_position())
 		else:
@@ -619,7 +662,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open_board()
 				return
 			var uid2 := _item_under_mouse()
-			if uid2 != "":
+			if uid2 != "" and home_world.items[uid2].type == "mailbox":
+				_open_letters()
+			elif uid2 != "":
 				_pick_existing(uid2)
 		else:
 			_drop_held()
@@ -757,6 +802,7 @@ func _drop_held() -> void:
 		room.gopher.hop(0.3)
 	held = {}
 	hud.show_status("", Vector2.ZERO)
+	_update_mailbox_flag()
 	_write_save()
 
 
@@ -1065,6 +1111,12 @@ func _auto_shot(path: String) -> void:
 			await get_tree().create_timer(0.3).timeout
 		elif s.begins_with("book_concept:"):
 			book._show_concept(s.substr(13))
+			await get_tree().create_timer(0.3).timeout
+		elif s == "letters":
+			_open_letters()
+			await get_tree().create_timer(0.5).timeout
+		elif s.begins_with("letter:"):
+			letters._select(s.substr(7))
 			await get_tree().create_timer(0.3).timeout
 		elif s == "board":
 			_open_board()

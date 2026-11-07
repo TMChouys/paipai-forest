@@ -223,8 +223,13 @@ static func furniture(type: String) -> Node3D:
 			part(root, box(0.4, 0.13, 0.02), c.lightened(0.2), Vector3(0, 0.88, 0.305), Vector3.ONE, Vector3.ZERO, false)
 			part(root, sphere(0.03), Color("f6c85f"), Vector3(0, 0.98, 0.33), Vector3.ONE, Vector3.ZERO, false)  # 門把
 			part(root, box(0.26, 0.02, 0.14), Color("fff7ee"), Vector3(0.02, 1.16, 0.3), Vector3.ONE, Vector3(-20, 0, 6))  # 露出的信
-			part(root, box(0.03, 0.34, 0.03), INK, Vector3(0.24, 1.1, 0.12), Vector3.ONE, Vector3.ZERO, false)  # 旗桿
-			part(root, box(0.02, 0.12, 0.16), Color("e5534b"), Vector3(0.245, 1.21, 0.2))  # 紅旗
+			# 紅旗：有沒讀的信就舉起來（main 會轉 Flag 的 rotation）
+			var flag := Node3D.new()
+			flag.name = "Flag"
+			flag.position = Vector3(0.24, 0.94, 0.12)
+			root.add_child(flag)
+			part(flag, box(0.03, 0.34, 0.03), INK, Vector3(0, 0.16, 0), Vector3.ONE, Vector3.ZERO, false)  # 旗桿
+			part(flag, box(0.02, 0.12, 0.16), Color("e5534b"), Vector3(0.005, 0.27, 0.08))  # 紅旗
 			part(root, sphere(0.06), Color("7cc47a"), Vector3(-0.1, 1.27, -0.12), Vector3(1.4, 0.5, 1))  # 屋頂上的葉子
 		"crate":
 			part(root, box(0.78, 0.66, 0.78), c, Vector3(0, 0.33, 0))

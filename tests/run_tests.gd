@@ -7,6 +7,7 @@ var failed := 0
 
 func _init() -> void:
 	_test_interp()
+	_test_letters()
 	if ResourceLoader.exists("res://tests/test_tasks.gd"):
 		var extra = load("res://tests/test_tasks.gd").new()
 		extra.run(self)
@@ -106,3 +107,17 @@ func _test_interp() -> void:
 
 	r = PyInterp.run("print(\"a\")  # 註解\n\n# 整行註解\nprint('b')\n")
 	check("comments", r.ok and out_lines(r) == ["a", "b"], str(r))
+
+
+func _test_letters() -> void:
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/letters.json"))
+	var ids := func(a: Array) -> Array: return a.map(func(l): return l.id)
+	var start: Array = ids.call(LetterPanel.received(d, {}))
+	check("letters at start", start == ["crow_mailbox", "wolf_welcome", "rabbit_welcome"], str(start))
+	var later: Array = ids.call(LetterPanel.received(d, {"D02_acorns": 3, "D03_questions": 2}))
+	check("later letters first", later.slice(0, 2) == ["turtle_library", "tanuki_market"], str(later))
+	check("unread count", LetterPanel.unread_count(d, {}, ["wolf_welcome"]) == 2)
+	for l in d.letters:
+		var after: String = l.get("after", "")
+		check("letter %s after exists" % l.id, after == "" or FileAccess.file_exists("res://data/tasks/%s.json" % after))
+		check("letter %s sender" % l.id, d.senders.has(l.from))
