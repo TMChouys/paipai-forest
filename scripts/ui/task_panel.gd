@@ -33,6 +33,19 @@ var title_sub: Label
 var banner: Label
 var speed_i := 0
 var ask_box: PanelContainer
+## 任務單可以往左收起；程式碼視窗可以往左加寬（加寬時自動收起任務單）
+var left_panel: PanelContainer
+var right_panel: PanelContainer
+var sheet_tab: Button
+var btn_collapse: Button
+var btn_wide: Button
+var sheet_open := true
+var code_wide := false
+var _sheet_auto_closed := false
+var _tw_left: Tween
+var _tw_right: Tween
+const LEFT_W := 370.0
+const RIGHT_W := 470.0
 var ask_label: Label
 var ask_edit: LineEdit
 
@@ -78,9 +91,17 @@ func _build() -> void:
 	left.offset_bottom = -10
 	left.add_theme_stylebox_override("panel", UIKit.panel_style(Color("fff8ec"), 16))
 	add_child(left)
+	left_panel = left
 	var lv := VBoxContainer.new()
 	lv.add_theme_constant_override("separation", 8)
 	left.add_child(lv)
+	var lt := HBoxContainer.new()
+	lv.add_child(lt)
+	var lsp := Control.new()
+	lsp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lt.add_child(lsp)
+	btn_collapse = UIKit.tertiary(UIKit.button("◀ 收起", func(): set_sheet_open(false), "把任務單往左收起來，演出場景會變大"))
+	lt.add_child(btn_collapse)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -102,10 +123,17 @@ func _build() -> void:
 	right.offset_top = 62
 	right.offset_bottom = -10
 	add_child(right)
+	right_panel = right
 	var rv := VBoxContainer.new()
 	rv.add_theme_constant_override("separation", 6)
 	right.add_child(rv)
-	rv.add_child(UIKit.label("程式碼", 16))
+	var rt := HBoxContainer.new()
+	rv.add_child(rt)
+	var rl := UIKit.label("程式碼", 16)
+	rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rt.add_child(rl)
+	btn_wide = UIKit.tertiary(UIKit.button("◀ 加寬", func(): set_code_wide(not code_wide), "程式碼視窗往左加寬（任務單會先收起來）"))
+	rt.add_child(btn_wide)
 	code = CodeEdit.new()
 	code.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	code.size_flags_stretch_ratio = 1.4
@@ -154,9 +182,13 @@ func _build() -> void:
 	UIKit.primary(btn_run)
 	UIKit.primary(btn_submit)
 	var btn_reset := UIKit.button("重來", func(): reset_pressed.emit(), "房間回到一開始的樣子")
-	for b in [btn_run, btn_pause, btn_step, btn_speed, btn_reset, btn_submit]:
+	for b in [btn_run, btn_pause, btn_step, btn_speed, btn_reset]:
 		ctrl.add_child(b)
-	btn_submit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# 交件靠右；視窗加寬時不會被拉成一長條
+	var csp := Control.new()
+	csp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ctrl.add_child(csp)
+	ctrl.add_child(btn_submit)
 
 	var bottom := HBoxContainer.new()
 	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -191,6 +223,11 @@ func _build() -> void:
 	vars_label.add_theme_font_override("normal_font", UIKit.mono())
 	vars_label.add_theme_font_size_override("normal_font_size", 15)
 	vpanel.add_child(vars_label)
+
+	sheet_tab = UIKit.button("任務單 ▶", func(): set_sheet_open(true), "打開任務單")
+	sheet_tab.position = Vector2(10, 62)
+	sheet_tab.visible = false
+	add_child(sheet_tab)
 
 	# ---- 中間上方橫幅（隱藏測資、示範中…）----
 	banner = UIKit.label("", 20)
@@ -234,6 +271,62 @@ func _build() -> void:
 	ask_edit.text_submitted.connect(func(t): submit_answer(t))
 	ah.add_child(ask_edit)
 	ah.add_child(UIKit.primary(UIKit.button("回答", func(): submit_answer(ask_edit.text))))
+
+
+## 任務單打開／收起（往左滑出畫面，左上角留一個「任務單 ▶」）
+func set_sheet_open(open: bool, auto: bool = false) -> void:
+	sheet_open = open
+	_sheet_auto_closed = auto and not open
+	if open and code_wide:
+		_set_code_wide_only(false)  # 要看任務單：程式碼視窗先還原
+	if _tw_left:
+		_tw_left.kill()
+	_tw_left = create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var l0 := 10.0 if open else -LEFT_W - 20.0
+	_tw_left.tween_property(left_panel, "offset_left", l0, 0.28)
+	_tw_left.tween_property(left_panel, "offset_right", l0 + LEFT_W, 0.28)
+	sheet_tab.visible = not open
+
+
+## 程式碼視窗加寬／還原；加寬時自動收起任務單，還原時把自動收起的任務單打開
+func set_code_wide(wide: bool) -> void:
+	if wide and sheet_open:
+		set_sheet_open(false, true)
+	_set_code_wide_only(wide)
+	if not wide and _sheet_auto_closed:
+		set_sheet_open(true)
+
+
+func _set_code_wide_only(wide: bool) -> void:
+	code_wide = wide
+	btn_wide.text = "▶ 還原" if wide else "◀ 加寬"
+	var vw := get_viewport_rect().size.x
+	var w := clampf(vw - 150.0 - 20.0, RIGHT_W, maxf(RIGHT_W, vw * 0.62)) if wide else RIGHT_W
+	if _tw_right:
+		_tw_right.kill()
+	_tw_right = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_tw_right.tween_property(right_panel, "offset_left", -10.0 - w, 0.28)
+
+
+## 兩邊面板中間空出來的範圍（螢幕 x：左緣、右緣），演出場景要放在這中間
+func free_span() -> Vector2:
+	var lx := 0.0
+	if sheet_tab.visible:
+		lx = sheet_tab.position.x + sheet_tab.size.x
+	lx = maxf(lx, left_panel.position.x + left_panel.size.x)
+	var rx := right_panel.position.x
+	return Vector2(maxf(lx, 0.0), rx)
+
+
+func _process(_delta: float) -> void:
+	if not visible:
+		return
+	var fs := free_span()
+	var vw := get_viewport_rect().size.x
+	banner.offset_left = fs.x + 20
+	banner.offset_right = -(vw - fs.y) - 20
+	ask_box.offset_left = fs.x + 16
+	ask_box.offset_right = -(vw - fs.y) - 16
 
 
 func _highlighter() -> CodeHighlighter:

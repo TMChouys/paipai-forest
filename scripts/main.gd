@@ -1430,6 +1430,14 @@ func _stop_idle_watch() -> void:
 func _process(delta: float) -> void:
 	if rig.cam:
 		room.update_cutaway(rig.cam.global_position)
+	# 寫程式模式：演出場景放在任務單和程式碼視窗中間；面板收起／加寬時跟著挪
+	if mode == "task" and panel.visible:
+		var fs := panel.free_span()
+		rig.screen_center_x = (fs.x + fs.y) / 2.0
+		bubbles.side_left = fs.x + 8.0
+		bubbles.side_right = get_viewport().get_visible_rect().size.x - fs.y + 8.0
+	else:
+		rig.screen_center_x = -1.0
 	_idle_camera(delta)
 	if mode != "home" or roam_busy or room.gopher == null or not play_started:
 		return
@@ -2489,7 +2497,7 @@ func _enter_task(id: String) -> void:
 	_reset_task_room()
 	var tw: WorldModel = room.world
 	rig.frame_room(tw.width, tw.depth, 2.15)
-	rig.screen_offset = 0.07
+	rig.screen_offset = 0.0
 	await get_tree().create_timer(0.4).timeout
 	if mode == "task":
 		_giver().say(task.npc_line, "say")
@@ -2813,6 +2821,12 @@ func _auto_shot(path: String) -> void:
 						home_world.gopher_cell = nb
 			roam_busy = true
 			_use_furniture(uu)
+		elif s == "sheet_close":
+			panel.set_sheet_open(false)
+		elif s == "sheet_open":
+			panel.set_sheet_open(true)
+		elif s == "code_wide":
+			panel.set_code_wide(not panel.code_wide)
 		elif s == "sheet_end":
 			# 任務單捲到最下面（測試用）
 			var sc: ScrollContainer = panel.sheet.get_parent()

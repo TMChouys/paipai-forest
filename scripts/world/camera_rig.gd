@@ -19,6 +19,8 @@ var _drag_rotate := false
 var _drag_pan := false
 ## 畫面左右被 UI 擋住時，把焦點往旁邊偏一點（螢幕比例）
 var screen_offset := 0.0
+## 演出場景要放在螢幕哪一個 x（像素）；< 0 就放正中間。寫程式模式用：兩邊面板中間
+var screen_center_x := -1.0
 
 
 func _ready() -> void:
@@ -100,4 +102,10 @@ func _apply() -> void:
 	var offset := Vector3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch)) * distance
 	cam.position = focus + offset
 	cam.look_at(focus + Vector3(0, 0.4, 0), Vector3.UP)
-	cam.h_offset = screen_offset * distance * 0.35
+	if screen_center_x >= 0.0:
+		# 鏡頭往旁邊平移，讓焦點剛好落在 screen_center_x（不改變遠近和角度，畫面一樣，只是挪位置）
+		var vp := get_viewport().get_visible_rect().size
+		var half_w := distance * tan(deg_to_rad(cam.fov / 2.0)) * vp.x / maxf(vp.y, 1.0)
+		cam.h_offset = (vp.x / 2.0 - screen_center_x) / vp.x * 2.0 * half_w
+	else:
+		cam.h_offset = screen_offset * distance * 0.35

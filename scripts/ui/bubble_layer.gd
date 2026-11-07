@@ -6,6 +6,9 @@ var camera_getter: Callable
 var bubbles: Array = []  # {actor, panel, until}
 ## 寫程式模式：氣泡不可以蓋住左邊任務單（寬 380）和右邊程式碼區（寬 480）
 var avoid_side_panels := false
+## 兩邊面板佔掉的寬度（任務單收起／程式碼加寬時會變）
+var side_left := 388.0
+var side_right := 488.0
 
 
 func _ready() -> void:
@@ -94,8 +97,8 @@ func _process(_delta: float) -> void:
 		var pos := sp - Vector2(sz.x / 2, sz.y + 12)
 		if avoid_side_panels:
 			var vp := get_viewport_rect().size
-			var lo := Vector2(388, 62)
-			var hi := Vector2(vp.x - 488 - sz.x, vp.y - 10 - sz.y)
+			var lo := Vector2(side_left, 62)
+			var hi := Vector2(vp.x - side_right - sz.x, vp.y - 10 - sz.y)
 			pos = pos.clamp(lo, hi.max(lo))
 		b.panel.position = pos
 		var tail: Node2D = b.panel.get_meta("tail")
