@@ -171,24 +171,14 @@ func _build_floor() -> void:
 	# 圓形苔蘚地毯
 	var rug := MeshInstance3D.new()
 	rug.mesh = Models.cyl(1.4, 1.4, 0.02)
-	rug.material_override = Models.mat(Color("e9dcc2"), false)  # 羊毛圓地毯
+	var rug_m := ground_mat("rug", Color(1, 1, 1), 1.0 / 2.8, false)  # 編織圓地毯：圖案剛好鋪滿一片
+	rug_m.uv1_offset = Vector3(0.5, 0.5, 0.5)
+	rug_m.normal_scale = 1.0
+	rug_m.next_pass = Models.mat(Color("e9dcc2"), false).next_pass
+	rug.material_override = rug_m
 	rug.scale = Vector3(1.2, 1, 0.8)
 	rug.position = Vector3(world.width / 2.0, 0.005, world.depth / 2.0 + 0.5)
 	floor_root.add_child(rug)
-	# 地毯上的北歐小花紋：兩圈織紋
-	for ring in [[1.15, Color("c9a77c")], [0.75, Color("9fb08a")]]:
-		var band := MeshInstance3D.new()
-		band.mesh = Models.cyl(ring[0], ring[0], 0.022)
-		band.material_override = Models.mat(ring[1], false)
-		band.scale = Vector3(1.2, 1, 0.8)
-		band.position = rug.position + Vector3(0, 0.002, 0)
-		floor_root.add_child(band)
-		var inner := MeshInstance3D.new()
-		inner.mesh = Models.cyl(ring[0] - 0.08, ring[0] - 0.08, 0.024)
-		inner.material_override = Models.mat(Color("e9dcc2"), false)
-		inner.scale = Vector3(1.2, 1, 0.8)
-		inner.position = rug.position + Vector3(0, 0.003, 0)
-		floor_root.add_child(inner)
 
 
 const DOOR_W := 0.9  # 門洞寬（門板 0.86）
@@ -680,10 +670,10 @@ func _flat_mat(col: Color) -> StandardMaterial3D:
 
 func _build_stream(holder: Node3D) -> void:
 	var water := StandardMaterial3D.new()
-	water.albedo_color = Color("5e9fb2")
-	water.roughness = 0.45
-	water.metallic_specular = 0.35
-	Models.storybook_texture(water)
+	water = ground_mat("water", Color("74b6c6"), 0.55)
+	water.roughness = 0.18
+	water.metallic_specular = 0.6
+	water.normal_scale = 0.6
 	var bank := _flat_mat(Color("7f8a5c"))
 	var foam := _flat_mat(Color("eef6f4"))
 	var moss_rock := Models.mat(Color("8f9e62"))
@@ -750,7 +740,7 @@ func _build_stream(holder: Node3D) -> void:
 			holder.add_child(bub)
 	if not UIKit.reduce_motion:
 		var tw := holder.create_tween().set_loops()
-		tw.tween_property(water, "uv1_offset", Vector3(0, 0, 1.0), 8.0).from(Vector3.ZERO)
+		tw.tween_property(water, "uv1_offset", Vector3(0, 0, 1.0), 6.0).from(Vector3.ZERO)
 	# 蘆葦
 	var reed := Models.mat(Color("7c9a55"), false)
 	for i in range(18):
@@ -798,8 +788,8 @@ func _build_front_yard(holder: Node3D) -> void:
 	var wood := Models.mat(Color("b88c5e"))
 	var wood_dark := Models.mat(Color("9a7048"))
 	# 泥土空地：門口前面一大片，一路通到柵欄小門，旁邊分出去到菜園和溪邊
-	var dirt := _flat_mat(Color("b9a47e"))
-	var dirt2 := _flat_mat(Color("b29b74"))
+	var dirt := ground_mat("soil", Color("c2ad86"), 0.6)
+	var dirt2 := ground_mat("soil", Color("b9a27b"), 0.6)
 	var blobs := [[Vector3(dx, 0, d + 2.2), 3.2], [Vector3(dx - 1.6, 0, d + 3.4), 2.4], [Vector3(dx + 1.8, 0, d + 3.6), 2.5],
 		[Vector3(dx, 0, d + 5.6), 2.4], [Vector3(dx, 0, z1 - 0.6), 1.5], [Vector3(x0 + 1.2, 0, d + 2.6), 1.4],
 		[Vector3(garden_center().x - 2.2, 0, garden_center().z), 1.5]]
@@ -920,7 +910,7 @@ func _build_front_yard(holder: Node3D) -> void:
 	holder.add_child(sl)
 	# 胡蘿蔔園（派派兔常來澆水）
 	var gc := garden_center()
-	var soil := Models.mat(Color("54402e"), false)
+	var soil := ground_mat("soil", Color("6e5440"), 0.9)  # 鬆鬆的深色菜園土
 	var bed := MeshInstance3D.new()
 	bed.mesh = Models.box(3.2, 0.12, 2.4)
 	bed.material_override = soil
@@ -1089,6 +1079,172 @@ static func bark_mat(color: Color, reps: Vector2) -> StandardMaterial3D:
 	m.uv1_scale = Vector3(reps.x, reps.y, 1)
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	m.next_pass = Models.mat(color).next_pass  # 一樣的描邊
+	return m
+
+
+# ---------------- 地面材質：草地、泥土、溪水、編織地毯（程式畫出來的貼圖） ----------------
+static var _gtex: Dictionary = {}
+
+
+static func _wrap_px(img: Image, x: int, y: int, c: Color) -> void:
+	img.set_pixel(posmod(x, img.get_width()), posmod(y, img.get_height()), c)
+
+
+static func _seamless(seed: int, freq: float, w: int, h: int) -> Image:
+	var n := FastNoiseLite.new()
+	n.seed = seed
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.frequency = freq
+	n.fractal_octaves = 3
+	var img := n.get_seamless_image(w, h, false, false, 0.2, true)
+	img.convert(Image.FORMAT_RGB8)
+	return img
+
+
+## 回傳 [顏色貼圖, 法線貼圖]；kind = grass / soil / water / rug
+static func ground_tex(kind: String) -> Array:
+	if _gtex.has(kind):
+		return _gtex[kind]
+	var sz := 256
+	var col := Image.create(sz, sz, false, Image.FORMAT_RGB8)
+	var h := Image.create(sz, sz, false, Image.FORMAT_RGB8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = kind.hash()
+	var bump := 3.0
+	match kind:
+		"grass":
+			var mot := _seamless(5, 0.012, sz, sz)
+			var fine := _seamless(6, 0.06, sz, sz)
+			for y in range(sz):
+				for x in range(sz):
+					var m: float = mot.get_pixel(x, y).r
+					var f: float = fine.get_pixel(x, y).r
+					var v := 0.84 + m * 0.16 + (f - 0.5) * 0.06
+					col.set_pixel(x, y, Color(v * (0.97 - m * 0.05), v, v * 0.9))
+					h.set_pixel(x, y, Color(0.35 + f * 0.15, 0, 0))
+			# 一根一根的小草
+			for i in range(1400):
+				var bx := rng.randi_range(0, sz - 1)
+				var by := rng.randi_range(0, sz - 1)
+				var ln := rng.randi_range(3, 8)
+				var lean := rng.randf_range(-0.35, 0.35)
+				var light := rng.randf() < 0.55
+				for k in range(ln):
+					var t := float(k) / ln
+					var px := bx + int(round(lean * k))
+					var py := by - k
+					var c: Color = col.get_pixel(posmod(px, sz), posmod(py, sz))
+					var c2 := Color(minf(c.r * 1.08 + 0.02, 1.0), minf(c.g * 1.1 + 0.03, 1.0), c.b * 0.92) if light else c * 0.82
+					_wrap_px(col, px, py, c2)
+					_wrap_px(h, px, py, Color(0.55 + t * 0.45, 0, 0))
+			bump = 4.0
+		"soil":
+			var mot := _seamless(21, 0.02, sz, sz)
+			var fine := _seamless(22, 0.09, sz, sz)
+			for y in range(sz):
+				for x in range(sz):
+					var m: float = mot.get_pixel(x, y).r
+					var f: float = fine.get_pixel(x, y).r
+					var v := 0.82 + m * 0.18 + (f - 0.5) * 0.1
+					col.set_pixel(x, y, Color(v, v * 0.97, v * 0.93))
+					h.set_pixel(x, y, Color(0.3 + f * 0.25, 0, 0))
+			# 細細的土粒
+			for i in range(2200):
+				var sx := rng.randi_range(0, sz - 1)
+				var sy := rng.randi_range(0, sz - 1)
+				var c: Color = col.get_pixel(sx, sy)
+				col.set_pixel(sx, sy, c * (0.72 if rng.randf() < 0.6 else 1.12))
+			# 小石子：亮一點，邊緣一圈暗影
+			for i in range(70):
+				var cx := rng.randi_range(0, sz - 1)
+				var cy := rng.randi_range(0, sz - 1)
+				var r := rng.randf_range(1.6, 4.2)
+				var tone := rng.randf_range(1.05, 1.2)
+				var ir := int(ceil(r)) + 1
+				for dy in range(-ir, ir + 1):
+					for dx in range(-ir, ir + 1):
+						var d := sqrt(dx * dx + dy * dy * 1.4)
+						if d <= r:
+							var g := 1.0 - d / r
+							_wrap_px(col, cx + dx, cy + dy, Color(0.9 * tone, 0.88 * tone, 0.84 * tone))
+							_wrap_px(h, cx + dx, cy + dy, Color(0.6 + sqrt(g) * 0.4, 0, 0))
+						elif d <= r + 1.0:
+							var oc: Color = col.get_pixel(posmod(cx + dx, sz), posmod(cy + dy, sz))
+							_wrap_px(col, cx + dx, cy + dy, oc * 0.8)
+			bump = 5.0
+		"water":
+			# 順著水流方向（貼圖 y）拉長的波紋，加上亮亮的反光線
+			var a := _seamless(31, 0.035, sz, sz / 4)
+			a.resize(sz, sz, Image.INTERPOLATE_BILINEAR)
+			var b := _seamless(32, 0.05, sz, sz / 2)
+			b.resize(sz, sz, Image.INTERPOLATE_BILINEAR)
+			for y in range(sz):
+				for x in range(sz):
+					var va: float = a.get_pixel(x, y).r
+					var vb: float = b.get_pixel(x, y).r
+					var w := va * 0.65 + vb * 0.35
+					var line := pow(absf(sin(w * 22.0)), 14.0)  # 細細的波光
+					var v := 0.8 + w * 0.12 + line * 0.25
+					col.set_pixel(x, y, Color(minf(v + line * 0.05, 1.0), minf(v + line * 0.03, 1.0), minf(v, 1.0)))
+					h.set_pixel(x, y, Color(w, 0, 0))
+			for i in range(90):
+				var sx := rng.randi_range(0, sz - 1)
+				var sy := rng.randi_range(0, sz - 1)
+				for k in range(rng.randi_range(2, 5)):
+					_wrap_px(col, sx, sy + k, Color(1, 1, 1))
+			bump = 2.0
+		"rug":
+			# 編織圓地毯：一圈一圈的辮子編，奶油色為底，夾幾圈駝色和鼠尾草綠
+			var ring_cols := [Color("f3e7cf"), Color("efe1c4"), Color("d9b98c"), Color("f3e7cf"), Color("aab996"),
+				Color("efe1c4"), Color("f3e7cf"), Color("d9b98c"), Color("efe1c4"), Color("aab996"), Color("f3e7cf"), Color("b98f62")]
+			var rings := ring_cols.size()
+			var fib := _seamless(41, 0.15, sz, sz)
+			for y in range(sz):
+				for x in range(sz):
+					var ux := (x + 0.5) / sz * 2.0 - 1.0
+					var uy := (y + 0.5) / sz * 2.0 - 1.0
+					var r := sqrt(ux * ux + uy * uy)
+					var ang := atan2(uy, ux)
+					var rr := clampf(r, 0.0, 0.9999) * rings
+					var ri := int(rr)
+					var t := rr - ri  # 這一圈裡的位置 0..1
+					var strands := 10.0 + ri * 9.0
+					# 辮子：斜斜的一節一節，相鄰兩股方向相反
+					var s := ang * strands / TAU * 2.0 + (t - 0.5) * (1.6 if ri % 2 == 0 else -1.6)
+					var braid := absf(fposmod(s, 1.0) - 0.5) * 2.0
+					var across := sin(t * PI)
+					var hv := across * (0.55 + 0.45 * (1.0 - braid))
+					var c: Color = ring_cols[mini(ri, rings - 1)]
+					var shade := 0.72 + 0.28 * hv + (fib.get_pixel(x, y).r - 0.5) * 0.08
+					if r > 0.9999:
+						c = ring_cols[rings - 1]
+						shade = 0.8
+					col.set_pixel(x, y, Color(c.r * shade, c.g * shade, c.b * shade))
+					h.set_pixel(x, y, Color(hv, 0, 0))
+			bump = 6.0
+	col.generate_mipmaps()
+	var ct := ImageTexture.create_from_image(col)
+	h.bump_map_to_normal_map(bump)
+	h.generate_mipmaps()
+	var nt := ImageTexture.create_from_image(h)
+	_gtex[kind] = [ct, nt]
+	return _gtex[kind]
+
+
+## 套上地面材質（triplanar，世界座標，所以相鄰的地塊接得起來）；scale＝每公尺重複幾次
+static func ground_mat(kind: String, color: Color, scale: float, world: bool = true) -> StandardMaterial3D:
+	var tx := ground_tex(kind)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.albedo_texture = tx[0]
+	m.normal_enabled = true
+	m.normal_texture = tx[1]
+	m.normal_scale = 0.8
+	m.roughness = 0.95
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = world
+	m.uv1_scale = Vector3(scale, scale, scale)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	return m
 
 
@@ -1449,7 +1605,15 @@ func _build_terrain(holder: Node3D) -> void:
 	m.albedo_color = Color(1, 1, 1)
 	m.roughness = 0.95
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	Models.storybook_texture(m)
+	var gt := ground_tex("grass")
+	m.albedo_texture = gt[0]
+	m.normal_enabled = true
+	m.normal_texture = gt[1]
+	m.normal_scale = 0.9
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3(0.45, 0.45, 0.45)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	mi.material_override = m
 	holder.add_child(mi)
 

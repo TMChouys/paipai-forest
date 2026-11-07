@@ -1384,9 +1384,40 @@ func _open_board() -> void:
 
 
 # ---------------- 派派鼠閒晃 ----------------
+## 玩家一段時間沒動滑鼠鍵盤：鏡頭慢慢跟著派派鼠，看牠自己在家裡做什麼（觀賞模式）
+const IDLE_WATCH_SEC := 12.0
+var idle_time := 0.0
+var idle_watch := false
+
+
+func _idle_camera(delta: float) -> void:
+	var panels: bool = report.visible or book.visible or letters.visible or hud.board.visible or hud.help_panel.visible
+	var can_watch: bool = mode == "home" and play_started and not intro_running and room.gopher != null and not panels and held.is_empty()
+	if not can_watch:
+		idle_time = 0.0
+		if idle_watch:
+			_stop_idle_watch()
+		return
+	idle_time += delta
+	if not idle_watch and idle_time > IDLE_WATCH_SEC:
+		idle_watch = true
+		rig.follow_target = room.gopher
+		rig.target_distance = 8.5
+		rig.target_pitch = deg_to_rad(-36.0)
+	if idle_watch:
+		rig.target_yaw += delta * 0.035  # 很慢地繞著看
+
+
+func _stop_idle_watch() -> void:
+	idle_watch = false
+	if rig.follow_target == room.gopher and not click_walking:
+		rig.follow_target = null  # 鏡頭停在原地，玩家從這裡接手
+
+
 func _process(delta: float) -> void:
 	if rig.cam:
 		room.update_cutaway(rig.cam.global_position)
+	_idle_camera(delta)
 	if mode != "home" or roam_busy or room.gopher == null or not play_started:
 		return
 	roam_timer -= delta
@@ -1933,6 +1964,11 @@ func _wall_cell_match(it: Dictionary, c: Vector2i) -> bool:
 
 ## Esc 關閉蓋在畫面上的面板（交件報告、任務板）；在 _input 先處理，程式碼區有焦點時也有效
 func _input(event: InputEvent) -> void:
+	var moved: bool = event is InputEventMouseMotion and (event as InputEventMouseMotion).relative.length() > 1.5
+	if moved or event is InputEventMouseButton or event is InputEventKey:
+		idle_time = 0.0
+		if idle_watch:
+			_stop_idle_watch()
 	if not (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		return
 	if report.visible:
@@ -2664,7 +2700,7 @@ func _auto_shot(path: String) -> void:
 		elif s == "submit":
 			await _submit()
 		elif s == "pos":
-			print("gopher ", room.gopher.position, " vis ", room.gopher.visible, " cam ", rig.cam.global_position, " gen ", intro_gen)
+			print("gopher ", room.gopher.position, " vis ", room.gopher.visible, " cam ", rig.cam.global_position, " gen ", intro_gen, " idle ", idle_time, " watch ", idle_watch, " play ", play_started)
 		elif s == "esc":
 			var ev := InputEventKey.new()
 			ev.keycode = KEY_ESCAPE
