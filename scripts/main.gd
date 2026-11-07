@@ -76,6 +76,7 @@ func _ready() -> void:
 	hud.task_chosen.connect(_enter_task)
 	hud.reduce_motion_toggled.connect(_set_reduce_motion)
 	hud.open_book.connect(_open_book)
+	hud.help_closed.connect(_start_play)
 	hud.town_toggled.connect(func():
 		if mode == "town":
 			_enter_home()
@@ -261,6 +262,7 @@ func _enter_home() -> void:
 	if not save.get("intro_done", false):
 		_play_intro()
 	else:
+		play_started = true
 		if intro_running:  # 開場演到一半就換成已看過開場的存檔：開場停掉
 			intro_gen += 1
 			intro_running = false
@@ -319,6 +321,18 @@ static func visitor_spot(who: String, w: WorldModel) -> Vector3:
 ## 面向門（稍微朝向門的中間）
 static func visitor_look(who: String) -> Vector3:
 	return Vector3(0.3, 0, -1.0) if who == "wolf" else Vector3(-0.3, 0, -1.0)
+
+
+# ---------------- 開始玩 ----------------
+var play_started := false  # false：開場剛結束、操作說明還開著，大家先站著不動
+
+
+func _start_play() -> void:
+	if play_started or mode != "home" or intro_running:
+		return
+	play_started = true
+	roam_timer = 3.0
+	_start_visitor_life()
 
 
 # ---------------- 訪客的日常 ----------------
@@ -387,13 +401,44 @@ func _visitor_go(a: GopherActor, who: String, gen: int, goal: Vector3) -> bool:
 	return false
 
 
+## 第一個任務（嘿！新來的）做完了沒
+func _first_task_done() -> bool:
+	return int(save.stars.get("D01_hello", 0)) > 0
+
+
 func _visitor_loop(who: String, gen: int) -> void:
 	var first := true
 	while true:
+		# 第一個任務做完以前：站在門口等派派鼠，偶爾轉頭看看派派鼠
+		while not _first_task_done() and not visitor_quick:
+			if not await _visitor_wait(randf_range(3.0, 6.0), who, gen):
+				return
+			var wa: GopherActor = room.npcs[who]
+			if randf() < 0.5 and room.gopher != null and room.gopher.position.distance_to(wa.position) < 9.0:
+				wa.face_vector(room.gopher.position - wa.position)
+			else:
+				wa.face_vector(visitor_look(who))
 		if not await _visitor_wait(1.0 if visitor_quick else (randf_range(14.0, 24.0) if first else randf_range(10.0, 18.0)), who, gen):
 			return
 		first = false
 		var a: GopherActor = room.npcs[who]
+		# 自由模式：有時候在前院走走、看看，有時候去做喜歡的事
+		if randf() < 0.4 and not visitor_quick:
+			var spot := room.nearest_free(Vector3(randf_range(room.yard_x0() + 0.8, room.yard_x1() - 0.8), 0, randf_range(home_world.depth + 1.5, room.yard_z1() - 1.0)), a)
+			if await _visitor_go(a, who, gen, spot):
+				if randf() < 0.5:
+					a.say(["今天天氣真好～", "派派鼠的家越來越漂亮了！", "嗯……要做什麼呢？", "（東看看、西看看）"].pick_random(), "say")
+				if not await _visitor_wait(randf_range(4.0, 8.0), who, gen):
+					return
+			if randf() < 0.5:
+				continue  # 待在前院，等一下再找事做
+			var back := visitor_spot(who, home_world)
+			back.y = RoomView.GRASS_Y
+			await _visitor_go(a, who, gen, back)
+			if not _visitor_ok(who, gen):
+				return
+			a.face_vector(visitor_look(who))
+			continue
 		var goal := _hobby_goal(who)
 		if not await _visitor_go(a, who, gen, goal):
 			if not _visitor_ok(who, gen):
@@ -1165,8 +1210,7 @@ func _intro_final_state() -> void:
 func _end_intro() -> void:
 	Engine.time_scale = 1.0
 	intro_running = false
-	if mode == "home":
-		_start_visitor_life()
+	play_started = false  # 看完操作說明、按「開始玩！」大家才開始動
 	roam_busy = false
 	roam_timer = 15.0  # 說完話大家留在原地；派派鼠在門口站一陣子，才自己走回屋裡
 	if is_instance_valid(intro_skip_btn):
@@ -1343,7 +1387,7 @@ func _open_board() -> void:
 func _process(delta: float) -> void:
 	if rig.cam:
 		room.update_cutaway(rig.cam.global_position)
-	if mode != "home" or roam_busy or room.gopher == null:
+	if mode != "home" or roam_busy or room.gopher == null or not play_started:
 		return
 	roam_timer -= delta
 	if roam_timer <= 0:
@@ -1904,7 +1948,7 @@ func _input(event: InputEvent) -> void:
 		hud.board.visible = false
 		get_viewport().set_input_as_handled()
 	elif hud.help_panel.visible:
-		hud.help_panel.visible = false
+		hud.close_help()
 		get_viewport().set_input_as_handled()
 
 
@@ -2717,6 +2761,8 @@ func _auto_shot(path: String) -> void:
 				var rp: Vector3 = room.npcs.rabbit.position
 				print("t g(%.2f,%.2f) w(%.2f,%.2f) r(%.2f,%.2f) gw=%.2f gr=%.2f roam=%s click=%s" % [gp3.x, gp3.z, wp.x, wp.z, rp.x, rp.z, Vector2(gp3.x, gp3.z).distance_to(Vector2(wp.x, wp.z)), Vector2(gp3.x, gp3.z).distance_to(Vector2(rp.x, rp.z)), roam_busy, click_walking])
 				await get_tree().create_timer(0.25).timeout
+		elif s.begins_with("star:"):
+			save.stars[s.substr(5)] = 1  # 測試用：當作任務做完了
 		elif s == "skip":
 			_skip_intro()
 		elif s.begins_with("approach:"):

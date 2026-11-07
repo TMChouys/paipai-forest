@@ -10,6 +10,7 @@ signal task_chosen(task_id: String)
 signal reduce_motion_toggled(on: bool)
 signal open_book
 signal town_toggled  # 去鎮上／回樹屋
+signal help_closed  # 操作說明關掉了（開場後按「開始玩！」）
 
 var title_label: Label
 var town_btn: Button
@@ -229,7 +230,7 @@ func _build_help_panel() -> void:
 	var tip := UIKit.label("這個說明可以在右上角「⋯ → 操作說明」再打開。", 13, UIKit.TEXT_MUTED)
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(tip)
-	var ok := UIKit.button("開始玩！", func(): help_panel.visible = false, "也可以按 Esc")
+	var ok := UIKit.button("開始玩！", close_help, "也可以按 Esc")
 	ok.theme_type_variation = "PrimaryButton"
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	ok.custom_minimum_size = Vector2(140, 44)
@@ -239,6 +240,12 @@ func _build_help_panel() -> void:
 func show_help() -> void:
 	board.visible = false
 	help_panel.visible = true
+
+
+func close_help() -> void:
+	if help_panel.visible:
+		help_panel.visible = false
+		help_closed.emit()
 
 
 func set_reduce_motion(on: bool) -> void:
