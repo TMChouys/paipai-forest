@@ -18,6 +18,7 @@ PROFILES = {
                 2: [(0, 0), (18, 7), (32, 50), (201, 169), (255, 232)]},
         zones=[(0.2, -0.015, 0.48, 0.13, 0.085, 0.06)],
         neck=0.39, hip=0.105, foot=(0.135, -0.03), foot_y=(0.095, 0.135),  # 腳跟在 y≈0.09，後面是肚子
+        smooth_legs=True, thigh_y=(0.04, 0.13), thigh_z=(0.06, 0.11),  # 腿的權重只在腳印上，再沿著網格模糊（走路時肚子不會被撕開）
         shoulder=(0.215, -0.05, 0.35), paw=(0.245, -0.07, 0.175), arm_out=(0.2, 0.232),
         arm_z=(0.15, 0.37)),
     "rabbit": dict(
@@ -393,13 +394,16 @@ def seg_dist(p, a, b):
     ab = b - a
     t = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared))
     return (p - (a + ab * t)).length, t
+W_ALL = []
 for i, (x, y, z) in enumerate(co):
     p = Vector((x, y, z))
     w = {}
     w["head"] = smoothstep(NECK_Z - 0.015, NECK_Z + 0.02, z)
     # 腳掌全歸腿；往上到大腿外側也跟著腿（中間肚子不跟，免得被左右扯開）
     foot = (1.0 - smoothstep(0.055, 0.09, z)) * (1.0 - smoothstep(*P.get("foot_y", (0.1, 0.16)), y))  # 尾巴（和腳跟後面的肚子）不算腳
-    thigh = (1.0 - smoothstep(*P.get("thigh_z", (0.1, 0.17)), z)) * smoothstep(0.03, 0.08, abs(x))         * (1.0 - smoothstep(FOOT_Y + 0.03, FOOT_Y + 0.08, y))
+    if P.get("smooth_legs"):
+        foot *= smoothstep(0.035, 0.08, abs(x))   # 肚子正中間的底部不跟腳走
+    thigh = (1.0 - smoothstep(*P.get("thigh_z", (0.1, 0.17)), z)) * smoothstep(0.03, 0.08, abs(x))         * (1.0 - smoothstep(*P.get("thigh_y", (FOOT_Y + 0.03, FOOT_Y + 0.08)), y))
     legs = max(foot, thigh)
     side = smoothstep(-0.03, 0.03, x)
     w["leg-left"] = legs * side
@@ -419,6 +423,39 @@ for i, (x, y, z) in enumerate(co):
             w[k] /= tot
         tot = 1.0
     w["torso"] = 1.0 - tot
+    W_ALL.append(w)
+
+# 腿的權重沿著網格模糊（同位置的頂點合併計算）：交界變寬變平滑，肚子跟著腿慢慢彎，不會撕開
+if P.get("smooth_legs"):
+    bm = bmesh.new(); bm.from_mesh(mesh.data); bm.verts.ensure_lookup_table()
+    key = lambda v: (round(v.co.x, 5), round(v.co.y, 5), round(v.co.z, 5))
+    kid = {}
+    vk = [kid.setdefault(key(v), len(kid)) for v in bm.verts]
+    nb = [set() for _ in kid]
+    for e in bm.edges:
+        a, b = vk[e.verts[0].index], vk[e.verts[1].index]
+        if a != b:
+            nb[a].add(b); nb[b].add(a)
+    bm.free()
+    for g in ("leg-left", "leg-right"):
+        val = np.zeros(len(kid)); zk = np.zeros(len(kid))
+        for i, w in enumerate(W_ALL):
+            val[vk[i]] = max(val[vk[i]], w[g]); zk[vk[i]] = co[i][2]
+        pin = (zk < 0.03) & (val > 0.5)        # 腳底一定跟腳走
+        nbl = [list(n) for n in nb]
+        for it in range(25):
+            new = np.array([val[n].mean() if n else val[k] for k, n in enumerate(nbl)])
+            val = np.where(pin, val, 0.5 * val + 0.5 * new)
+        for i, w in enumerate(W_ALL):
+            w[g] = float(val[vk[i]])
+    for i, w in enumerate(W_ALL):
+        legs = w["leg-left"] + w["leg-right"]
+        others = w["head"] + w["arm-left"] + w["arm-right"]
+        if legs + others > 1.0:
+            f = (1.0 - others) / legs if legs > 0 else 0
+            w["leg-left"] *= f; w["leg-right"] *= f
+        w["torso"] = max(0.0, 1.0 - w["leg-left"] - w["leg-right"] - others)
+for i, w in enumerate(W_ALL):
     for k, v in w.items():
         if v > 0.001:
             groups[k].add([i], v, 'REPLACE')
