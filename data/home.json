@@ -98,6 +98,23 @@
         7
       ],
       "wall": "S"
+    },
+    {
+      "uid": "h_sky_door",
+      "type": "sky_door",
+      "cell": [
+        5,
+        0
+      ],
+      "wall": "N"
+    },
+    {
+      "uid": "h_sky_crates",
+      "type": "sky_crates",
+      "cell": [
+        5,
+        0
+      ]
     }
   ],
   "inventory": {

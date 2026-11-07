@@ -168,6 +168,20 @@ func _load_save() -> void:
 		var hf := FileAccess.open("res://data/home.json", FileAccess.READ)
 		var home: Dictionary = JSON.parse_string(hf.get_as_text())
 		save = {"version": 1, "home": home, "inventory": home.get("inventory", {}), "stars": {}, "codes": {}}
+	# 往天空樹頂的門（暫時封閉）：舊存檔補上北牆的門和堵住門的木箱
+	var has_sky := false
+	for it in save.home.get("furniture", []):
+		if it.get("type", "") == "sky_door":
+			has_sky = true
+	if not has_sky:
+		var used := false
+		for it in save.home.get("furniture", []):
+			var cl: Array = it.get("cell", [])
+			if it.get("wall", "") == "" and it.get("on", "") == "" and cl.size() == 2 and int(cl[0]) == 5 and int(cl[1]) == 0:
+				used = true
+		save.home.furniture.append({"uid": "h_sky_door", "type": "sky_door", "cell": [5, 0], "wall": "N"})
+		if not used:
+			save.home.furniture.append({"uid": "h_sky_crates", "type": "sky_crates", "cell": [5, 0]})
 	# 森林信箱固定在門口旁邊（屋外）：舊存檔裡擺在屋裡或收在背包的信箱都拿掉
 	var furn: Array = save.home.get("furniture", [])
 	for i in range(furn.size() - 1, -1, -1):
@@ -274,7 +288,7 @@ func _update_task_cue() -> void:
 ## 派派狼和派派兔是來拜訪的：站在門口正對面的小石路上，面向門
 static func visitor_spot(who: String, w: WorldModel) -> Vector3:
 	var dx := RoomView.door_x(w)
-	return Vector3(dx - 0.55, 0, w.depth + 1.7) if who == "wolf" else Vector3(dx + 0.55, 0, w.depth + 1.85)
+	return Vector3(dx - 0.6, 0, w.depth + 2.3) if who == "wolf" else Vector3(dx + 0.6, 0, w.depth + 2.45)
 
 
 ## 面向門（稍微朝向門的中間）
@@ -547,8 +561,18 @@ func _intro_story(gen: int) -> void:
 		if _intro_stop(gen): return
 		await _sweep(g, c)
 		if _intro_stop(gen): return
+	# 剩下的灰塵、蜘蛛網、防塵布一口氣掃乾淨（掃把收回行李）
+	g.carried = null
+	_clear_abandoned(0.9)
+	for c in [Vector2i(2, 4), Vector2i(5, 2), Vector2i(1, 6), Vector2i(6, 5)]:
+		_dust_puff(GopherActor.cell_pos(c))
+	await _intro_wait(1.3)
+	if _intro_stop(gen): return
+	g.happy()
+	await _intro_say(g, "（呼～打掃乾淨了！）", "think")
+	if _intro_stop(gen): return
 	w.gopher_cell = cur
-	# ---- 五、有人敲門！鏡頭轉到北邊，看得到南牆和門 ----
+	# ---- 五、打掃完，有人敲門！鏡頭轉到北邊，看得到南牆和門 ----
 	var wolf_spot := visitor_spot("wolf", w)
 	var rabbit_spot := visitor_spot("rabbit", w)
 	wolf_spot.y = RoomView.GRASS_Y
@@ -571,29 +595,22 @@ func _intro_story(gen: int) -> void:
 	g.hop(0.12)
 	await _intro_say(g, "（有人來了？）", "think")
 	if _intro_stop(gen): return
-	# 掃把先靠在牆邊，走到門口
-	var broom2 := g.carried
-	if broom2 != null:
-		var lean := GopherActor.cell_pos(cur) + Vector3(0.3, 0, 0.3)
-		lean.y = g.carry_anchor.position.y  # 握把的高度：放下後刷子剛好碰地
-		await g.drop(room, lean)
 	await _intro_path(g, cur, inside, "S")
 	w.gopher_cell = inside
 	if _intro_stop(gen): return
-	# 派派鼠開門，派派狼退回門口旁邊
+	# 派派鼠開門，派派狼退回小石路上
 	await room.swing_door(true)
 	if _intro_stop(gen): return
 	await _intro_walk(wolf, wolf_spot)
-	wolf.face_vector(visitor_look("wolf"))
 	if _intro_stop(gen): return
-	# ---- 六、派派鼠走到屋外，在門口跟他們說話（鏡頭回到屋外南邊）----
+	# ---- 六、派派鼠走到門口外，和站在小石路上的兩人隔一段距離說話 ----
 	room.cutaway = false
-	# 越過訪客肩膀看派派鼠：派派鼠面向鏡頭，派派狼、派派兔轉向派派鼠
-	rig.target_focus = Vector3(dx, 0.6, w.depth + 1.3)
-	rig.target_distance = 5.0
-	rig.target_yaw = deg_to_rad(-8.0)
-	rig.target_pitch = deg_to_rad(-26.0)
-	var talk_spot := _door_outside(0.95)
+	# 從西南邊斜斜看：派派鼠在門口、兩人在路上，中間空出來，三個人的臉都不會被擋住
+	rig.target_focus = Vector3(dx, 0.6, w.depth + 1.6)
+	rig.target_distance = 6.4
+	rig.target_yaw = deg_to_rad(-55.0)
+	rig.target_pitch = deg_to_rad(-20.0)
+	var talk_spot := _door_outside(0.85)
 	await _intro_walk(g, talk_spot)
 	if _intro_stop(gen): return
 	g.face("S")
@@ -601,32 +618,19 @@ func _intro_story(gen: int) -> void:
 	rabbit.face_vector(talk_spot - rabbit.position)
 	var lines := [
 		[wolf, "嘿！新來的，以後跟著我混。"],
-		[rabbit, "……哇，裡面好多灰塵。你在打掃喔？"],
-		[rabbit, "（推推眼鏡）我是派派兔，有需要幫忙就說喔～"],
+		[rabbit, "（推推眼鏡）我是派派兔。哇，屋子變得好乾淨！"],
 		[g, "……？"],
 		[wolf, "怎麼不說話？在派森小鎮，要用 Python 的 print() 才能說話喔！"],
 		[rabbit, "點派派狼接任務，學會 print() 就能跟我們聊天了！"],
-		[wolf, "先把家裡打掃乾淨吧，我們就在門口等你！"],
+		[wolf, "我們就在這裡等你，準備好就來找我！"],
 	]
 	for l in lines:
 		if l[0] == g:
 			g.confused()
 		await _intro_say(l[0], l[1])
 		if _intro_stop(gen): return
-	# ---- 七、派派鼠回屋裡，一口氣打掃乾淨 ----
-	g.happy()
-	await _intro_walk(g, GopherActor.cell_pos(inside), "N")
-	if _intro_stop(gen): return
-	room.cutaway = true
-	room.swing_door(false)
-	rig.reset_view()
-	_clear_abandoned(0.9)
-	for c in [Vector2i(2, 4), Vector2i(5, 2), Vector2i(1, 6)]:
-		_dust_puff(GopherActor.cell_pos(c))
-	await _intro_wait(1.4)
-	if _intro_stop(gen): return
-	g.happy()
-	await _intro_say(g, "（打掃乾淨了！）", "think")
+	# 說完大家都留在原地；派派鼠之後自己走回屋裡
+	await _intro_wait(0.6)
 
 
 ## 敲門：門板抖三下
@@ -866,10 +870,10 @@ func _intro_final_state() -> void:
 	for c in room.find_children("Suitcase", "", false, false):
 		c.queue_free()
 	g.carry_anchor.rotation = Vector3.ZERO
-	if not home_world.in_room(Vector2i(floor(g.position.x), floor(g.position.z))) or g.position.y < 0:
-		var c := _nearest_walkable(_door_inside() + Vector2i(1, -1))
-		g.position = GopherActor.cell_pos(c)
-		home_world.gopher_cell = c
+	# 說完話派派鼠站在門口外（格子位置記成門內那一格，之後自己從門走回屋裡）
+	g.position = _door_outside(0.85)
+	g.face("S")
+	home_world.gopher_cell = _door_inside()
 	g.moving = false
 	for who in ["wolf", "rabbit"]:
 		var a: GopherActor = room.npcs.get(who)
@@ -891,6 +895,7 @@ func _end_intro() -> void:
 	Engine.time_scale = 1.0
 	intro_running = false
 	roam_busy = false
+	roam_timer = 15.0  # 說完話大家留在原地；派派鼠在門口站一陣子，才自己走回屋裡
 	if is_instance_valid(intro_skip_btn):
 		intro_skip_btn.queue_free()
 	if is_instance_valid(intro_card):
@@ -1078,6 +1083,14 @@ func _roam() -> void:
 	var g := room.gopher
 	g.speed_scale = 0.8
 	var w := home_world
+	if g.position.z > w.depth:
+		await room.swing_door(true)
+		await _intro_walk(g, _door_outside(0.3))
+		await _intro_walk(g, GopherActor.cell_pos(_door_inside()))
+		w.gopher_cell = _door_inside()
+		room.swing_door(false)
+		roam_busy = false
+		return
 	var start := _nearest_walkable(w.gopher_cell)
 	# 40% 去使用家具
 	var users: Array = []
@@ -1358,6 +1371,9 @@ func _new_uid() -> String:
 func _pick_existing(uid: String) -> void:
 	var it: Dictionary = home_world.items[uid]
 	var d := WorldModel.def_of(it.type)
+	if it.type in ["sky_door", "sky_crates"]:
+		room.gopher.say("（往天空樹頂的樓梯被木箱堵住了，暫時上不去……）", "think")
+		return
 	if d.get("fixed", false):
 		room.gopher.say("門和窗戶不能搬喔！", "think")
 		return

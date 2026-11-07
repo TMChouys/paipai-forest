@@ -481,17 +481,17 @@ func _build_grid() -> void:
 ## 每項：[模型, 位置 x, z, 目標大小(最長邊/高度), 旋轉度數]
 const OUTDOOR := [
 	["tree_oak", -2.6, -1.5, 3.4, 0], ["tree_fat", 12.0, -3.0, 2.8, 40], ["tree_default", -3.2, 4.0, 3.2, 10],
-	["tree_detailed", 13.5, 7.5, 3.0, 80], ["tree_small", -2.0, 10.5, 2.2, 0], ["tree_oak", 9.5, 12.0, 3.2, 120],
-	["tree_detailed", -5.5, 13.5, 3.8, 0], ["tree_fat", 15.0, 2.0, 2.8, 0], ["tree_default", 4.0, -7.5, 3.0, 200],
+	["tree_detailed", 13.5, 7.5, 3.0, 80], ["tree_small", -2.0, 10.5, 2.2, 0], ["tree_oak", 11.6, 12.4, 3.2, 120],
+	["tree_detailed", -5.5, 11.8, 3.8, 0], ["tree_fat", 15.0, 2.0, 2.8, 0], ["tree_default", 4.0, -7.5, 3.0, 200],
 	["tree_oak", -6.5, 1.0, 3.6, 60], ["tree_default", -7.0, 8.0, 3.4, 150], ["tree_small", -4.8, -4.5, 2.4, 20],
-	["tree_detailed", 16.5, 11.5, 3.4, 10], ["tree_oak", 17.0, -2.5, 3.6, 90], ["tree_small", 11.5, 15.5, 2.4, 0],
-	["tree_fat", 0.5, 16.0, 3.0, 30], ["tree_default", 7.5, 17.5, 3.4, 0], ["tree_detailed", -3.0, 17.5, 3.6, 70],
-	["tree_oak", 14.0, 15.5, 3.2, 200], ["tree_small", 10.8, -5.5, 2.4, 0], ["tree_fat", -8.5, 12.5, 3.0, 0],
+	["tree_detailed", 16.5, 11.5, 3.4, 10], ["tree_oak", 17.0, -2.5, 3.6, 90], ["tree_small", 12.0, 16.8, 2.4, 0],
+	["tree_fat", -0.5, 17.6, 3.0, 30], ["tree_default", 7.5, 17.5, 3.4, 0], ["tree_detailed", -3.0, 17.5, 3.6, 70],
+	["tree_oak", 14.5, 16.6, 3.2, 200], ["tree_small", 10.8, -5.5, 2.4, 0], ["tree_fat", -8.5, 12.5, 3.0, 0],
 	["plant_bushLarge", -1.3, 1.2, 1.1, 0], ["plant_bush", -2.4, 7.4, 0.8, 30], ["plant_bush", 9.4, 3.0, 0.9, 0],
-	["plant_bushLarge", 10.0, 9.5, 1.2, 0], ["plant_bush", 1.2, 12.5, 0.9, 0], ["plant_bushLarge", 6.0, 13.5, 1.0, 50],
+	["plant_bushLarge", 10.0, 9.5, 1.2, 0], ["plant_bush", 0.4, 11.8, 0.9, 0], ["plant_bushLarge", 10.8, 10.6, 1.0, 50],
 	["flower_redA", -0.8, 8.6, 0.5, 0], ["flower_yellowA", 0.3, 9.7, 0.5, 40], ["flower_purpleA", 6.0, 8.8, 0.5, 0],
 	["flower_yellowA", 7.2, 9.3, 0.5, 70], ["flower_redA", -1.6, 3.0, 0.5, 20], ["flower_purpleA", 9.3, 7.8, 0.5, 0],
-	["mushroom_redGroup", -1.5, 9.8, 0.6, 0], ["mushroom_tanGroup", 9.8, 10.2, 0.6, 0], ["stump_round", -3.8, 7.5, 0.7, 0],
+	["mushroom_redGroup", -0.9, 10.2, 0.6, 0], ["mushroom_tanGroup", 9.8, 10.2, 0.6, 0], ["stump_round", -3.8, 7.5, 0.7, 0],
 	["mushroom_redGroup", 11.0, 4.5, 0.6, 30], ["mushroom_tanGroup", -2.5, -0.2, 0.6, 0],
 	["log", -4.2, 9.0, 1.6, 30], ["rock_smallA", 8.8, 11.0, 0.6, 0], ["rock_smallA", -1.0, 12.0, 0.5, 40],
 	["path_stone", 3.5, 8.8, 1.0, 0], ["path_stone", 3.6, 9.9, 1.0, 15], ["path_stone", 3.4, 11.0, 1.0, 0],
@@ -514,7 +514,7 @@ func build_outdoor(with_mailbox: bool = false) -> void:
 		mailbox = Models.furniture("mailbox")
 		mailbox.name = "Mailbox"
 		add_child(mailbox)
-		mailbox.position = Vector3(door_x(world) + 1.6, GRASS_Y, world.depth + 1.55)
+		mailbox.position = Vector3(door_x(world) + 2.2, GRASS_Y, world.depth + 2.7)
 		mailbox.rotation.y = 0.0
 	if scene == "town":
 		# 鎮中心當背景：把整個鎮中心挪過來，讓任務格子剛好在 town_spot 前面
@@ -542,60 +542,318 @@ func build_outdoor(with_mailbox: bool = false) -> void:
 		wrap.rotation_degrees.y = e[4]
 		holder.add_child(wrap)
 	_build_big_tree(holder)
+	_build_front_yard(holder)
 
 
 ## 地洞樹屋：房子蓋在一棵大樹的樹根底下。樹幹在北牆後面，粗樹根沿著兩側牆外伸出來。
 func _build_big_tree(holder: Node3D) -> void:
-	var bark := Models.mat(Color("7a5234"))
-	var bark_dark := Models.mat(Color("5e3d26"), false)
+	# 神木：好幾根樹幹長在一起的巨大老樹，板根往四面八方張開，樹冠又高又寬。
+	# 整棵樹在北牆後面；樹屋的北牆就靠在樹幹上（往天空樹頂的門通到樹幹裡）。
 	var w := float(world.width)
-	var r_top := w * 0.3
-	var r_bot := w * 0.38
-	var center := Vector3(w / 2.0, 0, -r_bot - 0.25)  # 整棵樹都在北牆後面，不會擋到房間
-	var trunk := MeshInstance3D.new()
-	trunk.mesh = Models.cyl(r_top, r_bot, 7.0)
-	trunk.material_override = bark
-	trunk.position = center + Vector3(0, 3.4, 0)
-	holder.add_child(trunk)
-	# 樹皮紋路
-	for i in range(12):
-		var a := float(i) / 12.0 * TAU
-		var r := (r_top + r_bot) / 2.0 + 0.02
-		if sin(a) > 0.3:
-			continue  # 靠房子那一側看不到，不用做
-		var stripe := MeshInstance3D.new()
-		stripe.mesh = Models.box(0.14, 6.6, 0.14)
-		stripe.material_override = bark_dark
-		stripe.position = center + Vector3(cos(a) * r, 3.2, sin(a) * r)
-		holder.add_child(stripe)
-	# 樹冠
-	var leaf := Models.mat(Color("6fae5a"))
-	var leaf2 := Models.mat(Color("82c06a"))
-	var crown := [[0, 8.2, 0, 4.2], [-3.2, 7.4, 1.0, 3.0], [3.4, 7.6, 0.6, 3.2], [-1.5, 9.6, -0.8, 2.8], [1.8, 9.4, 1.4, 2.6], [0, 7.0, 2.6, 2.6]]
+	var center := Vector3(w / 2.0, 0, -4.4)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261107
+	var barks: Array = [Models.mat(Color("6e4a30")), Models.mat(Color("7a5436")), Models.mat(Color("64432c"))]
+	var groove := Models.mat(Color("4a3020"), false)
+	var moss := Models.mat(Color("7f9e5c"), false)
+	# 主幹
+	var main_h := 11.0
+	_cyl_between(holder, center + Vector3(0, GRASS_Y, 0), center + Vector3(0, main_h, 0), 3.5, 2.3, barks[0])
+	# 長在一起的副幹（讓樹幹表面一條一條鼓起來，像老神木）
+	for i in range(8):
+		var ang := i * TAU / 8.0 + rng.randf_range(-0.15, 0.15)
+		var off := Vector3(cos(ang), 0, sin(ang)) * 2.6
+		var top_off := Vector3(cos(ang), 0, sin(ang)) * rng.randf_range(1.2, 1.8)
+		var hh := rng.randf_range(8.5, 12.5)
+		_cyl_between(holder, center + off + Vector3(0, GRASS_Y, 0), center + top_off + Vector3(0, hh, 0), 1.25, 0.6, barks[i % barks.size()])
+	# 深深的樹皮溝
+	for i in range(22):
+		var ang2 := i * TAU / 22.0
+		var gp := center + Vector3(cos(ang2), 0, sin(ang2)) * 3.15
+		var st := MeshInstance3D.new()
+		st.mesh = Models.box(0.16, rng.randf_range(5.0, 8.5), 0.16)
+		st.material_override = groove
+		st.position = gp + Vector3(0, 3.4, 0)
+		st.rotation.y = -ang2
+		holder.add_child(st)
+	# 樹幹上的青苔
+	for i in range(10):
+		var ang3 := rng.randf() * TAU
+		var mp := center + Vector3(cos(ang3), 0, sin(ang3)) * 3.2 + Vector3(0, rng.randf_range(0.5, 6.0), 0)
+		var mm := MeshInstance3D.new()
+		mm.mesh = Models.sphere(rng.randf_range(0.4, 0.7))
+		mm.material_override = moss
+		mm.position = mp
+		mm.scale = Vector3(1.0, 0.6, 0.35)
+		mm.rotation.y = -ang3 + PI / 2
+		holder.add_child(mm)
+	# 板根：從樹幹底部張開，貼著地面伸出去（不伸進屋子）
+	var ends := [Vector3(-3.4, 0, -0.7), Vector3(w + 3.4, 0, -0.7), Vector3(-5.0, 0, -1.6), Vector3(w + 5.0, 0, -1.6),
+		Vector3(-5.5, 0, -6.8), Vector3(w + 5.5, 0, -6.8), Vector3(-2.0, 0, -10.5), Vector3(w + 2.0, 0, -10.5), Vector3(w / 2.0, 0, -11.5)]
+	for e in ends:
+		var dir: Vector3 = (e - center)
+		dir.y = 0
+		dir = dir.normalized()
+		var start := center + dir * 2.8 + Vector3(0, 1.4, 0)
+		var mid := center + dir * 4.2 + Vector3(0, 0.45, 0)
+		var fin: Vector3 = e + Vector3(0, GRASS_Y + 0.05, 0)
+		_cyl_between(holder, start, mid, 0.95, 0.7, barks[0], Vector3(1, 1, 0.6))
+		_cyl_between(holder, mid, fin, 0.7, 0.12, barks[1], Vector3(1, 1, 0.7))
+	# 粗樹枝
+	var branches := [[Vector3(-1, 0, 0.1), 9.0], [Vector3(1, 0, 0.0), 9.6], [Vector3(-0.5, 0, -1), 10.2], [Vector3(0.6, 0, -0.9), 8.6], [Vector3(0, 0, -1), 11.0]]
+	for br in branches:
+		var bd: Vector3 = br[0].normalized()
+		var by: float = br[1]
+		var b0 := center + bd * 1.6 + Vector3(0, by, 0)
+		var b1 := center + bd * 6.0 + Vector3(0, by + 3.2, 0)
+		_cyl_between(holder, b0, b1, 0.75, 0.32, barks[2])
+	# 樹冠：好幾層大團的葉子（不蓋到房子上面）
+	var leaves: Array = [Models.mat(Color("5f8f4a")), Models.mat(Color("6e9e52")), Models.mat(Color("7fae5c")), Models.mat(Color("557f43"))]
+	var crown := [
+		[0.0, 14.5, -1.0, 4.6], [-5.2, 13.2, -0.6, 3.6], [5.4, 13.4, -0.4, 3.8], [-3.0, 16.4, -2.0, 3.4], [3.2, 16.2, -1.8, 3.4],
+		[0.0, 17.6, -3.2, 3.2], [-6.8, 12.0, -3.8, 3.2], [6.8, 12.2, -3.8, 3.3], [-2.5, 12.6, 1.2, 3.0], [2.8, 12.8, 1.0, 3.0],
+		[0.0, 13.0, -6.5, 4.0], [-4.5, 15.0, -5.2, 3.2], [4.6, 15.2, -5.0, 3.2], [-8.0, 10.6, -1.2, 2.4], [8.2, 10.8, -1.4, 2.4],
+	]
 	for i in range(crown.size()):
 		var c: Array = crown[i]
 		var ball := MeshInstance3D.new()
 		ball.mesh = Models.sphere(c[3])
-		ball.material_override = leaf if i % 2 == 0 else leaf2
+		ball.material_override = leaves[i % leaves.size()]
 		ball.position = center + Vector3(c[0], c[1], c[2])
+		ball.scale = Vector3(1.0, 0.78, 1.0)
+		ball.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # 樹冠太大，影子會把整間屋子蓋暗
 		holder.add_child(ball)
-	# 粗樹根：從樹幹沿著東西兩側牆外伸出來
-	for sx in [-1, 1]:
-		for j in range(2):
-			var root := MeshInstance3D.new()
-			var length := 3.6 - j * 1.0
-			root.mesh = Models.cyl(0.3 - j * 0.06, 0.1, length)
-			root.material_override = bark
-			var x0: float = w / 2.0 + sx * (w / 2.0 + 0.35 + j * 0.25)
-			root.position = Vector3(x0, GRASS_Y + 0.12, length / 2.0 - 0.6 + j * 1.6)
-			root.rotation_degrees = Vector3(90, 0, 0)
-			holder.add_child(root)
 	# 房子上方：從大樹延伸出來的木頭屋簷
 	var eave := MeshInstance3D.new()
 	eave.mesh = Models.box(w + 0.6, 0.18, 0.9)
 	eave.material_override = Models.mat(Color("8f5f38"))
 	eave.position = Vector3(w / 2.0, WALL_H + 0.25, -0.25)
 	holder.add_child(eave)
+	# 北牆後面：樹幹和牆之間塞滿樹皮（從屋裡往北看，門後面就是樹幹）
+	_cyl_between(holder, Vector3(w / 2.0, GRASS_Y, -1.75), Vector3(w / 2.0, WALL_H + 0.4, -1.7), 1.4, 1.2, barks[1], Vector3(2.4, 1, 0.75))
+
+
+# ---------------- 前院和溪流 ----------------
+## 溪流的中心線（z 隨 x 彎彎的）
+func stream_z(x: float) -> float:
+	return world.depth + 6.6 + 0.5 * sin(x * 0.35)
+
+
+func _build_front_yard(holder: Node3D) -> void:
+	var w := float(world.width)
+	var d := float(world.depth)
+	var dx := door_x(world)
+	var wood := Models.mat(Color("b88c5e"))
+	var wood_dark := Models.mat(Color("9a7048"))
+	# 前院的矮木柵欄：西、南、東三邊，南邊中間是小門口（小石路穿過去）
+	var fz := d + 4.6
+	var fx0 := -1.6
+	var fx1 := w + 1.6
+	var runs := [[Vector3(fx0, 0, d + 0.4), Vector3(fx0, 0, fz)], [Vector3(fx1, 0, d + 0.4), Vector3(fx1, 0, fz)],
+		[Vector3(fx0, 0, fz), Vector3(dx - 0.7, 0, fz)], [Vector3(dx + 0.7, 0, fz), Vector3(fx1, 0, fz)]]
+	for r in runs:
+		var a: Vector3 = r[0]
+		var b: Vector3 = r[1]
+		var ln := a.distance_to(b)
+		var n := maxi(1, int(ln / 0.75))
+		for i in range(n + 1):
+			var p := a.lerp(b, float(i) / n)
+			var post := MeshInstance3D.new()
+			post.mesh = Models.box(0.1, 0.62, 0.1)
+			post.material_override = wood
+			post.position = p + Vector3(0, GRASS_Y + 0.31, 0)
+			holder.add_child(post)
+			var cap := MeshInstance3D.new()
+			cap.mesh = Models.box(0.13, 0.05, 0.13)
+			cap.material_override = wood_dark
+			cap.position = p + Vector3(0, GRASS_Y + 0.64, 0)
+			holder.add_child(cap)
+		for ry in [0.22, 0.46]:
+			_cyl_between(holder, a + Vector3(0, GRASS_Y + ry, 0), b + Vector3(0, GRASS_Y + ry, 0), 0.03, 0.03, wood_dark)
+	# 柵欄門口兩邊的高柱子
+	for gx in [dx - 0.7, dx + 0.7]:
+		var gp := MeshInstance3D.new()
+		gp.mesh = Models.box(0.14, 0.9, 0.14)
+		gp.material_override = wood_dark
+		gp.position = Vector3(gx, GRASS_Y + 0.45, fz)
+		holder.add_child(gp)
+	# 胡蘿蔔園：東邊的一塊菜圃，三排胡蘿蔔
+	var soil := Models.mat(Color("54402e"), false)
+	var gc := Vector3(w - 0.4, 0, d + 2.9)
+	var bed := MeshInstance3D.new()
+	bed.mesh = Models.box(2.4, 0.12, 1.7)
+	bed.material_override = soil
+	bed.position = gc + Vector3(0, GRASS_Y + 0.04, 0)
+	holder.add_child(bed)
+	for side_x in [-1.25, 1.25]:
+		var edge := MeshInstance3D.new()
+		edge.mesh = Models.box(0.1, 0.18, 1.8)
+		edge.material_override = wood
+		edge.position = gc + Vector3(side_x, GRASS_Y + 0.07, 0)
+		holder.add_child(edge)
+	for side_z in [-0.9, 0.9]:
+		var edge2 := MeshInstance3D.new()
+		edge2.mesh = Models.box(2.6, 0.18, 0.1)
+		edge2.material_override = wood
+		edge2.position = gc + Vector3(0, GRASS_Y + 0.07, side_z)
+		holder.add_child(edge2)
+	var carrot := Models.mat(Color("e98a3a"))
+	var leaf := Models.mat(Color("6f9e48"), false)
+	for row in range(3):
+		for k in range(5):
+			var cp := gc + Vector3(-0.9 + k * 0.45, GRASS_Y + 0.1, -0.5 + row * 0.5)
+			var top := MeshInstance3D.new()
+			top.mesh = Models.sphere(0.07)
+			top.material_override = carrot
+			top.position = cp + Vector3(0, 0.03, 0)
+			holder.add_child(top)
+			for t in range(3):
+				var lf := MeshInstance3D.new()
+				lf.mesh = Models.cyl(0.005, 0.03, 0.22)
+				lf.material_override = leaf
+				lf.position = cp + Vector3(0, 0.15, 0)
+				lf.rotation_degrees = Vector3(18, t * 120 + k * 30, 0)
+				holder.add_child(lf)
+	# 菜園的小木牌
+	var sign := MeshInstance3D.new()
+	sign.mesh = Models.box(0.5, 0.28, 0.05)
+	sign.material_override = wood
+	sign.position = gc + Vector3(-1.45, GRASS_Y + 0.55, -0.95)
+	sign.rotation.y = 0.3
+	holder.add_child(sign)
+	var stake := MeshInstance3D.new()
+	stake.mesh = Models.box(0.05, 0.45, 0.05)
+	stake.material_override = wood_dark
+	stake.position = gc + Vector3(-1.45, GRASS_Y + 0.22, -0.95)
+	holder.add_child(stake)
+	var lbl := Label3D.new()
+	lbl.text = "胡蘿蔔園"
+	lbl.font = UIKit.font_bold()
+	lbl.font_size = 40
+	lbl.pixel_size = 0.0035
+	lbl.modulate = Color("5a3d2b")
+	lbl.outline_size = 0
+	lbl.position = gc + Vector3(-1.45, GRASS_Y + 0.55, -0.92) + Vector3(sin(0.3), 0, cos(0.3)) * 0.03
+	lbl.rotation.y = 0.3
+	holder.add_child(lbl)
+	# 溪流：彎彎的一條，從西流到東；兩岸是泥土和小石頭，水面慢慢流動
+	var water := StandardMaterial3D.new()
+	water.albedo_color = Color("8fc3cf")
+	water.roughness = 0.25
+	water.metallic_specular = 0.6
+	Models.storybook_texture(water)
+	var bank := Models.mat(Color("8a8f6a"), false)
+	var x := -14.0
+	var step := 0.9
+	while x < w + 14.0:
+		var z0 := stream_z(x)
+		var z1 := stream_z(x + step)
+		var mid := Vector3(x + step / 2, 0, (z0 + z1) / 2)
+		var ang := atan2(z1 - z0, step)
+		var bk := MeshInstance3D.new()
+		bk.mesh = Models.box(step + 0.12, 0.02, 2.2)
+		bk.material_override = bank
+		bk.position = mid + Vector3(0, GRASS_Y + 0.004, 0)
+		bk.rotation.y = -ang
+		holder.add_child(bk)
+		var wt := MeshInstance3D.new()
+		wt.mesh = Models.box(step + 0.12, 0.02, 1.5)
+		wt.material_override = water
+		wt.position = mid + Vector3(0, GRASS_Y + 0.016, 0)
+		wt.rotation.y = -ang
+		holder.add_child(wt)
+		x += step
+	if not UIKit.reduce_motion:
+		var tw := holder.create_tween().set_loops()
+		tw.tween_property(water, "uv1_offset", Vector3(1.0, 0, 0), 9.0).from(Vector3.ZERO)
+	# 岸邊的小石頭和蘆葦
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var stone := Models.mat(Color("a39d8e"))
+	var reed := Models.mat(Color("7c9a55"), false)
+	for i in range(34):
+		var sx := rng.randf_range(-12.0, w + 12.0)
+		if absf(sx - dx) < 1.0:
+			continue
+		var bank_side := 1.0 if i % 2 == 0 else -1.0
+		var sp := Vector3(sx, GRASS_Y, stream_z(sx) + bank_side * rng.randf_range(0.8, 1.05))
+		if i % 3 == 0:
+			for k in range(3):
+				var rd := MeshInstance3D.new()
+				rd.mesh = Models.cyl(0.012, 0.025, rng.randf_range(0.45, 0.7))
+				rd.material_override = reed
+				rd.position = sp + Vector3(k * 0.08, 0.28, k * 0.05)
+				rd.rotation_degrees = Vector3(rng.randf_range(-12, 12), 0, rng.randf_range(-12, 12))
+				holder.add_child(rd)
+		else:
+			var st := MeshInstance3D.new()
+			st.mesh = Models.sphere(rng.randf_range(0.1, 0.2))
+			st.material_override = stone
+			st.position = sp + Vector3(0, 0.03, 0)
+			st.scale = Vector3(1.3, 0.55, 1.0)
+			holder.add_child(st)
+	# 小木橋：小石路跨過溪流的地方
+	var bz := stream_z(dx)
+	for i in range(9):
+		var t := float(i) / 8.0
+		var pz := bz - 1.25 + t * 2.5
+		var py := GRASS_Y + 0.08 + sin(t * PI) * 0.22
+		var plank := MeshInstance3D.new()
+		plank.mesh = Models.box(1.15, 0.06, 0.26)
+		plank.material_override = wood if i % 2 == 0 else wood_dark
+		plank.position = Vector3(dx, py, pz)
+		plank.rotation.x = -cos(t * PI) * 0.28
+		holder.add_child(plank)
+	for side_x in [-0.6, 0.6]:
+		for i in range(3):
+			var t2 := float(i) / 2.0
+			var rp := MeshInstance3D.new()
+			rp.mesh = Models.box(0.07, 0.5, 0.07)
+			rp.material_override = wood_dark
+			rp.position = Vector3(dx + side_x, GRASS_Y + 0.33 + sin(t2 * PI) * 0.22, bz - 1.1 + t2 * 2.2)
+			holder.add_child(rp)
+		var r0 := Vector3(dx + side_x, GRASS_Y + 0.55, bz - 1.1)
+		var r1 := Vector3(dx + side_x, GRASS_Y + 0.77, bz)
+		var r2 := Vector3(dx + side_x, GRASS_Y + 0.55, bz + 1.1)
+		_cyl_between(holder, r0, r1, 0.035, 0.035, wood)
+		_cyl_between(holder, r1, r2, 0.035, 0.035, wood)
+	# 溪畔釣魚角：西邊岸上的小木平台、釣竿和水桶（派派狼常來釣魚）
+	var fx := dx - 3.6
+	var fzb := stream_z(fx) - 0.95
+	var deck := MeshInstance3D.new()
+	deck.mesh = Models.box(1.3, 0.08, 1.0)
+	deck.material_override = wood
+	deck.position = Vector3(fx, GRASS_Y + 0.1, fzb + 0.15)
+	holder.add_child(deck)
+	for k in range(4):
+		var lg := MeshInstance3D.new()
+		lg.mesh = Models.cyl(0.05, 0.05, 0.3)
+		lg.material_override = wood_dark
+		lg.position = Vector3(fx - 0.55 + (k % 2) * 1.1, GRASS_Y + 0.02, fzb - 0.3 + (1 if k >= 2 else 0) * 0.9)
+		holder.add_child(lg)
+	_cyl_between(holder, Vector3(fx + 0.4, GRASS_Y + 0.15, fzb - 0.2), Vector3(fx + 0.6, GRASS_Y + 1.25, fzb + 1.0), 0.025, 0.012, wood_dark)
+	var bucket := MeshInstance3D.new()
+	bucket.mesh = Models.cyl(0.16, 0.13, 0.26)
+	bucket.material_override = Models.mat(Color("6f8fa8"))
+	bucket.position = Vector3(fx - 0.35, GRASS_Y + 0.27, fzb - 0.05)
+	holder.add_child(bucket)
+
+
+## 在兩點之間放一根圓柱（r0 在 a 端、r1 在 b 端）；squash 可以把截面壓扁
+func _cyl_between(holder: Node3D, a: Vector3, b: Vector3, r0: float, r1: float, mat: Material, squash: Vector3 = Vector3.ONE) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	var ln := a.distance_to(b)
+	m.mesh = Models.cyl(r1, r0, ln)  # cyl(上半徑, 下半徑)：下端對著 a
+	m.material_override = mat
+	holder.add_child(m)
+	var up := (b - a).normalized()
+	var side := up.cross(Vector3.FORWARD)
+	if side.length() < 0.01:
+		side = up.cross(Vector3.RIGHT)
+	side = side.normalized()
+	var fwd := side.cross(up).normalized()
+	m.transform = Transform3D(Basis(side * squash.x, up * squash.y, fwd * squash.z), (a + b) / 2)
+	return m
 
 
 ## 來訪的角色。站在屋外就踩在草地高度。

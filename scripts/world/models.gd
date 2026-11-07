@@ -347,6 +347,42 @@ static func furniture(type: String) -> Node3D:
 				part(root, sphere(0.045), a, Vector3(0.3, 0.98, 0.03 + side_z * 0.075))
 				for hy in [0.38, 1.52]:
 					part(root, box(0.16, 0.05, 0.03), Color("4a3a30"), Vector3(-0.34, hy, 0.03 + side_z * 0.06), Vector3.ONE, Vector3.ZERO, false)
+		"sky_door":
+			# 樹幹裡的圓頂小門（往上是螺旋樓梯），現在用兩塊木板釘成 X 封起來
+			var bark := Color("5e3d26")
+			part(root, box(1.0, 1.6, 0.06), bark, Vector3(0, 0.8, 0.01))
+			part(root, cyl(0.5, 0.5, 0.06), bark, Vector3(0, 1.6, 0.01), Vector3.ONE, Vector3(90, 0, 0))
+			part(root, box(0.8, 1.55, 0.06), c, Vector3(0, 0.78, 0.04))
+			part(root, cyl(0.4, 0.4, 0.06), c, Vector3(0, 1.55, 0.04), Vector3.ONE, Vector3(90, 0, 0))
+			for gx in [-0.2, 0.0, 0.2]:
+				part(root, box(0.014, 1.9, 0.064), c.darkened(0.3), Vector3(gx, 0.95, 0.045), Vector3(1, 1, 1), Vector3.ZERO, false)
+			part(root, sphere(0.045), a, Vector3(0.27, 0.9, 0.09))
+			# 釘上去的木板
+			for deg in [34.0, -34.0]:
+				part(root, box(0.12, 1.5, 0.04), Color("c9a274"), Vector3(0, 1.05, 0.1), Vector3.ONE, Vector3(0, 0, deg))
+			# 小木牌：暫時封閉
+			part(root, box(0.6, 0.24, 0.03), Color("efe2c4"), Vector3(0, 1.75, 0.13))
+			var lbl := Label3D.new()
+			lbl.text = "暫時封閉"
+			lbl.font = UIKit.font_bold()
+			lbl.font_size = 44
+			lbl.pixel_size = 0.0032
+			lbl.modulate = Color("8a3b2a")
+			lbl.outline_size = 0
+			lbl.position = Vector3(0, 1.75, 0.15)
+			root.add_child(lbl)
+		"sky_crates":
+			# 疊在樓梯門前面的木箱
+			for cb in [[Vector3(-0.12, 0.25, 0.05), 0.5, 8.0], [Vector3(0.18, 0.22, 0.0), 0.44, -12.0], [Vector3(0.0, 0.72, 0.02), 0.42, 20.0]]:
+				var cpos: Vector3 = cb[0]
+				var cs: float = cb[1]
+				var holder := Node3D.new()
+				holder.position = cpos
+				holder.rotation_degrees.y = cb[2]
+				root.add_child(holder)
+				part(holder, box(cs, cs, cs), c, Vector3.ZERO)
+				for sy in [-0.3, 0.0, 0.3]:
+					part(holder, box(cs + 0.01, 0.05, cs + 0.01), a, Vector3(0, sy * cs, 0), Vector3.ONE, Vector3.ZERO, false)
 		_:
 			part(root, box(0.8 * w, float(d.height), 0.8 * dp), c, Vector3(0, float(d.height) / 2, 0))
 	return root

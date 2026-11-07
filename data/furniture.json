@@ -22,6 +22,8 @@
     "clock": {"name":"圓圓掛鐘","size":[1,1],"height":0.5,"kind":"wall","builder":"clock","color":"#fff7ee","accent":"#b07a4a"},
     "window": {"name":"小窗戶","size":[1,1],"height":0.9,"kind":"wall","builder":"window","color":"#fff7ee","accent":"#9fd3e6","fixed":true},
     "door": {"name":"木門","size":[1,1],"height":1.6,"kind":"wall","builder":"door","color":"#a8744f","accent":"#f6c85f","fixed":true},
+    "sky_door": {"name":"往天空樹頂的門（暫時封閉）","size":[1,1],"height":2.0,"kind":"wall","builder":"sky_door","color":"#7a5234","accent":"#f6c85f","fixed":true},
+    "sky_crates": {"name":"堵住樓梯門的木箱","size":[1,1],"height":1.0,"kind":"floor","builder":"sky_crates","color":"#c8955f","accent":"#8a5a35","fixed":true,"carry":false},
     "sofa": {"name":"軟綿綿沙發","size":[2,1],"height":0.8,"kind":"floor","use":"sit","model":"res://models/kenney/furniture/loungeSofa.glb","model_fill":0.95,"model_tint":"#ffe0d6","color":"#f4a6a6","builder":"crate","carry":false,"source":"Kenney Furniture Kit (CC0)"},
     "side_table": {"name":"小邊桌","size":[1,1],"height":0.6,"kind":"floor","surface":0.55,"model":"res://models/kenney/furniture/sideTable.glb","model_fill":0.75,"model_tint":"#fff4e6","color":"#d9a066","builder":"round_table","carry":true,"source":"Kenney Furniture Kit (CC0)"},
     "bench": {"name":"木長椅","size":[2,1],"height":0.6,"kind":"floor","use":"sit","model":"res://models/kenney/furniture/bench.glb","model_fill":0.95,"model_tint":"#fff4e6","color":"#c8955f","builder":"crate","source":"Kenney Furniture Kit (CC0)"},
