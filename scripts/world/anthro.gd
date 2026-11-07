@@ -79,6 +79,10 @@ static func from_glb(path: String, node_name: String, height: float = 1.0) -> No
 					tm.roughness = 1.0
 					tm.metallic = 0.0
 					tm.metallic_specular = 0.15
+					# 毛茸茸：邊緣一圈柔和的亮毛
+					tm.rim_enabled = true
+					tm.rim = 0.55
+					tm.rim_tint = 0.7
 					tm.next_pass = Models.outline(0.006, s)
 					toon_cache[key] = tm
 				mi.set_surface_override_material(si, toon_cache[key])
@@ -93,6 +97,8 @@ static func from_glb(path: String, node_name: String, height: float = 1.0) -> No
 				else:
 					sm.shader = TOON_SHADER
 					sm.set_shader_parameter("albedo", m.albedo_color)
+					if key in ["fur", "cream", "fur_dark", "ear_inner"]:
+						sm.set_shader_parameter("fur", 1.0)
 					if key in OUTLINE_MATS:
 						sm.next_pass = Models.outline(0.008, s)
 				toon_cache[key] = sm

@@ -15,6 +15,7 @@ static func mat(color: Color, outline: bool = true, glow: bool = false) -> Stand
 	m.albedo_color = color
 	m.roughness = 0.85
 	m.metallic_specular = 0.2
+	storybook_texture(m)
 	if glow:
 		m.emission_enabled = true
 		m.emission = color
@@ -29,6 +30,43 @@ static func mat(color: Color, outline: bool = true, glow: bool = false) -> Stand
 		m.next_pass = o
 	_mat_cache[key] = m
 	return m
+
+
+## 繪本材質：木頭色的東西加上北歐淺木紋，其他東西加上毛氈／紙張的細纖維
+static var _felt_tex: Texture2D
+static var _wood_tex: Texture2D
+
+
+static func is_wood(c: Color) -> bool:
+	return c.h > 0.03 and c.h < 0.13 and c.s > 0.22 and c.s < 0.72 and c.v > 0.35 and c.v < 0.93
+
+
+static func storybook_texture(m: BaseMaterial3D) -> void:
+	if m.albedo_texture != null:
+		return
+	if is_wood(m.albedo_color):
+		if _wood_tex == null:
+			_wood_tex = ImageTexture.create_from_image(RoomView._wood_image())
+		m.albedo_texture = _wood_tex
+		m.uv1_scale = Vector3(2.0, 2.0, 2.0)
+	else:
+		if _felt_tex == null:
+			var n := FastNoiseLite.new()
+			n.seed = 11
+			n.frequency = 0.09
+			n.fractal_octaves = 3
+			var img := n.get_seamless_image(128, 128, false, false, 0.15, true)
+			img.convert(Image.FORMAT_RGB8)
+			for y in range(128):
+				for x in range(128):
+					var v := 0.9 + 0.1 * img.get_pixel(x, y).r
+					img.set_pixel(x, y, Color(v, v, v * 0.98))
+			img.generate_mipmaps()
+			_felt_tex = ImageTexture.create_from_image(img)
+		m.albedo_texture = _felt_tex
+		m.uv1_scale = Vector3(3, 3, 3)
+	m.uv1_triplanar = true
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 
 
 ## 指定粗細的描邊材質（模型被縮放時用，讓線條看起來一樣粗）
@@ -80,6 +118,7 @@ static func glb(path: String, tint: Color = Color.WHITE) -> Node3D:
 					# Kenney 的單色材質匯入後偏亮偏白：轉回線性色彩，再套繪本色票
 					copy.albedo_color = KENNEY_PALETTE.get(String(src.resource_name), copy.albedo_color.srgb_to_linear())
 				copy.albedo_color *= tint
+				storybook_texture(copy)
 				copy.next_pass = mat(INK, true).next_pass
 				m.set_surface_override_material(s, copy)
 	return inst

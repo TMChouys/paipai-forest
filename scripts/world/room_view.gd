@@ -80,7 +80,7 @@ static func _wood_image() -> Image:
 			var ring := sin(TAU * (float(y) / Hh * 4.0 + w * 0.9))
 			var line := pow(0.5 + 0.5 * ring, 10.0)           # 細細的深色年輪線
 			var f := fib.get_pixel(x, y).r
-			var v := 1.0 - 0.18 * line - 0.05 * (0.5 + 0.5 * ring) + 0.09 * (f - 0.5)
+			var v := 1.0 - 0.11 * line - 0.04 * (0.5 + 0.5 * ring) + 0.06 * (f - 0.5)
 			img.set_pixel(x, y, Color(v, v * 0.97, v * 0.93))
 	img.generate_mipmaps()
 	_wood_img = img
@@ -88,8 +88,8 @@ static func _wood_image() -> Image:
 
 
 ## 木條材質：along_z = 木紋沿著 z 方向（拼花地板兩種方向）
-static func wood_mat(color: Color, along_z: bool) -> StandardMaterial3D:
-	var key := "%s|%s" % [color.to_html(), along_z]
+static func wood_mat(color: Color, along_z: bool, outline: bool = false) -> StandardMaterial3D:
+	var key := "%s|%s|%s" % [color.to_html(), along_z, outline]
 	if _wood_cache.has(key):
 		return _wood_cache[key]
 	var img := _wood_image()
@@ -105,8 +105,10 @@ static func wood_mat(color: Color, along_z: bool) -> StandardMaterial3D:
 	m.uv1_world_triplanar = true
 	# 一張圖：沿木紋 2 格長、橫向 0.5 格（每片木條約 2 條年輪）
 	m.uv1_scale = Vector3(0.5, 1.0, 2.0) if not along_z else Vector3(2.0, 1.0, 0.5)
-	m.roughness = 0.8
-	m.metallic_specular = 0.25
+	m.roughness = 0.9
+	m.metallic_specular = 0.15
+	if outline:
+		m.next_pass = Models.mat(Models.INK).next_pass
 	_wood_cache[key] = m
 	return m
 
@@ -119,42 +121,57 @@ func _build_floor() -> void:
 	# 底板（木條之間縫隙的深色）
 	var base := MeshInstance3D.new()
 	base.mesh = Models.box(world.width, 0.1, world.depth)
-	base.material_override = Models.mat(Color("6e4a2e"), false)
+	base.material_override = Models.mat(Color("9a8064"), false)
 	base.position = Vector3(world.width / 2.0, -0.065, world.depth / 2.0)
 	floor_root.add_child(base)
-	# 棋盤格木地板：深淺兩色交錯，每格三片木條、方向也交錯（拼花）
-	var light := [Color("e4b97f"), Color("dcb076"), Color("e8c08a")]
-	var dark := [Color("b07a49"), Color("a87243"), Color("b8824f")]
-	for x in range(world.width):
-		for z in range(world.depth):
-			var odd := (x + z) % 2 == 1
-			var tones: Array = dark if odd else light
-			for k in range(3):
+	# 北歐風淺色橡木長條地板：一排一排橫向木條，長短錯開接縫
+	var tones := [Color("dcc4a0"), Color("d3b993"), Color("e2cdaa"), Color("cfb38c")]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2024
+	var rows := int(round(world.depth / 0.25))
+	for r in range(rows):
+		var z0 := r * 0.25 + 0.125
+		var x := -rng.randf_range(0.0, 1.4)  # 每排起點錯開
+		while x < world.width:
+			var length := rng.randf_range(1.3, 2.6)
+			var a := maxf(x, 0.0)
+			var b := minf(x + length, float(world.width))
+			if b - a > 0.08:
 				var plank := MeshInstance3D.new()
-				var off := -0.32 + k * 0.32
-				if odd:
-					plank.mesh = Models.box(0.3, 0.1, 0.955)
-					plank.position = Vector3(x + 0.5 + off, -0.05, z + 0.5)
-				else:
-					plank.mesh = Models.box(0.955, 0.1, 0.3)
-					plank.position = Vector3(x + 0.5, -0.05, z + 0.5 + off)
-				plank.material_override = wood_mat(tones[(x * 3 + z * 5 + k) % 3], odd)
+				plank.mesh = Models.box(b - a - 0.02, 0.1, 0.235)
+				plank.position = Vector3((a + b) / 2.0, -0.05, z0)
+				plank.material_override = wood_mat(tones[rng.randi() % tones.size()], false)
 				floor_root.add_child(plank)
+			x += length
 	# 屋外：派派森林的草地
 	var grass := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(70, 70)
 	grass.mesh = pm
-	grass.material_override = Models.mat(Color("9cc97e"), false)
+	grass.material_override = Models.mat(Color("8fae7a"), false)
 	grass.position = Vector3(world.width / 2.0, GRASS_Y, world.depth / 2.0)
 	floor_root.add_child(grass)
 	# 圓形苔蘚地毯
 	var rug := MeshInstance3D.new()
 	rug.mesh = Models.cyl(1.4, 1.4, 0.02)
-	rug.material_override = Models.mat(Color("b9d48f"), false)
+	rug.material_override = Models.mat(Color("e9dcc2"), false)  # 羊毛圓地毯
 	rug.scale = Vector3(1.2, 1, 0.8)
 	rug.position = Vector3(world.width / 2.0, 0.005, world.depth / 2.0 + 0.5)
 	floor_root.add_child(rug)
+	# 地毯上的北歐小花紋：兩圈織紋
+	for ring in [[1.15, Color("c9a77c")], [0.75, Color("9fb08a")]]:
+		var band := MeshInstance3D.new()
+		band.mesh = Models.cyl(ring[0], ring[0], 0.022)
+		band.material_override = Models.mat(ring[1], false)
+		band.scale = Vector3(1.2, 1, 0.8)
+		band.position = rug.position + Vector3(0, 0.002, 0)
+		floor_root.add_child(band)
+		var inner := MeshInstance3D.new()
+		inner.mesh = Models.cyl(ring[0] - 0.08, ring[0] - 0.08, 0.024)
+		inner.material_override = Models.mat(Color("e9dcc2"), false)
+		inner.scale = Vector3(1.2, 1, 0.8)
+		inner.position = rug.position + Vector3(0, 0.003, 0)
+		floor_root.add_child(inner)
 
 
 func _build_walls() -> void:
@@ -169,30 +186,30 @@ func _build_walls() -> void:
 		holder.name = "Wall" + side
 		add_child(holder)
 		var s: Dictionary = specs[side]
-		var wall := MeshInstance3D.new()
-		wall.mesh = Models.box(s.size.x, s.size.y, s.size.z)
-		wall.material_override = Models.mat(Color("d9ab76"))
-		wall.position = s.pos
-		holder.add_child(wall)
 		var ws: Vector3 = s.size
 		var along_x: bool = side in ["N", "S"]
+		var wall := MeshInstance3D.new()
+		wall.mesh = Models.box(s.size.x, s.size.y, s.size.z)
+		wall.material_override = Models.mat(Color("f0e5cf"))  # 刷白的灰泥牆
+		wall.position = s.pos
+		holder.add_child(wall)
 		# 原木牆：一圈一圈橫向的木頭（凸出牆面一點點）
 		for i in range(6):
 			var log_m := MeshInstance3D.new()
 			log_m.mesh = Models.box(ws.x + (0.0 if along_x else 0.03), 0.05, ws.z + (0.03 if along_x else 0.0))
-			log_m.material_override = Models.mat(Color("b98654"), false)
+			log_m.material_override = Models.mat(Color("dcc9a4"), false)  # 淺松木橫板
 			log_m.position = Vector3(s.pos.x, 0.62 + i * 0.3, s.pos.z)
 			holder.add_child(log_m)
 		# 下半截：樹根色的護牆板
 		var wain := MeshInstance3D.new()
 		wain.mesh = Models.box(ws.x + (0.0 if along_x else 0.02), 0.55, ws.z + (0.02 if along_x else 0.0))
-		wain.material_override = Models.mat(Color("8a5a36"), false)
+		wain.material_override = wood_mat(Color("b39773"), not along_x)
 		wain.position = Vector3(s.pos.x, 0.275, s.pos.z)
 		holder.add_child(wain)
 		# 牆頂的橫樑
 		var beam := MeshInstance3D.new()
 		beam.mesh = Models.box(ws.x + 0.06, 0.12, ws.z + 0.06)
-		beam.material_override = Models.mat(Color("7a4f2f"))
+		beam.material_override = wood_mat(Color("9a7b58"), not along_x, true)
 		beam.position = Vector3(s.pos.x, WALL_H, s.pos.z)
 		holder.add_child(beam)
 		walls[side] = holder
@@ -207,7 +224,7 @@ func _build_grid() -> void:
 	mi.mesh = im
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(0.45, 0.3, 0.2, 0.45)
+	m.albedo_color = Color(0.36, 0.24, 0.15, 0.75)
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	im.surface_begin(Mesh.PRIMITIVE_LINES, m)
 	for x in range(world.width + 1):

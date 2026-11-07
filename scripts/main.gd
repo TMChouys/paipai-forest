@@ -111,28 +111,40 @@ func _setup_environment() -> void:
 	var e := Environment.new()
 	var sky := Sky.new()
 	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color("9fd3e6")
-	sm.sky_horizon_color = Color("fff1d6")
-	sm.ground_horizon_color = Color("fff1d6")
-	sm.ground_bottom_color = Color("bfe0a5")
+	sm.sky_top_color = Color("b9cbc4")
+	sm.sky_horizon_color = Color("efe2c8")
+	sm.ground_horizon_color = Color("efe2c8")
+	sm.ground_bottom_color = Color("aab68e")
 	sky.sky_material = sm
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color("fff1e0")
-	e.ambient_light_energy = 0.42
+	e.ambient_light_color = Color("f0e0cc")
+	e.ambient_light_energy = 0.4
 	e.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	e.tonemap_exposure = 1.0
 	env.environment = e
 	add_child(env)
 	var sun := DirectionalLight3D.new()
-	sun.light_color = Color("fff0d6")
-	sun.light_energy = 0.72
+	sun.light_color = Color("ffe6c4")
+	sun.light_energy = 0.6
 	sun.shadow_enabled = true
 	sun.shadow_blur = 2.0
 	sun.directional_shadow_max_distance = 40
 	sun.rotation_degrees = Vector3(-55, -30, 0)
 	add_child(sun)
+	# 繪本故事書濾鏡：蓋在 3D 畫面上、介面下面（介面的 CanvasLayer 是第 1 層）
+	var paper_layer := CanvasLayer.new()
+	paper_layer.layer = 0
+	add_child(paper_layer)
+	var paper := ColorRect.new()
+	paper.name = "StorybookPaper"
+	paper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pm := ShaderMaterial.new()
+	pm.shader = preload("res://shaders/storybook_paper.gdshader")
+	paper.material = pm
+	paper_layer.add_child(paper)
 
 
 # ---------------- 存檔 ----------------
