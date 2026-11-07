@@ -56,14 +56,6 @@
       "rot": 2
     },
     {
-      "uid": "h_mailbox",
-      "type": "mailbox",
-      "cell": [
-        2,
-        6
-      ]
-    },
-    {
       "uid": "h_pot",
       "type": "flower_pot",
       "cell": [

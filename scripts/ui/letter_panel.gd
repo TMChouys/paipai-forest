@@ -3,7 +3,6 @@ extends Control
 ## 森林信箱：左邊是收到的信，右邊是信紙。點信箱打開。
 
 signal read_letter(id: String)
-signal move_pressed
 
 const PATH := "res://data/letters.json"
 
@@ -85,10 +84,6 @@ func _build() -> void:
 	t.add_theme_font_override("font", UIKit.font_bold())
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
-	var mv := UIKit.focusable(UIKit.tertiary(UIKit.button("搬動信箱", func():
-		close()
-		move_pressed.emit(), "把信箱拿起來，換個位置擺")))
-	head.add_child(mv)
 	var x := UIKit.focusable(UIKit.button("×", close, "關閉（Esc）"))
 	x.custom_minimum_size = Vector2(36, 36)
 	x.add_theme_font_size_override("font_size", 20)

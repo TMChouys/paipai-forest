@@ -23,10 +23,13 @@ var grid_visible := true
 var scene := "house"
 var town_spot := ""
 var room_name := ""
+## 家門口旁的森林信箱（屋外固定的擺設，不是屋裡的家具）
+var mailbox: Node3D = null
 
 
 func build(w: WorldModel) -> void:
 	world = w
+	mailbox = null
 	for c in get_children():
 		c.queue_free()
 	furniture_nodes.clear()
@@ -331,7 +334,7 @@ const OUTDOOR := [
 	["tree_oak", 14.0, 15.5, 3.2, 200], ["tree_small", 10.8, -5.5, 2.4, 0], ["tree_fat", -8.5, 12.5, 3.0, 0],
 	["plant_bushLarge", -1.3, 1.2, 1.1, 0], ["plant_bush", -2.4, 7.4, 0.8, 30], ["plant_bush", 9.4, 3.0, 0.9, 0],
 	["plant_bushLarge", 10.0, 9.5, 1.2, 0], ["plant_bush", 1.2, 12.5, 0.9, 0], ["plant_bushLarge", 6.0, 13.5, 1.0, 50],
-	["flower_redA", -0.8, 8.6, 0.5, 0], ["flower_yellowA", 1.0, 9.1, 0.5, 40], ["flower_purpleA", 6.0, 8.8, 0.5, 0],
+	["flower_redA", -0.8, 8.6, 0.5, 0], ["flower_yellowA", 0.3, 9.7, 0.5, 40], ["flower_purpleA", 6.0, 8.8, 0.5, 0],
 	["flower_yellowA", 7.2, 9.3, 0.5, 70], ["flower_redA", -1.6, 3.0, 0.5, 20], ["flower_purpleA", 9.3, 7.8, 0.5, 0],
 	["mushroom_redGroup", -1.5, 9.8, 0.6, 0], ["mushroom_tanGroup", 9.8, 10.2, 0.6, 0], ["stump_round", -3.8, 7.5, 0.7, 0],
 	["mushroom_redGroup", 11.0, 4.5, 0.6, 30], ["mushroom_tanGroup", -2.5, -0.2, 0.6, 0],
@@ -341,7 +344,23 @@ const OUTDOOR := [
 ]
 
 
-func build_outdoor() -> void:
+## 南牆上門的中心 x（沒有門就用牆中間）
+static func door_x(w: WorldModel) -> float:
+	for uid in w.items:
+		var it: Dictionary = w.items[uid]
+		if it.type == "door" and it.wall == "S":
+			return it.cell.x + 0.5
+	return w.width / 2.0
+
+
+## with_mailbox：家裡才有門口的信箱（任務房間沒有）
+func build_outdoor(with_mailbox: bool = false) -> void:
+	if with_mailbox and scene != "town":
+		mailbox = Models.furniture("mailbox")
+		mailbox.name = "Mailbox"
+		add_child(mailbox)
+		mailbox.position = Vector3(door_x(world) + 1.0, GRASS_Y, world.depth + 0.55)
+		mailbox.rotation.y = 0.0
 	if scene == "town":
 		# 鎮中心當背景：把整個鎮中心挪過來，讓任務格子剛好在 town_spot 前面
 		var tv := TownView.new()

@@ -3,6 +3,23 @@ extends Control
 ## 爺爺給的舊照片：泛黃的拍立得，畫著大樹底下的地洞樹屋。開場時派派鼠拿出來對照。
 
 const SIZE := Vector2(300, 340)
+const PIC := Rect2(Vector2(18, 18), Vector2(264, 236))
+## 樹屋的實景快照（開場前用小相機拍下來）；沒有的話就畫一張簡單的圖
+var photo: Texture2D = null
+
+const SEPIA := """
+shader_type canvas_item;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	float l = dot(c.rgb, vec3(0.3, 0.59, 0.11));
+	vec3 sep = vec3(l * 1.08 + 0.05, l * 0.93 + 0.03, l * 0.72 + 0.01);
+	vec3 col = mix(c.rgb, sep, 0.72);
+	vec2 d = UV - 0.5;
+	col *= 1.0 - dot(d, d) * 0.85;
+	col = mix(col, vec3(0.93, 0.86, 0.72), 0.14);
+	COLOR = vec4(col, 1.0);
+}
+"""
 
 
 func _ready() -> void:
@@ -10,6 +27,21 @@ func _ready() -> void:
 	size = SIZE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pivot_offset = SIZE / 2
+	if photo != null:
+		# 舊照片：泛黃、四周暗一點
+		var tr := TextureRect.new()
+		tr.texture = photo
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		tr.position = PIC.position
+		tr.size = PIC.size
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sh := Shader.new()
+		sh.code = SEPIA
+		var m := ShaderMaterial.new()
+		m.shader = sh
+		tr.material = m
+		add_child(tr)
 
 
 func _draw() -> void:
@@ -18,8 +50,12 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2(6, 8), SIZE), Color(0.2, 0.12, 0.05, 0.25))
 	draw_rect(Rect2(Vector2.ZERO, SIZE), Color("f6efe0"))
 	draw_rect(Rect2(Vector2.ZERO, SIZE), ink, false, 2.0)
-	# 泛黃的照片
-	var pic := Rect2(Vector2(18, 18), Vector2(SIZE.x - 36, 236))
+	var pic := PIC
+	if photo != null:
+		draw_rect(pic.grow(1), ink, false, 1.0)
+		_caption(ink)
+		return
+	# 沒有快照：畫一張泛黃的簡圖
 	draw_rect(pic, Color("e3c99a"))
 	var sky := Rect2(pic.position, Vector2(pic.size.x, 150))
 	draw_rect(sky, Color("ecd8ae"))
@@ -45,7 +81,10 @@ func _draw() -> void:
 	# 照片泛黃的邊角
 	draw_rect(pic, Color(0.55, 0.38, 0.15, 0.12))
 	draw_rect(pic, ink, false, 1.0)
-	# 手寫的說明
+	_caption(ink)
+
+
+func _caption(ink: Color) -> void:
 	var f := UIKit.font_bold()
 	draw_string(f, Vector2(18, SIZE.y - 52), "派森小鎮・派派森林邊", HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 36, 18, ink)
 	draw_string(UIKit.font(), Vector2(18, SIZE.y - 24), "—— 爺爺的樹屋", HORIZONTAL_ALIGNMENT_RIGHT, SIZE.x - 36, 16, Color("8a6a50"))

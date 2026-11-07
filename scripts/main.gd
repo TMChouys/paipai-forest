@@ -88,11 +88,6 @@ func _ready() -> void:
 			save.letters_read.append(id)
 		_update_mailbox_flag()
 		_write_save())
-	letters.move_pressed.connect(func():
-		for k in home_world.items:
-			if home_world.items[k].type == "mailbox":
-				_pick_existing(k)
-				return)
 	book.task_chosen.connect(func(id):
 		book.visible = false
 		_enter_task(id))
@@ -173,15 +168,12 @@ func _load_save() -> void:
 		var hf := FileAccess.open("res://data/home.json", FileAccess.READ)
 		var home: Dictionary = JSON.parse_string(hf.get_as_text())
 		save = {"version": 1, "home": home, "inventory": home.get("inventory", {}), "stars": {}, "codes": {}}
-	# 拍拍鳥的見面禮：舊存檔也補發一次森林信箱
-	if not save.has("gift_mailbox"):
-		save.gift_mailbox = true
-		var placed := false
-		for it in save.home.get("furniture", []):
-			if it.get("type", "") == "mailbox":
-				placed = true
-		if not placed and int(save.inventory.get("mailbox", 0)) == 0:
-			save.inventory["mailbox"] = 1
+	# 森林信箱固定在門口旁邊（屋外）：舊存檔裡擺在屋裡或收在背包的信箱都拿掉
+	var furn: Array = save.home.get("furniture", [])
+	for i in range(furn.size() - 1, -1, -1):
+		if furn[i].get("type", "") == "mailbox":
+			furn.remove_at(i)
+	save.inventory.erase("mailbox")
 	home_world = WorldModel.from_layout(save.home)
 	uid_counter = int(save.get("uid_counter", 100))
 
@@ -216,10 +208,14 @@ func _enter_home() -> void:
 	bubbles.clear_all()
 	room.build(home_world)
 	room.set_grid_visible(false)  # 家裡不顯示格子（⋯ 選單可以打開）
-	room.build_outdoor()
+	room.build_outdoor(true)
 	room.gopher.bubble_requested.connect(_on_bubble)
 	_spawn_visitors(home_world)
 	rig.frame_room(home_world.width, home_world.depth)
+	# 家：鏡頭往門口挪一點，看得到門口外的派派狼、派派兔和信箱
+	rig.home_focus += Vector3(-0.2, 0, 1.1)
+	rig.home_distance *= 1.06
+	rig.reset_view()
 	rig.screen_offset = 0.0
 	rig.follow_target = null
 	hud.visible = true
@@ -275,23 +271,26 @@ func _update_task_cue() -> void:
 		tw.tween_property(m, "position:y", m.position.y, 0.6).set_trans(Tween.TRANS_SINE)
 
 
-## 派派狼和派派兔站在屋子西側外面（鏡頭從西南方看，這面牆會自動隱藏，看得到他們）
+## 派派狼和派派兔站在門口外面（門的西邊；信箱在門的東邊）
 static func visitor_spot(who: String, w: WorldModel) -> Vector3:
-	return Vector3(-1.0, 0, w.depth - 4.6) if who == "wolf" else Vector3(-1.25, 0, w.depth - 3.4)
+	var dx := RoomView.door_x(w)
+	return Vector3(dx - 1.0, 0, w.depth + 0.8) if who == "wolf" else Vector3(dx - 2.05, 0, w.depth + 0.95)
+
+
+## 站在門口等的方向：面向鏡頭這一側（看得到臉）
+const VISITOR_LOOK := Vector3(-0.35, 0, 1.0)
 
 
 func _spawn_visitors(w: WorldModel, who_list: Array = ["wolf", "rabbit"]) -> void:
 	for who in who_list:
-		var a := room.spawn_npc(who, visitor_spot(who, w), "E")
+		var a := room.spawn_npc(who, visitor_spot(who, w), "S")
+		a.face_vector(VISITOR_LOOK)
+		a.model.rotation.y = a.target_yaw
 		a.bubble_requested.connect(_on_bubble)
 
 
 static func _door_x(w: WorldModel) -> float:
-	for uid in w.items:
-		var it: Dictionary = w.items[uid]
-		if it.type == "door" and it.wall == "S":
-			return it.cell.x + 0.5
-	return w.width / 2.0
+	return RoomView.door_x(w)
 
 
 ## 任務房間：task.room.npcs 有寫就站在房間裡，不然在門口外
@@ -322,6 +321,40 @@ var intro_gen := 0  # 開場重新開始時，舊的開場流程看到編號不�
 var intro_props: Array = []  # 灰塵、蜘蛛網、防塵布、行李……開場結束就收掉
 var intro_dust: Dictionary = {}  # 格子 → 灰塵堆
 var intro_card: Control
+var intro_photo: Texture2D  # 爺爺的照片：開場前從門前小路拍的樹屋實景
+
+
+## 用一台小相機從門前小路拍一張樹屋（不拍角色和信箱，像很久以前的照片）
+func _snap_house_photo() -> Texture2D:
+	var hidden: Array = []
+	for n in [room.gopher, room.npcs.get("wolf"), room.npcs.get("rabbit"), room.mailbox]:
+		if n != null and is_instance_valid(n) and n.visible:
+			n.visible = false
+			hidden.append(n)
+	var was := room.cutaway
+	room.cutaway = false
+	room.update_cutaway(Vector3.ZERO)
+	var sv := SubViewport.new()
+	sv.size = Vector2i(528, 472)
+	sv.render_target_update_mode = SubViewport.UPDATE_ONCE
+	var cam := Camera3D.new()
+	cam.fov = 50
+	sv.add_child(cam)
+	add_child(sv)
+	var dx := _door_x(home_world)
+	cam.position = Vector3(dx + 1.2, 1.6, home_world.depth + 10.5)
+	cam.look_at(Vector3(dx + 0.6, 2.6, home_world.depth - 2.0), Vector3.UP)
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	var img := sv.get_texture().get_image()
+	sv.queue_free()
+	room.cutaway = was
+	for n in hidden:
+		if is_instance_valid(n):
+			n.visible = true
+	if img == null or img.is_empty():
+		return null
+	return ImageTexture.create_from_image(img)
 
 
 func _play_intro() -> void:
@@ -347,6 +380,9 @@ func _play_intro() -> void:
 	intro_skip_btn.offset_bottom = -16
 	intro_skip_btn.theme = UIKit.theme()
 	ui_layer.add_child(intro_skip_btn)
+	intro_photo = await _snap_house_photo()
+	if gen != intro_gen:
+		return
 	_build_abandoned_props()
 	await _intro_story(gen)
 	if gen != intro_gen:
@@ -509,10 +545,14 @@ func _intro_story(gen: int) -> void:
 		if _intro_stop(gen): return
 	w.gopher_cell = cur
 	# ---- 五、有人敲門！鏡頭轉到北邊，看得到南牆和門 ----
-	wolf.position = _door_outside(0.7)
-	rabbit.position = _door_outside(1.5) + Vector3(0.6, 0, 0)
+	var wolf_spot := visitor_spot("wolf", w)
+	var rabbit_spot := visitor_spot("rabbit", w)
+	wolf_spot.y = RoomView.GRASS_Y
+	rabbit_spot.y = RoomView.GRASS_Y
+	wolf.position = _door_outside(0.55)
+	rabbit.position = rabbit_spot
 	wolf.face("N")
-	rabbit.face("N")
+	rabbit.face_vector(VISITOR_LOOK)
 	wolf.model.rotation.y = wolf.target_yaw
 	rabbit.model.rotation.y = rabbit.target_yaw
 	wolf.visible = true
@@ -527,72 +567,60 @@ func _intro_story(gen: int) -> void:
 	g.hop(0.12)
 	await _intro_say(g, "（有人來了？）", "think")
 	if _intro_stop(gen): return
-	var meet := Vector2i(inside.x + 1, inside.y - 1)
-	await _intro_path(g, cur, meet, "S")
-	w.gopher_cell = meet
+	# 掃把先靠在牆邊，走到門口
+	var broom2 := g.carried
+	if broom2 != null:
+		await g.drop(room, GopherActor.cell_pos(cur) + Vector3(0.3, 0, 0.3))
+	await _intro_path(g, cur, inside, "S")
+	w.gopher_cell = inside
 	if _intro_stop(gen): return
+	# 派派鼠開門，派派狼退回門口旁邊
 	await room.swing_door(true)
 	if _intro_stop(gen): return
-	# 派派狼先進門，派派兔跟在後面
-	await _intro_walk(wolf, GopherActor.cell_pos(inside))
+	await _intro_walk(wolf, wolf_spot)
+	wolf.face_vector(Vector3(1, 0, -0.3))
 	if _intro_stop(gen): return
-	await _intro_path(wolf, inside, inside + Vector2i(0, -1), "E")
+	# ---- 六、派派鼠走到屋外，在門口跟他們說話（鏡頭回到屋外南邊）----
+	room.cutaway = false
+	rig.target_focus = Vector3(dx - 0.8, 0.5, w.depth + 1.1)
+	rig.target_distance = 6.0
+	rig.target_yaw = deg_to_rad(14.0)
+	rig.target_pitch = deg_to_rad(-16.0)
+	var talk_spot := _door_outside(1.0)
+	await _intro_walk(g, talk_spot)
 	if _intro_stop(gen): return
-	await _intro_walk(rabbit, GopherActor.cell_pos(inside))
-	if _intro_stop(gen): return
-	await _intro_path(rabbit, inside, inside + Vector2i(1, 0), "N")
-	if _intro_stop(gen): return
-	g.face("W")
-	rig.target_focus = Vector3(dx + 0.5, 0.4, w.depth - 1.5)
-	rig.target_distance = 5.5
-	# ---- 六、第一次見面 ----
+	g.face_vector(Vector3(-1, 0, 0.2))
+	rabbit.face_vector(Vector3(1, 0, -0.2))
 	var lines := [
 		[wolf, "嘿！新來的，以後跟著我混。"],
-		[rabbit, "……哇，好多灰塵。你在打掃喔？"],
-		[rabbit, "（推推眼鏡）我是派派兔，我們來幫忙吧～"],
+		[rabbit, "……哇，裡面好多灰塵。你在打掃喔？"],
+		[rabbit, "（推推眼鏡）我是派派兔，有需要幫忙就說喔～"],
 		[g, "……？"],
 		[wolf, "怎麼不說話？在派森小鎮，要用 Python 的 print() 才能說話喔！"],
 		[rabbit, "點派派狼接任務，學會 print() 就能跟我們聊天了！"],
+		[wolf, "先把家裡打掃乾淨吧，我們就在門口等你！"],
 	]
 	for l in lines:
 		if l[0] == g:
 			g.confused()
 		await _intro_say(l[0], l[1])
 		if _intro_stop(gen): return
-	# 大家一起打掃：剩下的灰塵、蜘蛛網、防塵布都清掉
-	wolf.happy()
-	rabbit.happy()
-	g.carried = null  # 掃把收起來（跟著灰塵一起消失）
-	g.carry_anchor.rotation = Vector3.ZERO
+	# ---- 七、派派鼠回屋裡，一口氣打掃乾淨 ----
+	g.happy()
+	await _intro_walk(g, GopherActor.cell_pos(inside), "N")
+	if _intro_stop(gen): return
+	room.cutaway = true
+	room.swing_door(false)
+	wolf.face_vector(VISITOR_LOOK)
+	rabbit.face_vector(VISITOR_LOOK)
+	rig.reset_view()
 	_clear_abandoned(0.9)
+	for c in [Vector2i(2, 4), Vector2i(5, 2), Vector2i(1, 6)]:
+		_dust_puff(GopherActor.cell_pos(c))
 	await _intro_wait(1.4)
 	if _intro_stop(gen): return
 	g.happy()
-	await _intro_say(wolf, "好啦，我們在外面等你！")
-	if _intro_stop(gen): return
-	# ---- 七、派派兔、派派狼從門口出去，沿著南牆外面走到西邊等 ----
-	rig.reset_view()
-	await _intro_path(rabbit, inside + Vector2i(1, 0), inside)
-	if _intro_stop(gen): return
-	_visitor_leave(rabbit, "rabbit")
-	await _intro_wait(0.9)
-	if _intro_stop(gen): return
-	await _intro_path(wolf, inside + Vector2i(0, -1), inside)
-	if _intro_stop(gen): return
-	await _visitor_leave(wolf, "wolf")
-	if _intro_stop(gen): return
-	room.swing_door(false)
-	g.face("S")
-	await _intro_wait(0.8)
-
-
-## 從門口出去 → 沿著南牆外 → 走到西牆外的老位置
-func _visitor_leave(a: GopherActor, who: String) -> void:
-	var spot := visitor_spot(who, home_world)
-	spot.y = RoomView.GRASS_Y
-	await _intro_walk(a, _door_outside(0.75))
-	await _intro_walk(a, Vector3(spot.x, RoomView.GRASS_Y, home_world.depth + 0.75))
-	await _intro_walk(a, spot, "E")
+	await _intro_say(g, "（打掃乾淨了！）", "think")
 
 
 ## 敲門：門板抖三下
@@ -651,6 +679,7 @@ func _show_photo_card(on: bool) -> void:
 		if is_instance_valid(intro_card):
 			intro_card.queue_free()
 		var card := PhotoCard.new()
+		card.photo = intro_photo
 		card.anchor_left = 0.5
 		card.anchor_right = 0.5
 		card.anchor_top = 0.5
@@ -834,7 +863,7 @@ func _intro_final_state() -> void:
 		a.position = spot
 		a.moving = false
 		a.visible = true
-		a.face("E")
+		a.face_vector(VISITOR_LOOK)
 	var h := room._door_hinge()
 	if h != null:
 		h.rotation.y = 0.0
@@ -1003,11 +1032,10 @@ func _update_mailbox_flag() -> void:
 	if room == null or home_world == null:
 		return
 	var up := LetterPanel.unread_count(letters.data, save.stars, save.get("letters_read", [])) > 0
-	for k in home_world.items:
-		if home_world.items[k].type == "mailbox" and room.furniture_nodes.has(k):
-			var flag: Node3D = room.furniture_nodes[k].find_child("Flag", true, false)
-			if flag != null:
-				flag.rotation_degrees.x = 0.0 if up else 90.0
+	if room.mailbox != null and is_instance_valid(room.mailbox):
+		var flag: Node3D = room.mailbox.find_child("Flag", true, false)
+		if flag != null:
+			flag.rotation_degrees.x = 0.0 if up else 90.0
 
 
 func _open_board() -> void:
@@ -1253,6 +1281,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.show_status(d.name + tip, get_viewport().get_mouse_position())
 		elif _wolf_under_mouse():
 			hud.show_status("派派狼：有任務要給你！", get_viewport().get_mouse_position())
+		elif _mailbox_under_mouse():
+			var nm := LetterPanel.unread_count(letters.data, save.stars, save.get("letters_read", []))
+			hud.show_status("森林信箱　點一下讀信" + ("（%d 封新信）" % nm if nm > 0 else ""), get_viewport().get_mouse_position())
 		else:
 			hud.show_status("", Vector2.ZERO)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -1262,6 +1293,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			if _wolf_under_mouse():
 				_open_board()
+				return
+			if _mailbox_under_mouse():
+				_open_letters()
 				return
 			var uid2 := _item_under_mouse()
 			if uid2 != "" and home_world.items[uid2].type == "mailbox":
@@ -1280,6 +1314,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				_cancel_held()
 			KEY_DELETE, KEY_X, KEY_BACKSPACE:
 				_store_held()
+
+
+func _mailbox_under_mouse() -> bool:
+	if room.mailbox == null or not is_instance_valid(room.mailbox):
+		return false
+	var p := room.mailbox.global_position + Vector3(0, 0.75, 0)
+	if rig.cam.is_position_behind(p):
+		return false
+	return rig.cam.unproject_position(p).distance_to(get_viewport().get_mouse_position()) < 50
 
 
 func _wolf_under_mouse() -> bool:
