@@ -17,7 +17,7 @@ PROFILES = {
                 1: [(0, 0), (48, 35), (92, 120), (241, 218), (255, 248)],
                 2: [(0, 0), (18, 7), (32, 50), (201, 169), (255, 232)]},
         zones=[(0.2, -0.015, 0.48, 0.13, 0.085, 0.06)],
-        neck=0.39, hip=0.105, foot=(0.135, -0.03), foot_y=(0.015, 0.075),  # 腳跟在 y≈0.01，後面是肚子
+        neck=0.39, hip=0.105, foot=(0.135, -0.03), foot_y=(0.095, 0.135),  # 腳跟在 y≈0.09，後面是肚子
         shoulder=(0.215, -0.05, 0.35), paw=(0.245, -0.07, 0.175), arm_out=(0.2, 0.232),
         arm_z=(0.15, 0.37)),
     "rabbit": dict(
@@ -89,8 +89,16 @@ print("SCALE", round(s, 4), "orig height", round(zmax - zmin, 3))
 # 原模型每邊是一整條長腳底（y -0.12 ~ +0.13）。前半（有腳趾）保留成一隻腳，
 # 腳印是橢圓：腳跟圓圓地收起來，不會像被斜斜削掉一塊；橢圓外面才抬到肚子底部。
 LIFT = 0.049                 # 肚子底部離地高度
-FOOT_CX, FOOT_CY = 0.152, -0.05   # 腳印中心（左右對稱）
+FOOT_CX, FOOT_CY = 0.152, -0.05   # 原本前腳的腳印中心（左右對稱）
 FOOT_RX, FOOT_RY = 0.08, 0.062    # 腳印半徑：腳跟收在原本前腳和肉墊之間的摺痕（y≈+0.01）
+FOOT_WIDEN = 1.12                 # 腳稍微加寬（以腳的中線為準）
+if P["feet"]:
+    for i in range(len(co)):
+        x, y, z = co[i]
+        w = (1.0 - smoothstep(0.045, 0.085, z)) * (1.0 - smoothstep(0.08, 0.12, y)) * smoothstep(0.03, 0.07, abs(x))
+        if w > 0:
+            sx = 1.0 if x > 0 else -1.0
+            co[i, 0] = sx * (FOOT_CX + (abs(x) - FOOT_CX) * (1.0 + (FOOT_WIDEN - 1.0) * w))
 moved = []
 for i in (range(len(co)) if P["feet"] else []):
     x, y, z = co[i]
@@ -112,6 +120,22 @@ for i in (range(len(co)) if P["feet"] else []):
         co[i, 0] = nx
         co[i, 2] = nz
         moved.append(i)
+# 參考派派兔／派派狼：腳長約身體前後厚度的 40–50%，腳的中心在身體重心下面（稍微偏前）。
+# 原本的前腳太短又太前面：整隻腳往後移 3 cm，再往後拉長 1.4 倍
+# （腳長 0.135 → 0.19，腳尖 -0.10、腳跟 +0.09，中心落在身體重心下）。
+# 拉的是有厚度的前腳本身，腳跟還是圓的；後面的肚子跟著往後讓開。
+TOE_Y, HEEL_Y, STRETCH, BACK = -0.129, 0.008, 1.4, 0.03
+SHIFT = BACK + (HEEL_Y - TOE_Y) * (STRETCH - 1.0)
+for i in (range(len(co)) if P["feet"] else []):
+    x, y, z = co[i]
+    w = (1.0 - smoothstep(0.05, 0.095, z)) * smoothstep(0.03, 0.07, abs(x))
+    if w <= 0:
+        continue
+    if y <= HEEL_Y:
+        dy = BACK + (max(y, TOE_Y) - TOE_Y) * (STRETCH - 1.0)
+    else:
+        dy = SHIFT * (1.0 - smoothstep(HEEL_Y, HEEL_Y + 0.13, y))
+    co[i, 1] = y + dy * w
 mesh.data.vertices.foreach_set("co", co.ravel())
 mesh.data.update()
 # 被抬平的地方做幾次平滑，避免出現平台和稜角
