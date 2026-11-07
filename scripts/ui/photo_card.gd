@@ -86,5 +86,5 @@ func _draw() -> void:
 
 func _caption(ink: Color) -> void:
 	var f := UIKit.font_bold()
-	draw_string(f, Vector2(18, SIZE.y - 52), "派森小鎮・派派森林邊", HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 36, 18, ink)
+	draw_string(f, Vector2(18, SIZE.y - 52), "派派森林・大樹下的樹屋", HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 36, 18, ink)
 	draw_string(UIKit.font(), Vector2(18, SIZE.y - 24), "—— 爺爺的樹屋", HORIZONTAL_ALIGNMENT_RIGHT, SIZE.x - 36, 16, Color("8a6a50"))

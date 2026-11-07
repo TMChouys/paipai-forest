@@ -547,7 +547,7 @@ func _giver() -> GopherActor:
 
 
 # ---------------- 開場故事 ----------------
-## 派派鼠帶著行李從外地來到派森小鎮，對照爺爺給的照片找到樹屋，進門打掃，派派狼來敲門。
+## 派派鼠帶著行李從外地來到派派森林，對照爺爺給的照片找到樹屋，進門打掃，派派狼來敲門。
 ## 所有角色都從南牆的門洞進出，屋裡沿著格子走（find_path），不穿牆。
 var intro_running := false
 var intro_advance := false  # 點一下畫面：跳到下一句
@@ -721,7 +721,7 @@ func _intro_story(gen: int) -> void:
 	rig.target_pitch = rig.pitch
 	rig.distance = 8.5
 	rig.target_distance = 8.5
-	g.say("（終於到了……派森小鎮。）", "think")
+	g.say("（終於到了……派派森林。）", "think")
 	await _intro_walk(g, _door_outside(4.5), "N")
 	if _intro_stop(gen): return
 	await _intro_walk(g, _door_outside(2.4), "N")
@@ -846,18 +846,26 @@ func _intro_story(gen: int) -> void:
 	g.face("S")
 	wolf.face_vector(talk_spot - wolf.position)
 	rabbit.face_vector(talk_spot - rabbit.position)
-	var lines := [
-		[wolf, "嘿！新來的，以後跟著我混。"],
-		[rabbit, "（推推眼鏡）我是派派兔。哇，屋子變得好乾淨！"],
+	var lines: Array = []
+	for t in FIRST_MEET.wolf:
+		lines.append([wolf, t])
+	for t in FIRST_MEET.rabbit:
+		lines.append([rabbit, t])
+	lines += [
 		[g, "……？"],
-		[wolf, "怎麼不說話？在派森小鎮，要用 Python 的 print() 才能說話喔！"],
-		[rabbit, "點派派狼接任務，學會 print() 就能跟我們聊天了！"],
+		[wolf, "怎麼不說話？在派派森林，要用 Python 的 print() 才能說話喔！"],
+		[rabbit, "走到派派狼旁邊說說話，就能接任務。學會 print() 就能跟我們聊天了！"],
 		[wolf, "我們就在這裡等你，準備好就來找我！"],
 	]
-	for l in lines:
+	for i in range(lines.size()):
+		var l: Array = lines[i]
 		if l[0] == g:
 			g.confused()
 		await _intro_say(l[0], l[1])
+		if i == FIRST_MEET.wolf.size() - 1:
+			_mark_met("wolf")
+		if i == FIRST_MEET.wolf.size() + FIRST_MEET.rabbit.size() - 1:
+			_mark_met("rabbit")
 		if _intro_stop(gen): return
 	# 說完大家都留在原地；派派鼠之後自己走回屋裡
 	await _intro_wait(0.6)
@@ -1435,6 +1443,7 @@ func _ground_under_mouse() -> Variant:
 func _click_walk_to(p: Vector3) -> void:
 	if room.gopher == null or intro_running:
 		return
+	talk_to = ""
 	click_target = p
 	click_serial += 1
 	_click_marker(p)
@@ -1490,6 +1499,13 @@ func _click_walk_loop() -> void:
 			if steps.is_empty():
 				break
 		if steps.is_empty():
+			if talk_to != "" and talk_tries < 3:
+				var who_a: GopherActor = room.npcs.get(talk_to)
+				if who_a != null and is_instance_valid(who_a) and g.position.distance_to(who_a.position) > 1.5:
+					talk_tries += 1
+					click_target = _near_point(who_a, g)
+					click_serial += 1
+					continue
 			break
 		await _do_step(g, steps.pop_front())
 	if is_instance_valid(g):
@@ -1500,6 +1516,12 @@ func _click_walk_loop() -> void:
 	click_walking = false
 	if mode == "home" and is_instance_valid(g) and g.position.z > room.path_end_z() - 2.0:
 		_leave_for_town()
+	elif mode == "home" and talk_to != "":
+		var who := talk_to
+		talk_to = ""
+		var ta: GopherActor = room.npcs.get(who)
+		if ta != null and is_instance_valid(ta) and is_instance_valid(g) and g.position.distance_to(ta.position) < 1.8:
+			_talk(who)
 
 
 ## 走到森林小徑的盡頭：出遠門去派森小鎮
@@ -1808,8 +1830,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				var n := LetterPanel.unread_count(letters.data, save.stars, save.get("letters_read", []))
 				tip = "　點一下讀信" + ("（%d 封新信）" % n if n > 0 else "")
 			hud.show_status(d.name + tip, get_viewport().get_mouse_position())
-		elif _wolf_under_mouse():
-			hud.show_status("派派狼：有任務要給你！", get_viewport().get_mouse_position())
+		elif _npc_under_mouse() != "":
+			var nn := _npc_under_mouse()
+			hud.show_status(("派派狼：走過去說話（接任務）" if nn == "wolf" else "派派兔：走過去說話") , get_viewport().get_mouse_position())
 		elif _yard_under_mouse() != "":
 			var yt: String = _yard_item(_yard_under_mouse()).get("type", "")
 			hud.show_status(WorldModel.def_of(yt).name + "　點一下拿起來", get_viewport().get_mouse_position())
@@ -1823,8 +1846,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if intro_running:
 				intro_advance = true
 				return
-			if _wolf_under_mouse():
-				_open_board()
+			if _npc_under_mouse() != "":
+				_approach(_npc_under_mouse())
 				return
 			if _mailbox_under_mouse():
 				_open_letters()
@@ -1944,6 +1967,92 @@ func _mailbox_under_mouse() -> bool:
 	if rig.cam.is_position_behind(p):
 		return false
 	return rig.cam.unproject_position(p).distance_to(get_viewport().get_mouse_position()) < 50
+
+
+## 滑鼠指著哪一個訪客（派派狼／派派兔）
+func _npc_under_mouse() -> String:
+	var mp := get_viewport().get_mouse_position()
+	var best := ""
+	var best_d := 55.0
+	for who in ["wolf", "rabbit"]:
+		var a: GopherActor = room.npcs.get(who)
+		if a == null or not is_instance_valid(a) or not a.visible:
+			continue
+		var p := a.global_position + Vector3(0, 0.6, 0)
+		if rig.cam.is_position_behind(p):
+			continue
+		var dd := rig.cam.unproject_position(p).distance_to(mp)
+		if dd < best_d:
+			best_d = dd
+			best = who
+	return best
+
+
+# ---------------- 跟派派狼、派派兔說話 ----------------
+const FIRST_MEET := {
+	"wolf": ["嘿！新來的，看你的樣子甚麼都不會。", "沒關係，以後跟著我混！我教你。"],
+	"rabbit": ["歡迎你加入派派森林！我也是剛來不久，", "我們一起學習吧！如果有不會的就問我，別客氣喔！"],
+}
+const RABBIT_TIPS := [
+	"有不會的就問我喔！",
+	"卡住的時候，先看看任務書吧！",
+	"print() 括號裡要放字串，字串要用引號包起來喔。",
+	"程式一行一行慢慢看，錯誤訊息也是好朋友！",
+	"胡蘿蔔今天也很有精神～",
+	"派派狼說話很兇，其實人很好喔。",
+]
+var talk_to := ""  # 走過去以後要跟誰說話
+var talk_tries := 0
+
+
+func _mark_met(who: String) -> void:
+	if not save.has("met"):
+		save.met = {}
+	save.met[who] = true
+
+
+## 點了派派狼或派派兔：派派鼠先走到他旁邊，到了才開始說話
+func _approach(who: String) -> void:
+	var a: GopherActor = room.npcs.get(who)
+	var g := room.gopher
+	if a == null or g == null:
+		return
+	talk_tries = 0
+	_click_walk_to(_near_point(a, g))
+	talk_to = who  # _click_walk_to 會清掉 talk_to，所以放在後面
+
+
+func _near_point(a: GopherActor, g: GopherActor) -> Vector3:
+	var dir := Vector3(g.position.x - a.position.x, 0, g.position.z - a.position.z)
+	if dir.length() < 0.1:
+		dir = Vector3(0, 0, 1)
+	return a.position + dir.normalized() * 0.85
+
+
+## 走到了：面對面說話。第一次見面先自我介紹；派派狼接著打開任務板，派派兔給一點小提示
+func _talk(who: String) -> void:
+	var a: GopherActor = room.npcs.get(who)
+	var g := room.gopher
+	if a == null or g == null or not is_instance_valid(a):
+		return
+	roam_busy = true
+	g.face_vector(a.position - g.position)
+	a.face_vector(g.position - a.position)
+	if not save.get("met", {}).get(who, false):
+		for t in FIRST_MEET[who]:
+			a.say(t, "say")
+			await get_tree().create_timer(maxf(2.4, 1.0 + t.length() * 0.12)).timeout
+			if mode != "home" or click_walking:
+				roam_busy = false
+				return
+		_mark_met(who)
+		_write_save()
+	roam_busy = false
+	roam_timer = 10.0
+	if who == "wolf":
+		_open_board()
+	else:
+		a.say(RABBIT_TIPS.pick_random(), "say")
 
 
 func _wolf_under_mouse() -> bool:
@@ -2485,6 +2594,8 @@ func _auto_shot(path: String) -> void:
 			_pick_yard(s.substr(11))
 			_store_held()
 			print("inventory ", save.inventory)
+		elif s.begins_with("approach:"):
+			_approach(s.substr(9))
 		elif s == "hobbies":
 			visitor_quick = true
 			_start_visitor_life()
