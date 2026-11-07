@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "note": "新玩家的家（8x8）。存檔後會改存在 user://save.json。",
+  "size": [
+    8,
+    8
+  ],
+  "gopher": {
+    "cell": [
+      4,
+      5
+    ],
+    "dir": "S"
+  },
+  "furniture": [
+    {
+      "uid": "h_bed",
+      "type": "bed",
+      "cell": [
+        0,
+        0
+      ]
+    },
+    {
+      "uid": "h_shelf",
+      "type": "bookshelf",
+      "cell": [
+        2,
+        0
+      ]
+    },
+    {
+      "uid": "h_table",
+      "type": "round_table",
+      "cell": [
+        5,
+        3
+      ]
+    },
+    {
+      "uid": "h_lamp",
+      "type": "mushroom_lamp",
+      "cell": [
+        5,
+        3
+      ],
+      "on": "h_table"
+    },
+    {
+      "uid": "h_chair",
+      "type": "chair_small",
+      "cell": [
+        5,
+        4
+      ],
+      "rot": 2
+    },
+    {
+      "uid": "h_pot",
+      "type": "flower_pot",
+      "cell": [
+        7,
+        0
+      ]
+    },
+    {
+      "uid": "h_window",
+      "type": "window",
+      "cell": [
+        4,
+        0
+      ],
+      "wall": "N"
+    },
+    {
+      "uid": "h_picture",
+      "type": "picture",
+      "cell": [
+        0,
+        3
+      ],
+      "wall": "W"
+    },
+    {
+      "uid": "h_clock",
+      "type": "clock",
+      "cell": [
+        6,
+        0
+      ],
+      "wall": "N"
+    },
+    {
+      "uid": "h_door",
+      "type": "door",
+      "cell": [
+        3,
+        7
+      ],
+      "wall": "S"
+    }
+  ],
+  "inventory": {
+    "teacup": 1,
+    "crate": 1,
+    "sofa": 1,
+    "side_table": 1,
+    "radio": 1,
+    "books": 1,
+    "plant_small": 1,
+    "bench": 1,
+    "coat_rack": 1,
+    "tv_vintage": 1
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "id": "D01_hello",
+  "order": 1,
+  "track": "main",
+  "difficulty": 1,
+  "title": "嘿！新來的",
+  "concept": "print() 說話",
+  "npc": "wolf",
+  "npc_line": "嘿！新來的，以後跟著我混。",
+  "sheet": {
+    "story": "派派鼠剛搬進派派森林的地洞樹屋，派派狼就帶著派派兔來拜訪了。派派狼大聲說：「嘿！新來的，以後跟著我混。」\n在派派森林裡，要用 [b]print()[/b] 才能說出話來。",
+    "given": [
+      "程式裡的 # 註解寫好了大家說的話，還有派派鼠要回答的話。",
+      "# 開頭的那一行是註解，電腦不會執行，只是寫給人看的。"
+    ],
+    "howto": [
+      ["print(\"你好\")", "派派鼠說出「你好」"],
+      ["# 這是註解", "寫給人看的筆記，不會執行"]
+    ],
+    "rules": [
+      "在每一段註解下面，用一個 print() 說出「派派鼠要回答」的那句話。",
+      "要說的話放在半形引號 \" \" 裡面，和註解一字不差（包括全形的「！」和「。」）。",
+      "只能用 print()。"
+    ],
+    "expected": "按「▶ 看示範」看派派鼠怎麼跟大家打招呼。"
+  },
+  "print_role": "dialogue",
+  "dialogue": [
+    {"who": "wolf", "say": "嘿！新來的，以後跟著我混。"},
+    {"who": "gopher"},
+    {"who": "rabbit", "say": "我是派派兔，大家都叫我學姊。歡迎來到派派森林！"},
+    {"who": "gopher"},
+    {"who": "wolf", "say": "好啦好啦，以後有事就找我！"},
+    {"who": "gopher"},
+    {"who": "rabbit", "say": "派派鼠會說話了，好棒～"}
+  ],
+  "room": {
+    "name": "派派鼠的樹屋",
+    "size": [8, 7],
+    "gopher": {"cell": [1, 3], "dir": "E"},
+    "npcs": [
+      {"who": "wolf", "cell": [3, 3], "dir": "W"},
+      {"who": "rabbit", "cell": [2, 5], "dir": "N"}
+    ],
+    "spots": {},
+    "furniture": [
+      {"uid": "bed1", "type": "bed", "cell": [0, 0]},
+      {"uid": "shelf1", "type": "bookshelf", "cell": [2, 0]},
+      {"uid": "pot1", "type": "flower_pot", "cell": [7, 0]},
+      {"uid": "table1", "type": "round_table", "cell": [6, 5]},
+      {"uid": "cup1", "type": "teacup", "cell": [6, 5], "on": "table1"},
+      {"uid": "win1", "type": "window", "cell": [4, 0], "wall": "N"},
+      {"uid": "door1", "type": "door", "cell": [3, 6], "wall": "S"}
+    ]
+  },
+  "goal_items": [],
+  "starter_code": "# 派派狼：嘿！新來的，以後跟著我混。\n# 派派鼠要回答：你好！我是派派鼠。\n\n\n# 派派兔：我是派派兔，大家都叫我學姊。歡迎來到派派森林！\n# 派派鼠要回答：學姊好！請多指教。\n\n\n# 派派狼：好啦好啦，以後有事就找我！\n# 派派鼠要回答：謝謝狼大哥！\n\n",
+  "given_vars": [],
+  "reference": "print(\"你好！我是派派鼠。\")\nprint(\"學姊好！請多指教。\")\nprint(\"謝謝狼大哥！\")\n",
+  "tests": [
+    {"name": "第一次見面", "vars": {}}
+  ],
+  "rules": [
+    {"id": "only_print"}
+  ],
+  "scoring": {},
+  "builtins": ["print"],
+  "reward": {"furniture": "mushroom_lamp", "message": "派派兔送你一盞「蘑菇小燈」當搬家禮物！"},
+  "author_notes": "第一次寫程式：print()、字串的引號、註解。全形標點是故意保留的，練習一字不差。"
+}

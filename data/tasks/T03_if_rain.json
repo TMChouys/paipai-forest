@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "id": "T03_if_rain",
+  "order": 6,
+  "track": "main",
+  "difficulty": 2,
+  "title": "下雨還是晴天？",
+  "concept": "選擇結構 if / else",
+  "npc": "rabbit",
+  "npc_line": "今天如果下雨，就把傘架搬到門口；沒下雨的話，把小花盆搬到門口曬太陽～",
+  "sheet": {
+    "story": "派派兔看著窗外說：「今天如果[b]下雨[/b]，就把[b]傘架[/b]搬到[b]門口[/b]；沒下雨的話，就把[b]小花盆[/b]搬到門口曬太陽～」",
+    "given": [
+      "程式第 1 行已經寫好 rain = True，True 代表下雨、False 代表沒下雨（可以改來試試看）。",
+      "傘架在 (6, 1)，小花盆在 (1, 1)，門口的空位在 (4, 7)。",
+      "在這個任務裡，print() 說出的話就是派派鼠的動作指令。"
+    ],
+    "rules": [
+      "必須保留變數 rain，並用 if / else 判斷要搬哪一個。",
+      "說的話必須和句型表一字不差。"
+    ],
+    "expected": "按「▶ 看示範」看下雨天派派鼠怎麼做。交件時，派派兔也會檢查晴天的情況！"
+  },
+  "print_role": "action",
+  "patterns": [
+    {"say": "走到傘架", "act": "walk_to", "args": {"spot": "傘架"}, "desc": "走到傘架前面"},
+    {"say": "走到花盆", "act": "walk_to", "args": {"spot": "花盆"}, "desc": "走到小花盆前面"},
+    {"say": "走到門口", "act": "walk_to", "args": {"spot": "門口"}, "desc": "走到門口空位前面"},
+    {"say": "搬起", "act": "pick_up", "desc": "把面前的家具抱起來"},
+    {"say": "放下", "act": "put_down", "desc": "把手上的家具放在面前"}
+  ],
+  "room": {
+    "name": "派派兔家",
+    "size": [8, 8],
+    "gopher": {"cell": [4, 4], "dir": "N"},
+    "spots": {
+      "傘架": {"cell": [6, 2], "face": "N"},
+      "花盆": {"cell": [1, 2], "face": "N"},
+      "門口": {"cell": [4, 6], "face": "S"}
+    },
+    "furniture": [
+      {"uid": "umbrella", "type": "umbrella_stand", "cell": [6, 1]},
+      {"uid": "pot", "type": "flower_pot", "cell": [1, 1]},
+      {"uid": "shelf1", "type": "bookshelf", "cell": [7, 5]},
+      {"uid": "table1", "type": "round_table", "cell": [2, 4]},
+      {"uid": "win1", "type": "window", "cell": [3, 0], "wall": "N"},
+      {"uid": "door1", "type": "door", "cell": [4, 7], "wall": "S"}
+    ]
+  },
+  "goal_items": ["umbrella", "pot"],
+  "starter_code": "rain = True\n",
+  "given_vars": ["rain"],
+  "reference": "rain = True\nif rain:\n    print(\"走到傘架\")\n    print(\"搬起\")\n    print(\"走到門口\")\n    print(\"放下\")\nelse:\n    print(\"走到花盆\")\n    print(\"搬起\")\n    print(\"走到門口\")\n    print(\"放下\")\n",
+  "tests": [
+    {"name": "下雨天 (rain = True)", "vars": {"rain": true}},
+    {"name": "隱藏測資：晴天", "hidden": true, "vars": {"rain": false}}
+  ],
+  "rules": [
+    {"id": "given_var", "name": "rain"},
+    {"id": "must_use", "node": "If", "label": "if"},
+    {"id": "must_use", "node": "Else", "label": "else"}
+  ],
+  "scoring": {},
+  "builtins": ["print", "str", "int", "float"],
+  "reward": {"furniture": "umbrella_stand", "message": "派派兔送你一個「青蛙傘架」！"},
+  "author_notes": "隱藏測資 rain=False 讓沒有 else 的寫法露餡。"
+}

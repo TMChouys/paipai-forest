@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "id": "D03_questions",
+  "order": 3,
+  "track": "main",
+  "difficulty": 2,
+  "title": "派派狼的問題",
+  "concept": "input() 與 print()",
+  "npc": "wolf",
+  "npc_line": "新來的，我來考考你！",
+  "sheet": {
+    "story": "派派狼想多認識派派鼠：「新來的，我來考考你！」\n用 [b]input()[/b] 讓派派狼問問題，你在跳出來的框框裡幫派派鼠回答；回答會存進變數，再用 [b]print()[/b] 說出完整的句子。",
+    "given": [
+      "input(\"問題\") 會讓派派狼說出問題，然後等你輸入回答。",
+      "input() 讀到的回答一定是文字。要拿來算數，要先用 int() 轉成整數。",
+      "交件時，派派狼會換別的回答再問一次！"
+    ],
+    "howto": [
+      ["food = input(\"問題？\")", "派派狼問問題，回答存進 food"],
+      ["n = int(input(\"問題？\"))", "把回答轉成整數再存起來"],
+      ["print(f\"我喜歡{food}！\")", "用 f-string 把回答放進句子"]
+    ],
+    "rules": [
+      "要用 input() 讓派派狼問問題，問題要和註解一字不差。",
+      "回答要用 f-string 說出來，和註解的句子一字不差（○○ 換成回答的內容）。",
+      "第二題的數字要用 int() 轉換後再計算。"
+    ],
+    "expected": "按「▶ 看示範」看派派鼠回答「蜂蜜蛋糕」和「3」的樣子。"
+  },
+  "print_role": "dialogue",
+  "dialogue": [
+    {"who": "wolf", "say": "新來的，我來考考你！"},
+    {"who": "wolf", "ask": true},
+    {"who": "gopher"},
+    {"who": "wolf", "say": "{food}？我也喜歡！"},
+    {"who": "wolf", "ask": true},
+    {"who": "gopher"},
+    {"who": "rabbit", "say": "哇，派派鼠好會吃～"},
+    {"who": "wolf", "say": "不錯不錯，以後就跟著我混吧！"}
+  ],
+  "room": {
+    "name": "派派鼠的樹屋",
+    "size": [8, 7],
+    "gopher": {"cell": [1, 3], "dir": "E"},
+    "npcs": [
+      {"who": "wolf", "cell": [3, 3], "dir": "W"},
+      {"who": "rabbit", "cell": [2, 5], "dir": "N"}
+    ],
+    "spots": {},
+    "furniture": [
+      {"uid": "bed1", "type": "bed", "cell": [0, 0]},
+      {"uid": "shelf1", "type": "bookshelf", "cell": [2, 0]},
+      {"uid": "pot1", "type": "flower_pot", "cell": [7, 0]},
+      {"uid": "table1", "type": "round_table", "cell": [6, 5]},
+      {"uid": "lamp1", "type": "mushroom_lamp", "cell": [6, 5], "on": "table1"},
+      {"uid": "win1", "type": "window", "cell": [4, 0], "wall": "N"},
+      {"uid": "door1", "type": "door", "cell": [3, 6], "wall": "S"}
+    ]
+  },
+  "goal_items": [],
+  "starter_code": "# 派派狼：新來的，我來考考你！\n\n# 1. 用 input() 讓派派狼問：你最喜歡吃什麼？\n#    把回答存進變數 food\n# 2. 派派鼠回答（用 f-string）：我最喜歡吃○○！（○○ 是 food）\n\n\n# 3. 用 input() 讓派派狼問：你一天吃幾顆橡果？\n#    回答是文字，用 int() 轉成整數，存進變數 n\n# 4. 派派鼠回答：我一天吃○顆，一個禮拜吃△顆！（△ = n × 7）\n\n",
+  "given_vars": [],
+  "reference": "food = input(\"你最喜歡吃什麼？\")\nprint(f\"我最喜歡吃{food}！\")\nn = int(input(\"你一天吃幾顆橡果？\"))\nprint(f\"我一天吃{n}顆，一個禮拜吃{n * 7}顆！\")\n",
+  "tests": [
+    {"name": "派派狼的問題（蜂蜜蛋糕、3）", "vars": {}, "inputs": ["蜂蜜蛋糕", "3"]},
+    {"name": "隱藏測資：蘋果派、5", "hidden": true, "vars": {}, "inputs": ["蘋果派", "5"]},
+    {"name": "隱藏測資：香菇、12", "hidden": true, "vars": {}, "inputs": ["香菇", "12"]}
+  ],
+  "rules": [
+    {"id": "must_call", "name": "input", "hint": "用 food = input(\"你最喜歡吃什麼？\") 讓派派狼問問題。"},
+    {"id": "must_call", "name": "int", "hint": "input() 讀到的是文字，要用 int() 轉成整數才能乘以 7。"},
+    {"id": "must_use", "node": "JoinedStr", "label": "f-string"}
+  ],
+  "scoring": {},
+  "builtins": ["print", "input", "str", "int", "float"],
+  "reward": {"furniture": "picture", "message": "派派狼送你一幅「繪本小畫」：「掛起來，以後就是自己人了！」"},
+  "author_notes": "input() 的提示文字由派派狼說出、玩家在回答框輸入；交件時由測資 inputs 自動回答。int() 轉換是常見錯誤點。"
+}

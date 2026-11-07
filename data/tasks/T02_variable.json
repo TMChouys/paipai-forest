@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "id": "T02_variable",
+  "order": 5,
+  "track": "main",
+  "difficulty": 1,
+  "title": "長桌要往前挪",
+  "concept": "變數與 f-string",
+  "npc": "rabbit",
+  "npc_line": "要開茶會了！長桌要往前推 a 格，不過 a 每天都不一樣喔～",
+  "sheet": {
+    "story": "派派兔拿著茶壺說：「要開茶會了！請把[b]長桌[/b]往前推 [b]a[/b] 格。不過 a 每天都不一樣，今天是 4，明天可能就變了喔～推完記得跟我回報！」",
+    "given": [
+      "程式第 1 行已經寫好 a = 4，這是今天的格數（可以改來試試看）。",
+      "這個任務的 print()：符合句型表的話是動作；其他的話會變成派派鼠對派派兔說的話。"
+    ],
+    "rules": [
+      "必須保留變數 a，推的格數要用 a，不可以直接寫數字。",
+      "推完以後，用 f-string 跟派派兔回報：學姊，長桌往前推了a格（a 換成實際的數字）。",
+      "說的話必須和句型表一字不差。"
+    ],
+    "expected": "按「▶ 看示範」看 a = 4 時派派鼠怎麼做。交件時，派派兔會偷偷換成別的 a 再檢查一次！"
+  },
+  "print_role": "mixed",
+  "patterns": [
+    {"say": "走到長桌", "act": "walk_to", "args": {"spot": "長桌"}, "desc": "走到長桌後面"},
+    {"say": "向前推{n}格", "act": "push", "desc": "把面前的家具往前推 n 格（n 是整數）"}
+  ],
+  "speech_example": "學姊，長桌往前推了4格",
+  "room": {
+    "name": "派派兔家",
+    "size": [8, 8],
+    "gopher": {"cell": [6, 4], "dir": "W"},
+    "spots": {
+      "長桌": {"cell": [2, 7], "face": "N"}
+    },
+    "furniture": [
+      {"uid": "ltable", "type": "long_table", "cell": [2, 6]},
+      {"uid": "chair_a", "type": "chair_small", "cell": [6, 1]},
+      {"uid": "chair_b", "type": "chair_small", "cell": [6, 2]},
+      {"uid": "shelf1", "type": "bookshelf", "cell": [0, 0]},
+      {"uid": "clock1", "type": "clock", "cell": [3, 0], "wall": "N"},
+      {"uid": "door1", "type": "door", "cell": [6, 7], "wall": "S"}
+    ]
+  },
+  "goal_items": ["ltable"],
+  "starter_code": "a = 4\n",
+  "given_vars": ["a"],
+  "reference": "a = 4\nprint(\"走到長桌\")\nprint(f\"向前推{a}格\")\nprint(f\"學姊，長桌往前推了{a}格\")\n",
+  "tests": [
+    {"name": "今天 (a = 4)", "vars": {"a": 4}},
+    {"name": "隱藏測資：明天", "hidden": true, "vars": {"a": 2}},
+    {"name": "隱藏測資：後天", "hidden": true, "vars": {"a": 5}}
+  ],
+  "rules": [
+    {"id": "given_var", "name": "a"},
+    {"id": "must_use", "node": "JoinedStr", "label": "f-string"},
+    {"id": "var_in_print", "name": "a"}
+  ],
+  "scoring": {},
+  "builtins": ["print", "str", "int", "float"],
+  "reward": {"furniture": "long_table", "message": "派派兔送你一張「長木桌」！"},
+  "author_notes": "隱藏測資抓 print(\"向前推4格\") 這種寫死的答案。"
+}

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "id": "S01_crate_weight",
+  "order": 101,
+  "track": "side",
+  "unlock_after_main": 6,
+  "difficulty": 3,
+  "title": "木箱有多重？",
+  "concept": "比較運算子與 if / else（邊界值）",
+  "npc": "rabbit",
+  "npc_line": "倉庫的木箱重量不一定喔！太重就用推的，不重就搬到倉庫角，最後告訴我有幾公斤～",
+  "sheet": {
+    "story": "派派兔翻著帳本說：「木箱的重量是 [b]w[/b] 公斤。[b]大於 5 公斤[/b]太重了，用推的往前推 2 格；[b]不然[/b]就搬起來放到[b]倉庫角[/b]。最後告訴我：箱子有w公斤，搞定！」",
+    "given": [
+      "程式第 1 行已經寫好 w = 7（可以改來試試看）。",
+      "木箱在 (3, 3)，倉庫角的空位在 (7, 1)。",
+      "這個任務的 print()：符合句型表的話是動作；其他的話會變成派派鼠對派派兔說的話。"
+    ],
+    "rules": [
+      "必須保留變數 w，並用 if / else 判斷。",
+      "注意：剛好 5 公斤不算「大於 5」！",
+      "最後用 f-string 回報：箱子有w公斤，搞定！（w 換成實際的數字）",
+      "說的話必須和句型表一字不差。"
+    ],
+    "expected": "按「▶ 看示範」看 w = 7 時派派鼠怎麼做。交件時派派兔會用好幾種重量檢查。"
+  },
+  "print_role": "mixed",
+  "patterns": [
+    {"say": "走到木箱", "act": "walk_to", "args": {"spot": "木箱"}, "desc": "走到木箱後面"},
+    {"say": "走到倉庫角", "act": "walk_to", "args": {"spot": "倉庫角"}, "desc": "走到倉庫角空位前面"},
+    {"say": "向前推{n}格", "act": "push", "desc": "把面前的家具往前推 n 格"},
+    {"say": "搬起", "act": "pick_up", "desc": "把面前的家具抱起來"},
+    {"say": "放下", "act": "put_down", "desc": "把手上的家具放在面前"}
+  ],
+  "speech_example": "箱子有7公斤，搞定！",
+  "room": {
+    "name": "派派兔的倉庫",
+    "size": [8, 7],
+    "gopher": {"cell": [1, 5], "dir": "N"},
+    "spots": {
+      "木箱": {"cell": [3, 4], "face": "N"},
+      "倉庫角": {"cell": [6, 1], "face": "E"}
+    },
+    "furniture": [
+      {"uid": "crate1", "type": "crate", "cell": [3, 3]},
+      {"uid": "crate2", "type": "crate", "cell": [0, 0]},
+      {"uid": "crate3", "type": "crate", "cell": [1, 0]},
+      {"uid": "shelf1", "type": "bookshelf", "cell": [7, 5]},
+      {"uid": "door1", "type": "door", "cell": [1, 6], "wall": "S"}
+    ]
+  },
+  "goal_items": ["crate1"],
+  "starter_code": "w = 7\n",
+  "given_vars": ["w"],
+  "reference": "w = 7\nprint(\"走到木箱\")\nif w > 5:\n    print(\"向前推2格\")\nelse:\n    print(\"搬起\")\n    print(\"走到倉庫角\")\n    print(\"放下\")\nprint(f\"箱子有{w}公斤，搞定！\")\n",
+  "tests": [
+    {"name": "w = 7", "vars": {"w": 7}},
+    {"name": "隱藏測資：剛好 5 公斤", "hidden": true, "vars": {"w": 5}},
+    {"name": "隱藏測資：2 公斤", "hidden": true, "vars": {"w": 2}}
+  ],
+  "rules": [
+    {"id": "given_var", "name": "w"},
+    {"id": "must_use", "node": "If", "label": "if"},
+    {"id": "must_use_op", "op": ">"},
+    {"id": "must_use", "node": "JoinedStr", "label": "f-string"}
+  ],
+  "scoring": {},
+  "builtins": ["print", "str", "int", "float"],
+  "reward": {"furniture": "star_lamp", "message": "好厲害！派派兔送你稀有的「星星落地燈」！"},
+  "author_notes": "支線困難題。w=5 邊界值抓 >= 的寫法。"
+}

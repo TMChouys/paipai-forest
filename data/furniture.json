@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "note": "家具定義。size = [寬(x), 深(z)] 以格為單位；kind: floor 落地 / top 可放在有 surface 的家具上 / wall 掛牆。builder 決定佔位模型怎麼拼，之後換成 GLB 時填 model 欄位。 source 標示模型來源與授權。",
+  "types": {
+    "chair_small": {"name":"小木椅","size":[1,1],"height":0.9,"model":"res://models/chair.glb","model_fill":0.8,"kind":"floor","use":"sit","builder":"chair","color":"#d9a066","accent":"#f2c58a","carry":true},
+    "sun_chair": {"name":"陽光小椅子","size":[1,1],"height":0.9,"model":"res://models/chair.glb","model_fill":0.8,"model_tint":"#ffe26a","kind":"floor","use":"sit","builder":"chair","color":"#f6c85f","accent":"#fff1b8","carry":true,"rarity":1},
+    "long_table": {"name":"長木桌","size":[2,1],"height":0.75,"kind":"floor","surface":0.75,"builder":"table","color":"#b07a4a","accent":"#d9a066","rarity":1,"model":"res://models/kenney/furniture/table.glb","model_fill":0.95,"model_tint":"#fff4e6","source":"Kenney Furniture Kit (CC0)"},
+    "round_table": {"name":"圓茶几","size":[1,1],"height":0.6,"kind":"floor","surface":0.6,"builder":"round_table","color":"#e8b98a","accent":"#c98d5b","carry":true,"model":"res://models/kenney/furniture/tableRound.glb","model_fill":0.85,"model_tint":"#fff4e6","source":"Kenney Furniture Kit (CC0)"},
+    "bed": {"name":"蘑菇小床","size":[1,2],"height":0.6,"kind":"floor","use":"sleep","builder":"bed","color":"#f4a6a6","accent":"#fff7ee"},
+    "bookshelf": {"name":"橡實書櫃","size":[1,1],"height":1.6,"kind":"floor","use":"read","builder":"shelf","color":"#a8744f","accent":"#7fb7a4","model":"res://models/kenney/furniture/bookcaseOpen.glb","model_fill":0.9,"model_tint":"#fff4e6","source":"Kenney Furniture Kit (CC0)"},
+    "flower_pot": {"name":"小花盆","size":[1,1],"height":0.7,"kind":"floor","builder":"plant","color":"#d97b5a","accent":"#7cc47a","carry":true,"model":"res://models/kenney/furniture/pottedPlant.glb","model_fill":0.7,"source":"Kenney Furniture Kit (CC0)"},
+    "umbrella_stand": {"name":"青蛙傘架","size":[1,1],"height":1,"kind":"floor","builder":"umbrella","color":"#7cc47a","accent":"#5aa8d9","carry":true,"rarity":1},
+    "crate": {"name":"木箱","size":[1,1],"height":0.7,"kind":"floor","builder":"crate","color":"#c8955f","accent":"#8a5a35","carry":true},
+    "star_lamp": {"name":"星星落地燈","size":[1,1],"height":1.5,"kind":"floor","builder":"lamp","color":"#fff1b8","accent":"#f6c85f","carry":true,"rarity":2,"glow":true},
+    "mushroom_lamp": {"name":"蘑菇檯燈","size":[1,1],"height":0.45,"kind":"top","builder":"mini_lamp","color":"#f28b82","accent":"#fff7ee","glow":true},
+    "teacup": {"name":"小茶杯","size":[1,1],"height":0.2,"kind":"top","builder":"cup","color":"#9fd3e6","accent":"#ffffff"},
+    "picture": {"name":"麥田小畫","size":[1,1],"height":0.6,"kind":"wall","builder":"picture","color":"#f6c85f","accent":"#8a5a35"},
+    "clock": {"name":"圓圓掛鐘","size":[1,1],"height":0.5,"kind":"wall","builder":"clock","color":"#fff7ee","accent":"#b07a4a"},
+    "window": {"name":"小窗戶","size":[1,1],"height":0.9,"kind":"wall","builder":"window","color":"#fff7ee","accent":"#9fd3e6","fixed":true},
+    "door": {"name":"木門","size":[1,1],"height":1.6,"kind":"wall","builder":"door","color":"#a8744f","accent":"#f6c85f","fixed":true},
+    "sofa": {"name":"軟綿綿沙發","size":[2,1],"height":0.8,"kind":"floor","use":"sit","model":"res://models/kenney/furniture/loungeSofa.glb","model_fill":0.95,"model_tint":"#ffe0d6","color":"#f4a6a6","builder":"crate","carry":false,"source":"Kenney Furniture Kit (CC0)"},
+    "side_table": {"name":"小邊桌","size":[1,1],"height":0.6,"kind":"floor","surface":0.55,"model":"res://models/kenney/furniture/sideTable.glb","model_fill":0.75,"model_tint":"#fff4e6","color":"#d9a066","builder":"round_table","carry":true,"source":"Kenney Furniture Kit (CC0)"},
+    "bench": {"name":"木長椅","size":[2,1],"height":0.6,"kind":"floor","use":"sit","model":"res://models/kenney/furniture/bench.glb","model_fill":0.95,"model_tint":"#fff4e6","color":"#c8955f","builder":"crate","source":"Kenney Furniture Kit (CC0)"},
+    "coat_rack": {"name":"衣帽架","size":[1,1],"height":1.5,"kind":"floor","model":"res://models/kenney/furniture/coatRackStanding.glb","model_fill":0.6,"model_tint":"#fff4e6","color":"#a8744f","builder":"lamp","carry":true,"source":"Kenney Furniture Kit (CC0)"},
+    "tv_vintage": {"name":"復古電視","size":[1,1],"height":0.9,"kind":"floor","model":"res://models/kenney/furniture/televisionVintage.glb","model_fill":0.8,"model_tint":"#fff4e6","color":"#a8744f","builder":"crate","carry":true,"source":"Kenney Furniture Kit (CC0)"},
+    "radio": {"name":"小收音機","size":[1,1],"height":0.25,"kind":"top","model":"res://models/kenney/furniture/radio.glb","model_fill":0.45,"color":"#d97b5a","builder":"cup","source":"Kenney Furniture Kit (CC0)"},
+    "books": {"name":"一疊書","size":[1,1],"height":0.2,"kind":"top","model":"res://models/kenney/furniture/books.glb","model_fill":0.45,"color":"#7fb7a4","builder":"cup","source":"Kenney Furniture Kit (CC0)"},
+    "plant_small": {"name":"小盆栽","size":[1,1],"height":0.3,"kind":"top","model":"res://models/kenney/furniture/plantSmall1.glb","model_fill":0.4,"color":"#7cc47a","builder":"cup","source":"Kenney Furniture Kit (CC0)"}
+  }
+}

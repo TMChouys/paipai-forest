@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "id": "D02_acorns",
+  "order": 2,
+  "track": "main",
+  "difficulty": 1,
+  "title": "帶了幾顆橡果？",
+  "concept": "變數、計算與 f-string",
+  "npc": "wolf",
+  "npc_line": "新來的，聽說你搬家帶了一堆橡果？",
+  "sheet": {
+    "story": "派派狼盯著派派鼠的行李：「新來的，聽說你搬家帶了一堆橡果？」\n派派兔也好奇地問：「你帶了幾袋？每袋有幾顆呀？」\n數字每次都可能不一樣，所以要用[b]變數[/b]算出來，再用 [b]f-string[/b] 說出來。",
+    "given": [
+      "程式最上面已經寫好 bags = 3（袋數）和 per_bag = 12（每袋幾顆），可以改來試試看。",
+      "交件時，派派狼會偷偷換成別的數字再問一次！"
+    ],
+    "howto": [
+      ["total = bags * per_bag", "算出總數，存進變數 total"],
+      ["half = total // 2", "// 是整數除法：除完只留整數"],
+      ["print(f\"有{total}顆\")", "f-string：{ } 裡的變數會換成它的值"]
+    ],
+    "rules": [
+      "保留 bags 和 per_bag 這兩行，數字要用變數算，不可以直接寫死。",
+      "說的話要用 f-string，和註解的句子一字不差（數字換成算出來的值）。"
+    ],
+    "expected": "按「▶ 看示範」看 bags = 3、per_bag = 12 時派派鼠怎麼回答。"
+  },
+  "print_role": "dialogue",
+  "dialogue": [
+    {"who": "wolf", "say": "新來的，聽說你搬家帶了一堆橡果？"},
+    {"who": "rabbit", "say": "你帶了幾袋？每袋有幾顆呀？"},
+    {"who": "gopher"},
+    {"who": "wolf", "say": "那一共是幾顆？算算看！"},
+    {"who": "gopher"},
+    {"who": "wolf", "say": "{total}顆！分我一半好不好？"},
+    {"who": "gopher"},
+    {"who": "rabbit", "say": "派派鼠好大方～"}
+  ],
+  "room": {
+    "name": "派派鼠的樹屋",
+    "size": [8, 7],
+    "gopher": {"cell": [1, 3], "dir": "E"},
+    "npcs": [
+      {"who": "wolf", "cell": [3, 3], "dir": "W"},
+      {"who": "rabbit", "cell": [2, 5], "dir": "N"}
+    ],
+    "spots": {},
+    "furniture": [
+      {"uid": "bed1", "type": "bed", "cell": [0, 0]},
+      {"uid": "shelf1", "type": "bookshelf", "cell": [2, 0]},
+      {"uid": "crate1", "type": "crate", "cell": [0, 4]},
+      {"uid": "crate2", "type": "crate", "cell": [0, 5]},
+      {"uid": "table1", "type": "round_table", "cell": [6, 5]},
+      {"uid": "win1", "type": "window", "cell": [4, 0], "wall": "N"},
+      {"uid": "door1", "type": "door", "cell": [3, 6], "wall": "S"}
+    ]
+  },
+  "goal_items": [],
+  "starter_code": "bags = 3       # 帶來的橡果袋數（派派狼檢查時會換數字）\nper_bag = 12   # 每袋有幾顆\n\n# 派派兔：你帶了幾袋？每袋有幾顆呀？\n# 派派鼠要回答（用 f-string）：我帶了3袋，每袋12顆！\n\n\n# 派派狼：那一共是幾顆？算算看！\n# 先算出 total = 袋數 × 每袋顆數，再回答：一共36顆橡果！\n\n\n# 派派狼：36顆！分我一半好不好？\n# 算出 half = total // 2，再回答：好呀，分你18顆！\n\n",
+  "given_vars": ["bags", "per_bag"],
+  "reference": "bags = 3\nper_bag = 12\nprint(f\"我帶了{bags}袋，每袋{per_bag}顆！\")\ntotal = bags * per_bag\nprint(f\"一共{total}顆橡果！\")\nhalf = total // 2\nprint(f\"好呀，分你{half}顆！\")\n",
+  "tests": [
+    {"name": "今天 (3 袋 × 12 顆)", "vars": {"bags": 3, "per_bag": 12}},
+    {"name": "隱藏測資：2 袋 × 15 顆", "hidden": true, "vars": {"bags": 2, "per_bag": 15}},
+    {"name": "隱藏測資：5 袋 × 7 顆", "hidden": true, "vars": {"bags": 5, "per_bag": 7}}
+  ],
+  "rules": [
+    {"id": "given_var", "name": "bags"},
+    {"id": "given_var", "name": "per_bag"},
+    {"id": "must_use", "node": "JoinedStr", "label": "f-string"},
+    {"id": "var_in_print", "name": "total"},
+    {"id": "var_in_print", "name": "half"}
+  ],
+  "scoring": {},
+  "builtins": ["print", "str", "int", "float"],
+  "reward": {"furniture": "flower_pot", "message": "派派狼塞給你一個「小花盆」：「拿去，別說我小氣！」"},
+  "author_notes": "變數、四則運算、整數除法、f-string。隱藏測資抓寫死數字的答案；5×7=35 讓 // 的整數除法派上用場。"
+}
