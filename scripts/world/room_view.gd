@@ -49,6 +49,68 @@ func build(w: WorldModel) -> void:
 	set_grid_visible(grid_visible)
 
 
+# ---------------- 木紋 ----------------
+static var _wood_cache := {}
+static var _wood_img: Image
+
+
+## 程式產生的木紋（可無縫拼接）：年輪條紋＋細纖維，灰階乘上木條顏色
+static func _wood_image() -> Image:
+	if _wood_img:
+		return _wood_img
+	var W := 512
+	var Hh := 128
+	# 扭動用的雜訊：生成小圖再拉長，變化沿著木紋方向很慢（木紋是長條，不是大理石）
+	var n := FastNoiseLite.new()
+	n.seed = 7
+	n.frequency = 0.05
+	n.fractal_octaves = 2
+	var warp := n.get_seamless_image(64, 64, false, false, 0.1, true)
+	warp.resize(W, Hh, Image.INTERPOLATE_BILINEAR)
+	# 纖維：拉長 12 倍的細雜訊 → 細長條紋
+	var fine := FastNoiseLite.new()
+	fine.seed = 3
+	fine.frequency = 0.12
+	var fib := fine.get_seamless_image(48, 128, false, false, 0.1, true)
+	fib.resize(W, Hh, Image.INTERPOLATE_BILINEAR)
+	var img := Image.create(W, Hh, false, Image.FORMAT_RGB8)
+	for y in range(Hh):
+		for x in range(W):
+			var w := warp.get_pixel(x, y).r
+			var ring := sin(TAU * (float(y) / Hh * 4.0 + w * 0.9))
+			var line := pow(0.5 + 0.5 * ring, 10.0)           # 細細的深色年輪線
+			var f := fib.get_pixel(x, y).r
+			var v := 1.0 - 0.18 * line - 0.05 * (0.5 + 0.5 * ring) + 0.09 * (f - 0.5)
+			img.set_pixel(x, y, Color(v, v * 0.97, v * 0.93))
+	img.generate_mipmaps()
+	_wood_img = img
+	return img
+
+
+## 木條材質：along_z = 木紋沿著 z 方向（拼花地板兩種方向）
+static func wood_mat(color: Color, along_z: bool) -> StandardMaterial3D:
+	var key := "%s|%s" % [color.to_html(), along_z]
+	if _wood_cache.has(key):
+		return _wood_cache[key]
+	var img := _wood_image()
+	if along_z:
+		img = img.duplicate()
+		img.rotate_90(CLOCKWISE)
+		img.generate_mipmaps()
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.albedo_texture = ImageTexture.create_from_image(img)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	# 一張圖：沿木紋 2 格長、橫向 0.5 格（每片木條約 2 條年輪）
+	m.uv1_scale = Vector3(0.5, 1.0, 2.0) if not along_z else Vector3(2.0, 1.0, 0.5)
+	m.roughness = 0.8
+	m.metallic_specular = 0.25
+	_wood_cache[key] = m
+	return m
+
+
 # ---------------- 建構 ----------------
 func _build_floor() -> void:
 	var floor_root := Node3D.new()
@@ -76,7 +138,7 @@ func _build_floor() -> void:
 				else:
 					plank.mesh = Models.box(0.955, 0.1, 0.3)
 					plank.position = Vector3(x + 0.5, -0.05, z + 0.5 + off)
-				plank.material_override = Models.mat(tones[(x * 3 + z * 5 + k) % 3], false)
+				plank.material_override = wood_mat(tones[(x * 3 + z * 5 + k) % 3], odd)
 				floor_root.add_child(plank)
 	# 屋外：派派森林的草地
 	var grass := MeshInstance3D.new()

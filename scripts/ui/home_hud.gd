@@ -1,6 +1,6 @@
 class_name HomeHUD
 extends Control
-## 平常（滑鼠玩）模式的介面：上方工具列、下方收藏托盤、操作說明、派派兔任務板。
+## 平常（滑鼠玩）模式的介面：上方精簡工具列（任務、收藏冊、⋯ 更多）、收藏托盤（按了才出現）、任務板。
 
 signal take_from_inventory(type: String)
 signal open_board
@@ -35,12 +35,24 @@ func _build() -> void:
 	stars_label = UIKit.label("★ 0", 18, Color("b8741a"))
 	stars_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	th.add_child(stars_label)
-	th.add_child(UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具"))
-	th.add_child(UIKit.button("格子 開／關", func(): grid_toggled.emit()))
-	th.add_child(UIKit.button("視角重設", func(): view_reset.emit()))
-	var bq := UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點門口的派派狼")
+	var bq := UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點屋外的派派狼")
 	bq.add_theme_color_override("font_color", Color("8a3b1a"))
 	th.add_child(bq)
+	th.add_child(UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具"))
+	# 不常用的功能收進「⋯」選單
+	var more := MenuButton.new()
+	more.text = "⋯"
+	more.tooltip_text = "更多"
+	more.flat = false
+	more.add_theme_font_size_override("font_size", 18)
+	more.theme_type_variation = "Button"  # 和其他按鈕同樣式
+	var pm := more.get_popup()
+	pm.theme = UIKit.theme()
+	pm.add_item("格子 開／關", 0)
+	pm.add_item("視角重設", 1)
+	pm.add_item("操作說明", 2)
+	pm.id_pressed.connect(_on_more)
+	th.add_child(more)
 
 	tray = PanelContainer.new()
 	tray.anchor_top = 1
@@ -50,6 +62,7 @@ func _build() -> void:
 	tray.offset_right = -10
 	tray.offset_top = -112
 	tray.offset_bottom = -40
+	tray.visible = false  # 一開始不顯示，按「收藏冊」才打開
 	add_child(tray)
 	var tv := HBoxContainer.new()
 	tv.add_theme_constant_override("separation", 10)
@@ -74,6 +87,7 @@ func _build() -> void:
 	help.offset_top = -34
 	help.offset_bottom = -8
 	help.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	help.visible = false  # 「⋯ → 操作說明」才顯示
 	add_child(help)
 
 	status = UIKit.label("", 15)
@@ -113,6 +127,16 @@ func _build() -> void:
 	var close := UIKit.button("關閉", func(): board.visible = false)
 	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	bv.add_child(close)
+
+
+func _on_more(id: int) -> void:
+	match id:
+		0:
+			grid_toggled.emit()
+		1:
+			view_reset.emit()
+		2:
+			help.visible = not help.visible
 
 
 func set_inventory(inv: Dictionary) -> void:

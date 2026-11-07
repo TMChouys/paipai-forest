@@ -148,6 +148,7 @@ func _enter_home() -> void:
 	task = {}
 	bubbles.clear_all()
 	room.build(home_world)
+	room.set_grid_visible(false)  # 家裡不顯示格子（⋯ 選單可以打開）
 	room.build_outdoor()
 	room.gopher.bubble_requested.connect(_on_bubble)
 	_spawn_visitors(home_world)
@@ -709,6 +710,7 @@ func _reset_task_room() -> void:
 	bubbles.clear_all()
 	var w := WorldModel.from_layout(task.room)
 	room.build(w)
+	room.set_grid_visible(true)  # 任務用格子座標
 	room.build_outdoor()
 	room.gopher.bubble_requested.connect(_on_bubble)
 	_spawn_task_npcs(w)
