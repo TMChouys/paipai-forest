@@ -388,14 +388,14 @@ def clear() -> tuple[Song, float]:
 
 
 def bell() -> tuple[Song, float]:
-    """上課鐘：學校的「噹噹噹噹」鐘聲（西敏寺鐘聲，1793 年的公共領域旋律），管鐘＋一點鋼片琴。"""
+    """上課鐘：學校鐘聲的第一段「噹噹噹噹」，小小聲、輕輕的（西敏寺鐘聲，1793 年的公共領域旋律），管鐘＋一點鋼片琴。"""
     s = Song(132, seed=7)
     tb = s.part(0, 14, vol=110, pan=64, rev=90)       # 管鐘
     cel = s.part(1, CELESTA, vol=60, pan=80, rev=80)
-    phr = "E5:1 C5:1 D5:1 G4:2 r:.5  G4:1 D5:1 E5:1 C5:2.5"
-    s.melody(tb, 0, phr, vel=96, legato=1.6, accent=0)
-    s.melody(cel, 0, phr, vel=50, octave=1, legato=1.2, accent=0)
-    return s, 11
+    phr = "E5:1 C5:1 D5:1 G4:3"   # 只要第一段，輕輕的
+    s.melody(tb, 0, phr, vel=62, legato=1.6, accent=0)
+    s.melody(cel, 0, phr, vel=34, octave=1, legato=1.2, accent=0)
+    return s, 6
 
 
 def battle() -> tuple[Song, float]:
@@ -446,7 +446,7 @@ def battle() -> tuple[Song, float]:
 
 TRACKS = {"home": (home, True, 0.11), "town": (town, True, 0.11),
           "task": (task, True, 0.09), "clear": (clear, False, 0.14),
-          "bell": (bell, False, 0.13), "battle": (battle, False, 0.16)}
+          "bell": (bell, False, 0.045), "battle": (battle, False, 0.16)}
 
 
 def main() -> None:
