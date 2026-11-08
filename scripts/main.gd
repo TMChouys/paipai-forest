@@ -17,6 +17,7 @@ var hud: HomeHUD
 var panel: TaskPanel
 var report: ReportPanel
 var book: QuestBook
+var lessons: LessonBook   # 慢慢館長的課（圖書館）
 var letters: LetterPanel
 var town: TownView
 var library: LibraryView
@@ -65,12 +66,14 @@ func _ready() -> void:
 	panel = TaskPanel.new()
 	report = ReportPanel.new()
 	book = QuestBook.new()
+	lessons = LessonBook.new()
 	letters = LetterPanel.new()
 	ui_layer.add_child(hud)
 	ui_layer.add_child(panel)
 	ui_layer.add_child(bubbles)
 	ui_layer.add_child(report)
 	ui_layer.add_child(book)
+	ui_layer.add_child(lessons)
 	ui_layer.add_child(letters)
 	offer = PanelContainer.new()
 	offer.theme = UIKit.theme()
@@ -90,6 +93,12 @@ func _ready() -> void:
 		music.set_enabled(on)
 		_write_save())
 	hud.open_book.connect(_open_book)
+	lessons.lesson_done.connect(func(cid):
+		if not save.has("lessons_done"):
+			save.lessons_done = []
+		if not save.lessons_done.has(cid):
+			save.lessons_done.append(cid)
+			_write_save())
 	hud.help_closed.connect(_start_play)
 	hud.town_toggled.connect(func():
 		if mode == "library":
@@ -1341,6 +1350,8 @@ func _enter_library(inside: bool) -> void:
 		for who in library.npcs:
 			library.npcs[who].bubble_requested.connect(_on_bubble)
 	library.set_inside(inside)
+	if inside:
+		library.walk_gopher(Vector3(1.5, 0, -4.0))   # 從大門走進大廳
 	hud.set_library_mode()
 	sun_light.directional_shadow_max_distance = 220   # 大教堂很大，影子要畫得遠
 	hud.show_status("", Vector2.ZERO)
@@ -1350,9 +1361,10 @@ func _enter_library(inside: bool) -> void:
 	rig.home_distance = library.view_distance()
 	rig.reset_view()
 	if not inside:
-		rig.target_pitch = deg_to_rad(-18.0)   # 從前庭往上看，教堂好高
+		rig.target_pitch = deg_to_rad(-22.0)
+		rig.target_yaw = deg_to_rad(-12.0)   # 正面看教堂（斜一點會撞進老橡樹）   # 從前庭往上看，教堂好高
 	else:
-		rig.target_pitch = deg_to_rad(-58.0)
+		rig.target_pitch = deg_to_rad(-34.0)
 	await get_tree().create_timer(0.6).timeout
 	if mode == "library" and library.inside == inside:
 		if inside:
@@ -1367,7 +1379,7 @@ func _library_input(event: InputEvent) -> void:
 		var who := library.actor_at(mp, rig.cam)
 		var hot := library.hotspot_at(mp, rig.cam) if who == "" else ""
 		if who != "":
-			hud.show_status(LibraryView.NAMES[who] + "　點一下聊天", mp)
+			hud.show_status(LibraryView.NAMES[who] + ("　點一下上課" if who == "turtle" else "　點一下聊天"), mp)
 		elif hot != "":
 			var h: Dictionary = library.hotspots[hot]
 			var tip: String = {"enter": "　點一下走進去", "exit": "　點一下回前庭", "town": "　點一下回鎮中心"}.get(h.act, "　點一下看看")
@@ -1376,11 +1388,20 @@ func _library_input(event: InputEvent) -> void:
 			hud.show_status("", Vector2.ZERO)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var who2 := library.actor_at(mp, rig.cam)
+		if who2 == "turtle":
+			library.npcs["turtle"].say("慢慢來，比較快。今天想學什麼呢？", "say")
+			_open_lessons()
+			return
 		if who2 != "":
 			library.talk(who2)
 			return
 		var hot2 := library.hotspot_at(mp, rig.cam)
 		if hot2 == "":
+			var fp = library.floor_point(mp, rig.cam)   # 點地板：派派鼠走過去
+			if fp != null:
+				_click_marker_at(library, fp)
+				rig.follow_target = library.npcs["gopher"]   # 圖書館很大：鏡頭跟著派派鼠
+				library.walk_gopher(fp)
 			return
 		match library.hotspots[hot2].act:
 			"enter":
@@ -1677,8 +1698,18 @@ func _click_walk_to(p: Vector3) -> void:
 		_click_walk_loop()
 
 
+## 慢慢館長的課
+func _open_lessons(cid: String = "") -> void:
+	hud.show_status("", Vector2.ZERO)
+	lessons.open(save.get("lessons_done", []), cid)
+
+
 ## 點下去的地方冒一個小圈圈
 func _click_marker(p: Vector3) -> void:
+	_click_marker_at(room, p)
+
+
+func _click_marker_at(parent: Node3D, p: Vector3) -> void:
 	var ring := MeshInstance3D.new()
 	var tm := TorusMesh.new()
 	tm.inner_radius = 0.16
@@ -1689,7 +1720,7 @@ func _click_marker(p: Vector3) -> void:
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.albedo_color = Color(1.0, 0.95, 0.75, 0.9)
 	ring.material_override = m
-	room.add_child(ring)
+	parent.add_child(ring)
 	ring.position = p + Vector3(0, 0.03, 0)
 	ring.scale = Vector3(0.5, 0.3, 0.5)
 	var tw := ring.create_tween().set_parallel()
@@ -2095,6 +2126,9 @@ func _input(event: InputEvent) -> void:
 	elif book.visible:
 		book.close()
 		get_viewport().set_input_as_handled()
+	elif lessons.visible:
+		lessons.close()
+		get_viewport().set_input_as_handled()
 	elif letters.visible:
 		letters.close()
 		get_viewport().set_input_as_handled()
@@ -2110,7 +2144,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if mode == "town" and not book.visible:
 		_town_input(event)
 		return
-	if mode == "library" and not book.visible:
+	if mode == "library" and not book.visible and not lessons.visible:
 		_library_input(event)
 		return
 	if mode != "home" or hud.board.visible or letters.visible or hud.help_panel.visible:
@@ -2850,6 +2884,25 @@ func _auto_shot(path: String) -> void:
 		elif s.begins_with("libtalk:"):
 			library.talk(s.substr(8))
 			await get_tree().create_timer(0.4).timeout
+		elif s == "lessons":
+			_open_lessons()
+			await get_tree().create_timer(0.4).timeout
+		elif s.begins_with("lesson:"):
+			_open_lessons(s.substr(7))
+			await get_tree().create_timer(0.4).timeout
+		elif s.begins_with("lessonstep:"):
+			lessons._go(int(s.substr(11)))
+			await get_tree().create_timer(0.3).timeout
+		elif s.begins_with("lessonpick:"):
+			lessons._pick(int(s.substr(11)))
+			await get_tree().create_timer(0.4).timeout
+		elif s == "lessonask":
+			lessons._asked = true
+			lessons._go(1)
+			await get_tree().create_timer(0.3).timeout
+		elif s.begins_with("libwalk:"):
+			var wp: Array = s.substr(8).split(",")
+			library.walk_gopher(Vector3(float(wp[0]), 0, float(wp[1])))
 		elif s.begins_with("libhot:"):
 			library.describe(s.substr(7))
 			await get_tree().create_timer(0.4).timeout

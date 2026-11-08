@@ -11,10 +11,10 @@ const Z_S := 14.0
 const WALL_H := 24.0
 const WALL_T := 0.8
 const Y_IN := 1.2
-const PLAT_H := 0.6                      # 館長平台比大廳高四階
+const PLAT_H := 1.5                      # 館長平台很高：八階樓梯上去
 const NAVE_X := 6.0                      # 兩排大柱子
 const GAL_LV := [7.0, 12.0, 17.0]        # 二、三、四樓的迴廊高度
-const GRID_ORIGIN := Vector3(-4, Y_IN, -7)
+const GRID_ORIGIN := Vector3(-4, Y_IN, -6)
 const GRID_SIZE := Vector2i(8, 6)
 const GATE_Z := 46.0
 const KENNEY_NATURE := "res://models/kenney/nature/%s.glb"
@@ -36,7 +36,7 @@ const NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "gopher": "派�
 const BUBBLE_H := {"turtle": 1.4, "rabbit": 1.6, "gopher": 1.3}
 const LINES := {
 	"turtle": ["慢慢來，比較快。", "你覺得呢？先猜，再看。", "一個概念一本書，都在右邊的書櫃。", "左邊是閱讀教室，派派兔常在那裡。", "樓上還在整理，以後再帶你上去。"],
-	"rabbit": ["館長是我的老師喔！", "讀書先看例子，再猜猜看會怎樣。", "不懂的地方，問館長最清楚。"],
+	"rabbit": ["歡迎光臨！我在借書櫃台打工～", "想學新東西嗎？上樓梯去問館長喔！", "我只負責借書還書，上課要找館長！", "館長是我的老師，他講得最清楚。"],
 	"gopher": ["好高的圖書館！", "書好多喔……"],
 }
 
@@ -53,6 +53,16 @@ var _line_i: Dictionary = {}
 var _batches: Dictionary = {}
 var _unit_box := BoxMesh.new()
 var _unit_prism := PrismMesh.new()
+## 點地板讓派派鼠走過去：0.5 公尺一格的找路網格（室內和前庭在同一張網格，但中間被牆隔開）
+const CELL := 0.5
+const NAV_X0 := -24.0
+const NAV_Z0 := -18.0
+const NAV_W := 96      # x -24..24
+const NAV_H := 130     # z -18..47
+const STEPS_Z0 := Z_S + WALL_T + 0.3   # 大門外第一階的中心
+var nav := AStarGrid2D.new()
+var _walk_serial := 0
+var _walk_tween: Tween
 
 
 func build() -> void:
@@ -78,9 +88,10 @@ func build() -> void:
 	_reading_room()
 	_bookshelves()
 	_flush_batches()
+	_build_nav()
 	built = true
-	_spawn("turtle", Vector3(0, Y_IN + PLAT_H, -12.6), "S")
-	_spawn("rabbit", Vector3(-11.6, Y_IN, 5.6), "E")
+	_spawn("turtle", Vector3(0, Y_IN + PLAT_H, -14.0), "S")
+	_spawn("rabbit", Vector3(-1.6, Y_IN, -8.75), "S")   # 派派兔在借書櫃台後面打工
 	_spawn("gopher", Vector3(1.2, 0, 30.0), "N")
 	set_inside(false)
 
@@ -222,6 +233,25 @@ func _bookcase(parent: Node3D, base: Transform3D, w: float, h: float, shelves: i
 			_book_row(parent, base, -w / 2 + 0.1, w / 2 - 0.1, 0.12 + s * gap, face * (d / 2 - 0.1), rng)
 
 
+## 和教堂一樣的石牆：矮牆＋壓頂石，每隔幾公尺一根方柱
+func _stone_wall(a: Vector3, b: Vector3, h: float = 1.3) -> void:
+	var l := a.distance_to(b)
+	var w := Node3D.new()
+	w.position = (a + b) / 2
+	w.rotation.y = atan2(b.x - a.x, b.z - a.z)
+	add_child(w)
+	var I := Transform3D.IDENTITY
+	_inst(w, "lit", I, Vector3(0, h / 2, 0), Vector3(0.6, h, l), STONE)
+	_inst(w, "lit", I, Vector3(0, h + 0.08, 0), Vector3(0.8, 0.16, l + 0.1), STONE_DARK)
+	var n := maxi(1, int(l / 4.0))
+	for k in range(n + 1):
+		_inst(w, "lit", I, Vector3(0, (h + 0.4) / 2, -l / 2 + l * k / n), Vector3(0.85, h + 0.4, 0.85), STONE_DARK)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(absf(a.x * 7 + a.z * 13 + b.z))
+	for k in range(int(l / 2.0)):   # 石縫的青苔
+		_inst(w, "lit", I, Vector3(rng.randf_range(-0.31, 0.31), rng.randf_range(0.1, h - 0.2), rng.randf_range(-l / 2, l / 2)), Vector3(0.02, 0.18, 0.5), Color("8fa86f"))
+
+
 func _hot(id: String, name_: String, pos: Vector3, text: String, side: String, act: String = "say") -> void:
 	hotspots[id] = {"name": name_, "pos": pos, "text": text, "side": side, "act": act}
 
@@ -276,8 +306,10 @@ func _ground_and_forecourt() -> void:
 		for k in range(14):
 			var flower: String = ["flower_redA", "flower_yellowA", "flower_purpleA"][k % 3]
 			_glb(self, KENNEY_NATURE % flower, Vector3(sx * (9.0 + (k % 2) * 0.7), 0, 22.0 + k * 1.6), 0.8, k * 40.0)
-		for hz: float in [21.0, 26.0, 31.0, 36.0, 41.0]:
-			_m(self, Models.box(1.2, 1.3, 4.2), Color("6f9a5a"), Vector3(sx * 22.0, 0.65, hz))
+		# 前庭四周的石牆（和教堂一樣的石頭）：派派鼠不能走出去
+		_stone_wall(Vector3(sx * 23.0, 0, 17.0), Vector3(sx * 23.0, 0, GATE_Z + 0.3))
+		_stone_wall(Vector3(sx * (X_HALF + 7.2), 0, 17.0), Vector3(sx * 23.0, 0, 17.0))
+		_stone_wall(Vector3(sx * 5.2, 0, GATE_Z + 0.3), Vector3(sx * 23.0, 0, GATE_Z + 0.3))
 		for lz: float in [22.0, 28.0, 34.0, 40.0]:
 			var lp := Vector3(sx * 3.6, 0, lz)
 			_m(self, Models.cyl(0.08, 0.12, 3.2), IRON, lp + Vector3(0, 1.6, 0), Vector3.ZERO, false)
@@ -574,8 +606,8 @@ func _hall() -> void:
 	_m(self, Models.box(3.0, 0.4, 3.0), STONE_DARK, c + Vector3(0, 0.2, 0))
 	_m(self, Models.box(2.2, 1.8, 2.2), STONE, c + Vector3(0, 1.3, 0))
 	_m(self, Models.box(2.6, 0.25, 2.6), STONE_DARK, c + Vector3(0, 2.32, 0))
-	_label(self, "知道自己不知道，\n是學習的開始。", c + Vector3(0, 1.35, 1.12), 40, Color("5a4a38"))
-	# 石頭雕的老烏龜：一手捧書、一手指著天空
+	_label(self, "初代大賢者\n知道自己不知道，\n是學習的開始。", c + Vector3(0, 1.35, 1.12), 34, Color("5a4a38"))
+	# 初代大賢者（慢慢館長的老師、派派森林知識的起源）：石頭雕的老烏龜，一手捧書、一手指著天空
 	var s := Node3D.new()
 	s.position = c + Vector3(0, 2.44, 0)
 	s.scale = Vector3.ONE * 1.9
@@ -592,13 +624,13 @@ func _hall() -> void:
 	_m(s, Models.cyl(0.08, 0.1, 0.6), stone, Vector3(0.5, 1.55, 0.18), Vector3(0, 0, -25))
 	_m(s, Models.sphere(0.1), stone, Vector3(0.63, 1.85, 0.18))
 	_m(s, Models.cyl(0.03, 0.04, 0.22), stone, Vector3(0.66, 2.0, 0.18), Vector3(0, 0, -10))
-	_hot("statue", "哲學家雕像", c + Vector3(0, 4.5, 0), "哲學家雕像：底座刻著「知道自己不知道，是學習的開始。」", "in")
+	_hot("statue", "初代大賢者像", c + Vector3(0, 4.5, 0), "這是我的老師，初代大賢者。派派森林所有的知識，都是從他開始的。底座刻著「知道自己不知道，是學習的開始。」", "in")
 	_hot("door_in", "大門", Vector3(0, Y_IN + 2.0, Z_S - 0.4), "回前庭", "in", "exit")
 
 
 # ---------------- 借書櫃台＋館長平台 ----------------
 func _counter_and_platform() -> void:
-	var cz := -8.6
+	var cz := -7.8
 	_m(self, Models.box(8.0, 1.05, 0.9), WOOD, Vector3(0, Y_IN + 0.52, cz))
 	_m(self, Models.box(8.3, 0.1, 1.1), WOOD_LIGHT, Vector3(0, Y_IN + 1.1, cz))
 	for k in range(7):
@@ -611,15 +643,25 @@ func _counter_and_platform() -> void:
 	_m(self, Models.cyl(0.07, 0.22, 0.15), Color("3f7a5a"), Vector3(1.8, Y_IN + 1.55, cz), Vector3.ZERO, true, true)
 	_m(self, Models.sphere(0.09), GOLD, Vector3(3.0, Y_IN + 1.22, cz + 0.2))                      # 小鈴鐺
 	_hot("counter", "借書櫃台", Vector3(0, Y_IN + 1.5, cz), "借書櫃台：借書、還書都在這裡登記。", "in")
-	# 館長平台（開放空間）：高四階、木欄杆
-	var z0 := -10.6
+	# 館長平台（開放空間）：比櫃台遠、高八階，前面一道寬樓梯、木欄杆
+	var z0 := -12.6
 	var z1 := Z_N + 0.3
 	var top := Y_IN + PLAT_H
 	_m(self, Models.box(10.4, PLAT_H, z0 - z1), Color("cbbd9f"), Vector3(0, Y_IN + PLAT_H / 2, (z0 + z1) / 2))
 	_m(self, Models.box(10.2, 0.02, z0 - z1 - 0.2), Color("9a6a48"), Vector3(0, top + 0.01, (z0 + z1) / 2), Vector3.ZERO, false)
-	for k in range(4):
-		var hh := PLAT_H * (k + 1) / 4.0
-		_m(self, Models.box(3.0, hh, 0.3), STONE_IN, Vector3(0, Y_IN + hh / 2, z0 + 1.2 - k * 0.3))
+	var nst := 8
+	for k in range(nst):
+		var hh := PLAT_H * (k + 1) / nst
+		_m(self, Models.box(3.0, hh, 0.35), STONE_IN, Vector3(0, Y_IN + hh / 2, z0 + 0.35 * (nst - k) - 0.175))
+	for sx: float in [-1.0, 1.0]:   # 樓梯兩旁的石頭扶牆
+		var a := Vector3(sx * 1.6, Y_IN + 0.6, z0 + 0.35 * nst)
+		var b := Vector3(sx * 1.6, Y_IN + PLAT_H + 0.6, z0)
+		var wall := _m(self, Models.box(0.25, 0.5, a.distance_to(b)), STONE_DARK, (a + b) / 2)
+		wall.look_at_from_position((a + b) / 2, b, Vector3.UP)
+	_m(self, Models.box(10.4, 0.25, 0.3), STONE_DARK, Vector3(0, top - 0.12, z0 + 0.1))   # 平台邊緣
+	for sx: float in [-1.0, 1.0]:   # 平台兩側的石頭矮牆（不能從旁邊掉下去）
+		_m(self, Models.box(0.35, 0.9, z0 - z1), STONE, Vector3(sx * 5.25, top + 0.45, (z0 + z1) / 2))
+		_m(self, Models.box(0.5, 0.12, z0 - z1 + 0.1), STONE_DARK, Vector3(sx * 5.25, top + 0.96, (z0 + z1) / 2))
 	var I := Transform3D.IDENTITY
 	for sx: float in [-1.0, 1.0]:
 		_m(self, Models.box(3.6, 0.1, 0.1), WOOD_LIGHT, Vector3(sx * 3.4, top + 0.9, z0 - 0.05), Vector3.ZERO, false)
@@ -628,7 +670,7 @@ func _counter_and_platform() -> void:
 			_inst(self, "lit", I, Vector3(sx * xx, top + 0.45, z0 - 0.05), Vector3(0.07, 0.85, 0.07), WOOD_LIGHT)
 			xx += 0.3
 	# 大書桌（攤開的書、羽毛筆、墨水瓶）、高背椅、地球儀、燭台、背後的矮書櫃
-	var dz := -14.4
+	var dz := -15.4
 	_m(self, Models.box(2.8, 0.08, 1.3), WOOD_LIGHT, Vector3(0, top + 0.82, dz))
 	_m(self, Models.box(2.7, 0.78, 1.2), WOOD, Vector3(0, top + 0.39, dz))
 	for sx: float in [-1.0, 1.0]:
@@ -638,13 +680,13 @@ func _counter_and_platform() -> void:
 	_m(self, Models.box(1.0, 0.1, 0.9), RED, Vector3(0, top + 0.52, dz - 1.1))
 	_m(self, Models.box(1.0, 1.9, 0.14), WOOD, Vector3(0, top + 1.4, dz - 1.55))
 	_m(self, Models.sphere(0.12), GOLD, Vector3(0, top + 2.4, dz - 1.55), Vector3.ZERO, false)
-	_m(self, Models.cyl(0.06, 0.08, 1.0), WOOD, Vector3(-3.4, top + 0.5, -13.5), Vector3.ZERO, false)
-	_m(self, Models.sphere(0.45), Color("6f9ac0"), Vector3(-3.4, top + 1.4, -13.5))
-	_m(self, Models.sphere(0.25), Color("7fb27a"), Vector3(-3.25, top + 1.55, -13.15), Vector3.ZERO, false)
-	_m(self, Models.cyl(0.05, 0.14, 1.7), GOLD, Vector3(3.4, top + 0.85, -13.5), Vector3.ZERO, false)
+	_m(self, Models.cyl(0.06, 0.08, 1.0), WOOD, Vector3(-3.4, top + 0.5, -15.0), Vector3.ZERO, false)
+	_m(self, Models.sphere(0.45), Color("6f9ac0"), Vector3(-3.4, top + 1.4, -15.0))
+	_m(self, Models.sphere(0.25), Color("7fb27a"), Vector3(-3.25, top + 1.55, -14.65), Vector3.ZERO, false)
+	_m(self, Models.cyl(0.05, 0.14, 1.7), GOLD, Vector3(3.4, top + 0.85, -15.0), Vector3.ZERO, false)
 	for k in range(3):
-		_m(self, Models.cyl(0.04, 0.04, 0.22), Color("fff3dc"), Vector3(3.2 + k * 0.2, top + 1.8, -13.5), Vector3.ZERO, false)
-		_m(self, Models.sphere(0.045), Color("ffd27a"), Vector3(3.2 + k * 0.2, top + 1.96, -13.5), Vector3.ZERO, false, true)
+		_m(self, Models.cyl(0.04, 0.04, 0.22), Color("fff3dc"), Vector3(3.2 + k * 0.2, top + 1.8, -15.0), Vector3.ZERO, false)
+		_m(self, Models.sphere(0.045), Color("ffd27a"), Vector3(3.2 + k * 0.2, top + 1.96, -15.0), Vector3.ZERO, false, true)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3
 	for bx: float in [-3.4, 0.0, 3.4]:
@@ -743,18 +785,23 @@ func set_inside(v: bool) -> void:
 		walls[s].visible = true
 	var g: GopherActor = npcs.get("gopher")
 	if g:
-		g.position = Vector3(1.2, Y_IN, 11.5) if v else Vector3(1.2, 0, 30.0)
-		g.face("N")
+		_walk_serial += 1
+		if _walk_tween:
+			_walk_tween.kill()
+		g.moving = false
+		g.position = Vector3(0.0, Y_IN, Z_S - 1.0) if v else Vector3(0.0, 0.0, 26.0)
+		g.face("N" if v else "S")
 		g.model.rotation.y = g.target_yaw
 
 
 ## 鏡頭焦點和距離（室內／室外）
 func view_focus() -> Vector3:
-	return global_transform * (Vector3(0, Y_IN, -2.5) if inside else Vector3(0, 16.0, 14.0))
+	return global_transform * (Vector3(0, Y_IN + 1.0, -9.5) if inside else Vector3(0, 4.0, 21.0))
 
 
+## 和家裡差不多的距離：人物看得清楚，教堂顯得很大
 func view_distance() -> float:
-	return 40.0 if inside else 112.0
+	return 15.0 if inside else 24.0
 
 
 ## 室內：靠鏡頭那一側的牆（連同迴廊）藏起來，才看得到裡面
@@ -842,3 +889,180 @@ func describe(id: String) -> void:
 	var a: GopherActor = npcs.get(who)
 	if a:
 		a.say(h.text, "say")
+
+
+# ---------------- 點地板走路（找路網格） ----------------
+## 地面高度：館長平台、平台前的樓梯、大門外的台階
+func ground_y(x: float, z: float) -> float:
+	if z > Z_S:   # 前庭：台階往下到廣場
+		return clampf(Y_IN - (z - STEPS_Z0) / 0.55 * 0.15, 0.0, Y_IN)
+	if absf(x) < 5.2 and z <= -12.6:
+		return Y_IN + PLAT_H
+	if absf(x) < 1.5 and z < -9.8:
+		return Y_IN + PLAT_H * clampf((-9.8 - z) / 2.8, 0.0, 1.0)
+	return Y_IN
+
+
+func _cell_of(p: Vector3) -> Vector2i:
+	return Vector2i(clampi(int(floor((p.x - NAV_X0) / CELL)), 0, NAV_W - 1), clampi(int(floor((p.z - NAV_Z0) / CELL)), 0, NAV_H - 1))
+
+
+func _cell_center(c: Vector2i) -> Vector3:
+	var x := NAV_X0 + (c.x + 0.5) * CELL
+	var z := NAV_Z0 + (c.y + 0.5) * CELL
+	return Vector3(x, ground_y(x, z), z)
+
+
+func _block_rect(x0: float, z0: float, x1: float, z1: float) -> void:
+	var a := _cell_of(Vector3(minf(x0, x1), 0, minf(z0, z1)))
+	var b := _cell_of(Vector3(maxf(x0, x1) - 0.001, 0, maxf(z0, z1) - 0.001))
+	for cx in range(a.x, b.x + 1):
+		for cz in range(a.y, b.y + 1):
+			nav.set_point_solid(Vector2i(cx, cz), true)
+
+
+func _block_round(x: float, z: float, r: float) -> void:
+	_block_rect(x - r, z - r, x + r, z + r)
+
+
+func _build_nav() -> void:
+	nav = AStarGrid2D.new()
+	nav.region = Rect2i(0, 0, NAV_W, NAV_H)
+	nav.cell_size = Vector2(CELL, CELL)
+	nav.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	nav.update()
+	# 先全部擋住，再打開能走的地方（室內、前庭、台階）
+	nav.fill_solid_region(nav.region, true)
+	nav.fill_solid_region(Rect2i(_cell_of(Vector3(-X_HALF + 0.4, 0, Z_N + 0.4)), _cell_of(Vector3(X_HALF - 0.4, 0, Z_S - 0.4)) - _cell_of(Vector3(-X_HALF + 0.4, 0, Z_N + 0.4))), false)
+	nav.fill_solid_region(Rect2i(_cell_of(Vector3(-9.6, 0, Z_S + WALL_T + 0.1)), _cell_of(Vector3(9.6, 0, 19.4)) - _cell_of(Vector3(-9.6, 0, Z_S + WALL_T + 0.1))), false)
+	nav.fill_solid_region(Rect2i(_cell_of(Vector3(-22.4, 0, 17.6)), _cell_of(Vector3(22.4, 0, GATE_Z - 0.3)) - _cell_of(Vector3(-22.4, 0, 17.6))), false)
+	# ---- 室內的擋路物 ----
+	for sx: float in [-1.0, 1.0]:
+		for z: float in [-15.0, -10.0, -5.0, 0.0, 5.0, 10.0]:
+			_block_round(sx * NAVE_X, z, 0.8)
+	_block_rect(-1.8, 1.7, 1.8, 5.3)                    # 初代大賢者像
+	_block_rect(-4.4, -8.4, 4.4, -7.2)                  # 借書櫃台
+	_block_round(-1.6, -8.75, 0.5)                      # 派派兔
+	_block_rect(-5.6, -12.75, -1.5, -9.8)               # 館長平台前面的高台（只能走中間的樓梯）
+	_block_rect(1.5, -12.75, 5.6, -9.8)
+	_block_rect(-5.6, -12.75, -1.5, -12.5)
+	_block_rect(-5.6, Z_N, -5.0, -12.5)                 # 平台兩側的矮牆
+	_block_rect(5.0, Z_N, 5.6, -12.5)
+	_block_rect(-1.6, -16.2, 1.6, -14.6)                # 書桌
+	_block_rect(-0.7, -17.2, 0.7, -16.3)                # 高背椅
+	_block_round(-3.4, -15.0, 0.6)                      # 地球儀
+	_block_round(3.4, -15.0, 0.5)                       # 燭台
+	_block_rect(-5.2, Z_N, 5.2, -17.0)                  # 平台後面的矮書櫃
+	_block_round(0.0, -14.0, 0.55)                      # 館長
+	_block_rect(6.9, Z_N, 10.5, -9.0)                   # 往上層的樓梯（紅龍）
+	for z: float in [-4.0, 0.5, 5.0, 9.5]:              # 閱讀教室的長桌和長椅
+		_block_rect(-10.8, z - 1.7, -8.5, z + 1.7)
+	_block_rect(-X_HALF, 0.0, -X_HALF + 0.5, 5.0)       # 黑板
+	for z: float in [-4.5, -1.5, 1.5, 4.5, 7.5, 10.5]:  # 高書櫃
+		_block_rect(7.4, z - 0.5, 12.7, z + 0.5)
+	_block_rect(10.1, -0.6, 11.1, 0.7)                  # 梯子
+	_block_round(11.4, 12.9, 1.0)                       # 閱讀椅
+	_block_round(8.6, 13.0, 0.5)                        # 盆栽
+	# ---- 前庭的擋路物 ----
+	_block_rect(-X_HALF - 8.0, Z_S, -9.6, 19.4)         # 鐘塔前面
+	_block_rect(9.6, Z_S, X_HALF + 8.0, 19.4)
+	for sx: float in [-1.0, 1.0]:
+		_block_rect(sx * 11.5 - 1.5, Z_S + 4.4, sx * 11.5 + 1.5, Z_S + 7.6)   # 石頭烏龜
+		for tz: float in [24.0, 38.0]:
+			_block_round(sx * 15.0, tz, 1.0)                                  # 老橡樹
+		_block_round(sx * 19.5, 31.0, 1.0)
+		for bz: float in [27.0, 35.0]:
+			_block_rect(sx * 6.5 - 0.7, bz - 1.1, sx * 6.5 + 0.7, bz + 1.1)  # 長椅
+		_block_rect(sx * 8.6, 21.4, sx * 10.2, 44.0)                          # 花圃
+		for lz: float in [22.0, 28.0, 34.0, 40.0]:
+			_block_round(sx * 3.6, lz, 0.3)                                   # 路燈
+	_block_round(0.0, 31.0, 3.3)                        # 日晷
+
+
+## 滑鼠指到的地板位置（打不到地板就回傳 null）
+func floor_point(screen_pos: Vector2, cam: Camera3D) -> Variant:
+	var o := cam.project_ray_origin(screen_pos)
+	var d := cam.project_ray_normal(screen_pos)
+	if absf(d.y) < 0.001:
+		return null
+	var p := global_transform.affine_inverse() * o
+	var dl := global_transform.basis.inverse() * d
+	if inside:   # 先試館長平台的高度，不在平台上就用大廳地板
+		var tp := (Y_IN + PLAT_H - p.y) / dl.y
+		if tp > 0:
+			var hp := p + dl * tp
+			if absf(ground_y(hp.x, hp.z) - (Y_IN + PLAT_H)) < 0.05:
+				return hp
+	var t := ((Y_IN if inside else 0.0) - p.y) / dl.y
+	if t <= 0:
+		return null
+	var hit := p + dl * t
+	hit.y = ground_y(hit.x, hit.z)
+	return hit
+
+
+## 派派鼠走到某個點（找路、避開擋路的東西，平台和台階會跟著升降）
+func walk_gopher(to: Vector3) -> void:
+	var g: GopherActor = npcs.get("gopher")
+	if g == null:
+		return
+	_walk_serial += 1
+	var my := _walk_serial
+	if _walk_tween:
+		_walk_tween.kill()
+	var a := _nearest_open(_cell_of(g.position))
+	var b := _nearest_open(_cell_of(to))
+	if a.x < 0 or b.x < 0:
+		return
+	var ids := nav.get_id_path(a, b)
+	if ids.size() < 2:
+		g.moving = false
+		return
+	# 把同一個方向的格子合併，走起來比較順
+	var pts: Array = []
+	var last_dir := Vector2i.ZERO
+	for i in range(1, ids.size()):
+		var dir_i: Vector2i = ids[i] - ids[i - 1]
+		if dir_i != last_dir and i > 1:
+			pts.append(_cell_center(ids[i - 1]))
+		last_dir = dir_i
+	pts.append(_cell_center(ids[ids.size() - 1]))
+	g.moving = true
+	for q in pts:
+		if my != _walk_serial:
+			return
+		var target: Vector3 = q
+		var dist := g.position.distance_to(target)
+		g.face_vector(Vector3(target.x - g.position.x, 0, target.z - g.position.z))
+		_walk_tween = g.create_tween()
+		_walk_tween.tween_method(func(f: float):
+			var pp: Vector3 = g.position.lerp(target, f)
+			pp.y = ground_y(pp.x, pp.z)
+			g.position = pp, 0.0, 1.0, dist * 0.3)
+		await _walk_tween.finished
+		if my != _walk_serial:
+			return
+		g.position = target
+	g.moving = false
+
+
+## 離目標最近的能走的格子（點到桌子上，就走到桌邊）
+func _nearest_open(c: Vector2i) -> Vector2i:
+	if not nav.is_point_solid(c):
+		return c
+	for r in range(1, 12):
+		var best := Vector2i(-1, -1)
+		var bd := 1e9
+		for dx in range(-r, r + 1):
+			for dz in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var q := c + Vector2i(dx, dz)
+				if nav.is_in_boundsv(q) and not nav.is_point_solid(q):
+					var dd := float(dx * dx + dz * dz)
+					if dd < bd:
+						bd = dd
+						best = q
+		if best.x >= 0:
+			return best
+	return Vector2i(-1, -1)

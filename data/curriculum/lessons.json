@@ -1,0 +1,1745 @@
+{
+ "schema": 1,
+ "note": "慢慢館長的課（tools/curriculum/gen_lessons.py 產生，不要手改）。章節照《Python零基礎入門班（第五版）》，說明和範例是派派森林版。",
+ "book": "Python零基礎入門班（第五版）",
+ "extra_concepts": [
+  {
+   "id": "algo",
+   "area": "K",
+   "name": "演算法是什麼",
+   "summary": "解決問題的步驟：虛擬碼、流程圖。"
+  },
+  {
+   "id": "bubble",
+   "area": "K",
+   "name": "泡沫排序",
+   "summary": "相鄰兩個比大小、不對就交換。"
+  },
+  {
+   "id": "seq_search",
+   "area": "K",
+   "name": "循序搜尋",
+   "summary": "從第一個開始一個一個找。"
+  },
+  {
+   "id": "binary_search",
+   "area": "K",
+   "name": "二分搜尋",
+   "summary": "排好序以後，每次丟掉一半。"
+  }
+ ],
+ "lessons": {
+  "print": {
+   "ch": "2.3.1",
+   "goal": "用 print() 讓電腦把一句話說出來。",
+   "ask": "你知道電腦要怎麼「說話」嗎？",
+   "ask_answer": "要給它一個 print 命令，把想說的話放在括號裡。",
+   "explain": [
+    "print 是「印出來」的意思：括號裡放什麼，畫面上就出現什麼。",
+    "文字要用一對引號 \" \" 包起來，電腦才知道那是一句話；數字可以直接寫。",
+    "每一個 print 印完都會換到下一行。"
+   ],
+   "code": "print(\"早安，派派森林！\")\nprint(3)\nprint(\"我有\", 5, \"顆橡實\")",
+   "inputs": [],
+   "output": "早安，派派森林！\n3\n我有 5 顆橡實",
+   "quiz": {
+    "q": "下面哪一行可以在畫面上印出「你好」？",
+    "options": [
+     "print(你好)",
+     "print(\"你好\")",
+     "say(\"你好\")"
+    ],
+    "answer": 1,
+    "why": "文字要用引號包起來，而且命令叫 print。沒有引號，電腦會以為「你好」是一個變數名字。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "comment": {
+   "ch": "2.1.4",
+   "goal": "用 # 寫註解：寫給人看、電腦不會執行的說明。",
+   "ask": "程式裡可以寫「給自己看的小紙條」嗎？",
+   "ask_answer": "可以！用 # 開頭的就是註解，電腦會跳過它。",
+   "explain": [
+    "# 後面一直到這一行結束都是註解，電腦不會執行。",
+    "# 可以放在一行的開頭（整行都是註解），也可以放在程式後面。",
+    "要寫好幾行的說明，可以用三個引號 ''' 或 \"\"\" 把它們包起來（多行註解）。"
+   ],
+   "code": "# 這是給自己看的筆記\nprint(\"借書\")  # 這一行會執行\n# print(\"還書\")  這一行不會執行\n\"\"\"\n這是多行註解\n寫程式的人：派派鼠\n\"\"\"",
+   "inputs": [],
+   "output": "借書",
+   "quiz": {
+    "q": "執行下面的程式，畫面會出現什麼？\n# print(\"A\")\nprint(\"B\")",
+    "options": [
+     "A 和 B",
+     "只有 B",
+     "什麼都沒有"
+    ],
+    "answer": 1,
+    "why": "第一行開頭是 #，整行都是註解，不會執行；只有 print(\"B\") 會印出來。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "print_multi": {
+   "ch": "2.3.1",
+   "goal": "一次 print 好幾樣東西，並用 sep、end 控制中間和結尾。",
+   "ask": "print(\"A\", \"B\") 印出來，A 和 B 中間會有什麼？",
+   "ask_answer": "會有一個空白。逗號分開的項目，中間預設放一個空白。",
+   "explain": [
+    "print 可以一次印好幾個項目，項目之間用逗號 , 分開。",
+    "sep 是「分隔字元」：項目中間要放什麼，預設是一個空白。",
+    "end 是「結束字元」：印完最後要加什麼，預設是換行，所以下一個 print 會在下一行。"
+   ],
+   "code": "print(\"蘋果\", \"香蕉\", \"橘子\")\nprint(\"蘋果\", \"香蕉\", \"橘子\", sep=\"、\")\nprint(\"今天\", end=\"\")\nprint(\"天氣好\")",
+   "inputs": [],
+   "output": "蘋果 香蕉 橘子\n蘋果、香蕉、橘子\n今天天氣好",
+   "quiz": {
+    "q": "print(\"1\", \"2\", \"3\", sep=\"-\") 會印出什麼？",
+    "options": [
+     "1 2 3",
+     "1-2-3",
+     "123-"
+    ],
+    "answer": 1,
+    "why": "sep 決定項目中間放什麼，這裡是 -，所以是 1-2-3。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "variable": {
+   "ch": "2.1",
+   "goal": "用變數把資料存起來，之後用名字拿出來用。",
+   "ask": "電腦要怎麼記住「派派鼠有 5 顆橡實」？",
+   "ask_answer": "取一個名字（變數），用 = 把 5 存進去：acorns = 5。",
+   "explain": [
+    "變數就像貼了名字的盒子：「=」是把右邊的值放進左邊的盒子，不是數學的「等於」。",
+    "可以一次設定好幾個變數：a = b = 0，或 x, y = 3, 4。",
+    "命名規則：開頭要是英文字母、_ 或中文；只能用字母、數字、_、中文；大小寫不一樣；不能用 Python 的保留字（例如 if、for）。不用的變數可以用 del 刪掉。"
+   ],
+   "code": "acorns = 5\nname = \"派派鼠\"\nprint(name, \"有\", acorns, \"顆橡實\")\nx, y = 3, 4\nprint(x + y)",
+   "inputs": [],
+   "output": "派派鼠 有 5 顆橡實\n7",
+   "quiz": {
+    "q": "下面哪一個是「合法」的變數名稱？",
+    "options": [
+     "2apple",
+     "my_apple",
+     "for"
+    ],
+    "answer": 1,
+    "why": "不能用數字開頭（2apple），也不能用保留字（for）；my_apple 只用了字母和 _，可以。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "bool": {
+   "ch": "2.2.1",
+   "goal": "認識布林值：只有 True（對）和 False（錯）兩種。",
+   "ask": "「3 比 5 大」這句話，電腦會怎麼回答？",
+   "ask_answer": "它會回答 False（錯）。",
+   "explain": [
+    "布林值（bool）只有兩個值：True 和 False，注意 T 和 F 要大寫。",
+    "比較的結果就是布林值，例如 3 > 5 是 False。",
+    "布林值通常用在條件判斷：程式看它是 True 還是 False，決定要做什麼。"
+   ],
+   "code": "is_raining = True\nprint(is_raining)\nprint(3 > 5)\nprint(type(False))",
+   "inputs": [],
+   "output": "True\nFalse\n<class 'bool'>",
+   "quiz": {
+    "q": "下面哪一個是正確的布林值？",
+    "options": [
+     "true",
+     "True",
+     "\"True\""
+    ],
+    "answer": 1,
+    "why": "Python 的布林值是 True（T 大寫）；加了引號就變成文字了。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "types": {
+   "ch": "2.2",
+   "goal": "分辨資料型態：整數 int、浮點數 float、字串 str，並用 type() 查看。",
+   "ask": "5 和 \"5\" 一樣嗎？",
+   "ask_answer": "不一樣！5 是數字，\"5\" 是文字（字串）。",
+   "explain": [
+    "整數 int：沒有小數點的數，例如 5。浮點數 float：有小數點的數，例如 2.5。",
+    "字串 str：用一對雙引號或單引號包起來的文字；字串裡要放引號，就用另一種引號包。",
+    "字串裡可以用跳脫字元：\\n 換行、\\t 定位（Tab）。不確定是什麼型態，就用 type() 問問看。"
+   ],
+   "code": "print(type(5))\nprint(type(2.5))\nprint(type(\"5\"))\nprint('館長說：\"慢慢來\"')\nprint(\"第一行\\n第二行\")",
+   "inputs": [],
+   "output": "<class 'int'>\n<class 'float'>\n<class 'str'>\n館長說：\"慢慢來\"\n第一行\n第二行",
+   "quiz": {
+    "q": "type(\"3.14\") 的結果是哪一種型態？",
+    "options": [
+     "float",
+     "int",
+     "str"
+    ],
+    "answer": 2,
+    "why": "有引號包起來就是字串 str，裡面看起來像數字也一樣。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "convert": {
+   "ch": "2.2.4",
+   "goal": "用 int()、float()、str() 把資料轉成別的型態。",
+   "ask": "\"5\" + 3 可以算嗎？",
+   "ask_answer": "不行，字串和數字不能直接相加，要先轉型態。",
+   "explain": [
+    "整數和浮點數一起算時，Python 會自動把整數轉成浮點數，結果是浮點數。",
+    "沒辦法自動轉的時候，要自己轉：int() 轉整數、float() 轉浮點數、str() 轉字串。",
+    "例如 int(\"5\") 會得到數字 5，str(3) 會得到文字 \"3\"。"
+   ],
+   "code": "print(3 + 2.0)\nprint(int(\"5\") + 3)\nprint(\"我有\" + str(3) + \"顆\")\nprint(float(\"1.5\") * 2)",
+   "inputs": [],
+   "output": "5.0\n8\n我有3顆\n3.0",
+   "quiz": {
+    "q": "int(\"7\") + 1 的結果是？",
+    "options": [
+     "\"71\"",
+     "8",
+     "會出錯"
+    ],
+    "answer": 1,
+    "why": "int(\"7\") 把文字 \"7\" 轉成數字 7，再加 1 就是 8。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "reassign": {
+   "ch": "2.1.2",
+   "goal": "變數的值可以改：再用 = 放一個新的值進去。",
+   "ask": "acorns = 5 之後再寫 acorns = 8，acorns 現在是多少？",
+   "ask_answer": "是 8。新的值會蓋掉舊的值。",
+   "explain": [
+    "同一個變數可以一直放新的值，盒子裡只會留下最後放進去的那個。",
+    "右邊也可以用到自己：acorns = acorns + 1，意思是「拿出舊的值加 1，再放回去」。",
+    "程式是一行一行由上往下執行的，所以要看「執行到那一行時」變數是多少。"
+   ],
+   "code": "acorns = 5\nprint(acorns)\nacorns = 8\nprint(acorns)\nacorns = acorns + 1\nprint(acorns)",
+   "inputs": [],
+   "output": "5\n8\n9",
+   "quiz": {
+    "q": "執行完 a = 2、a = a * 3、a = a + 1，a 是多少？",
+    "options": [
+     "7",
+     "9",
+     "6"
+    ],
+    "answer": 0,
+    "why": "a 先是 2，乘 3 變 6，再加 1 變 7。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "arith": {
+   "ch": "2.4.1",
+   "goal": "用算術運算子 + - * / 做計算。",
+   "ask": "電腦算 7 / 2 會得到 3 還是 3.5？",
+   "ask_answer": "會得到 3.5。「/」除完一定是浮點數。",
+   "explain": [
+    "+ 加、- 減、* 乘、/ 除，還有 ** 次方（2 ** 3 是 8）。",
+    "做運算的符號叫「運算子」，被拿來算的資料叫「運算元」。",
+    "先乘除後加減；想先算的部分用括號 () 包起來。"
+   ],
+   "code": "print(3 + 4)\nprint(10 - 3)\nprint(6 * 7)\nprint(7 / 2)\nprint(2 ** 3)\nprint((3 + 5) * 2 / 4)",
+   "inputs": [],
+   "output": "7\n7\n42\n3.5\n8\n4.0",
+   "quiz": {
+    "q": "print(2 + 3 * 4) 會印出什麼？",
+    "options": [
+     "20",
+     "14",
+     "24"
+    ],
+    "answer": 1,
+    "why": "先乘除後加減：3 * 4 = 12，再加 2 是 14。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "floordiv_mod": {
+   "ch": "2.4.1",
+   "goal": "用 // 求商（整數除法）、用 % 求餘數。",
+   "ask": "17 顆橡實平分給 5 隻松鼠，每隻幾顆、剩幾顆？",
+   "ask_answer": "每隻 3 顆，剩 2 顆：17 // 5 是 3，17 % 5 是 2。",
+   "explain": [
+    "// 是「整數除法」，只留下商的整數部分。",
+    "% 是「取餘數」，算出除不盡剩下多少。",
+    "判斷奇數偶數很好用：n % 2 是 0 就是偶數。"
+   ],
+   "code": "acorns = 17\nsquirrels = 5\nprint(acorns // squirrels)\nprint(acorns % squirrels)\nprint(10 % 2)",
+   "inputs": [],
+   "output": "3\n2\n0",
+   "quiz": {
+    "q": "20 % 6 的結果是？",
+    "options": [
+     "3",
+     "2",
+     "3.33"
+    ],
+    "answer": 1,
+    "why": "20 除以 6 商 3 餘 2，% 拿的是餘數 2。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "aug_assign": {
+   "ch": "2.4.4",
+   "goal": "用複合指定運算子 +=、-=、*= 等，算完直接存回去。",
+   "ask": "acorns = acorns + 1 有沒有更短的寫法？",
+   "ask_answer": "有！寫成 acorns += 1。",
+   "explain": [
+    "把運算子放在 = 前面，就是複合指定運算子：a += 3 等於 a = a + 3。",
+    "它一次做了兩件事：先「運算」，再「指定」回同一個變數。",
+    "還有 -=、*=、/=、//=、%=、**= 都一樣用法。"
+   ],
+   "code": "acorns = 10\nacorns += 5\nprint(acorns)\nacorns -= 3\nprint(acorns)\nacorns *= 2\nprint(acorns)",
+   "inputs": [],
+   "output": "15\n12\n24",
+   "quiz": {
+    "q": "n = 4 之後執行 n *= 3，n 是多少？",
+    "options": [
+     "7",
+     "12",
+     "43"
+    ],
+    "answer": 1,
+    "why": "n *= 3 就是 n = n * 3，4 × 3 = 12。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "compare": {
+   "ch": "2.4.2",
+   "goal": "用比較運算子比大小，結果是 True 或 False。",
+   "ask": "要怎麼問電腦「蘿蔔夠不夠 10 根」？",
+   "ask_answer": "用 carrots >= 10，電腦會回答 True 或 False。",
+   "explain": [
+    "比較運算子：> 大於、< 小於、>= 大於等於、<= 小於等於、== 等於、!= 不等於。",
+    "注意「等於」要寫兩個 ==；一個 = 是把值放進變數。",
+    "比較的結果是布林值，正確回答 True，錯誤回答 False。"
+   ],
+   "code": "carrots = 12\nprint(carrots >= 10)\nprint(carrots == 10)\nprint(carrots != 10)\nprint(\"A\" == \"a\")",
+   "inputs": [],
+   "output": "True\nFalse\nTrue\nFalse",
+   "quiz": {
+    "q": "要判斷 x 是不是等於 3，應該寫？",
+    "options": [
+     "x = 3",
+     "x == 3",
+     "x => 3"
+    ],
+    "answer": 1,
+    "why": "比較「等於」用兩個等號 ==。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "logic": {
+   "ch": "2.4.3",
+   "goal": "用邏輯運算子 and、or、not 把好幾個條件合起來。",
+   "ask": "「晴天而且有空」才去野餐，電腦要怎麼寫「而且」？",
+   "ask_answer": "用 and：sunny and free。",
+   "explain": [
+    "and（而且）：兩邊都是 True，結果才是 True。",
+    "or（或者）：只要有一邊是 True，結果就是 True。",
+    "not（不是）：把 True 變 False、False 變 True。"
+   ],
+   "code": "sunny = True\nfree = False\nprint(sunny and free)\nprint(sunny or free)\nprint(not free)\nage = 10\nprint(age > 6 and age < 12)",
+   "inputs": [],
+   "output": "False\nTrue\nTrue\nTrue",
+   "quiz": {
+    "q": "True or False and False 的結果是？（提示：and 比 or 先算）",
+    "options": [
+     "True",
+     "False"
+    ],
+    "answer": 0,
+    "why": "先算 False and False 得 False，再算 True or False 得 True。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "str_concat": {
+   "ch": "2.4.5",
+   "goal": "用 + 把兩個字串接在一起。",
+   "ask": "\"派派\" + \"鼠\" 會得到什麼？",
+   "ask_answer": "會得到 \"派派鼠\"，兩段文字被接起來了。",
+   "explain": [
+    "「+」放在兩個數字中間是相加；放在兩個字串中間是把它們接起來。",
+    "數字和字串不能直接用 + 接，要先用 str() 把數字變成字串。",
+    "使用時要留意兩邊的資料型態。"
+   ],
+   "code": "print(\"派派\" + \"鼠\")\nprint(1 + 2)\nprint(\"1\" + \"2\")\nprint(\"第\" + str(3) + \"名\")",
+   "inputs": [],
+   "output": "派派鼠\n3\n12\n第3名",
+   "quiz": {
+    "q": "print(\"5\" + \"5\") 會印出什麼？",
+    "options": [
+     "10",
+     "55",
+     "會出錯"
+    ],
+    "answer": 1,
+    "why": "兩個都是字串，+ 是把它們接起來，所以是 55。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "str_repeat": {
+   "ch": "2.4.1",
+   "goal": "用 * 讓字串重複好幾次。",
+   "ask": "要印出「哈哈哈哈哈」，一定要打五個哈嗎？",
+   "ask_answer": "不用，寫 \"哈\" * 5 就可以。",
+   "explain": [
+    "字串 * 整數，會把字串重複那麼多次。",
+    "很適合用來畫分隔線，例如 \"-\" * 20。",
+    "只能乘整數；字串乘字串會出錯。"
+   ],
+   "code": "print(\"哈\" * 5)\nprint(\"=\" * 12)\nprint(\"嘿\" * 2 + \"！\")",
+   "inputs": [],
+   "output": "哈哈哈哈哈\n============\n嘿嘿！",
+   "quiz": {
+    "q": "print(\"ab\" * 3) 會印出什麼？",
+    "options": [
+     "ab3",
+     "ababab",
+     "aaabbb"
+    ],
+    "answer": 1,
+    "why": "整個 \"ab\" 重複 3 次：ababab。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "input": {
+   "ch": "2.3.2",
+   "goal": "用 input() 讓使用者打字，把答案存進變數。",
+   "ask": "程式可以問你問題，等你回答嗎？",
+   "ask_answer": "可以，用 input(\"提示文字\")。",
+   "explain": [
+    "input() 會先印出提示文字，等使用者打字、按 Enter，再把打的內容交給程式。",
+    "通常會用變數接住答案：name = input(\"你叫什麼名字？\")。",
+    "注意：input() 拿到的一定是「字串」。"
+   ],
+   "code": "name = input(\"你叫什麼名字？\")\nprint(\"你好，\" + name)",
+   "inputs": [
+    "派派鼠"
+   ],
+   "output": "你叫什麼名字？派派鼠\n你好，派派鼠",
+   "quiz": {
+    "q": "answer = input(\"幾歲？\")，使用者打 8，answer 的型態是？",
+    "options": [
+     "int",
+     "str",
+     "float"
+    ],
+    "answer": 1,
+    "why": "input() 拿到的資料永遠是字串 str，就算打的是數字。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "input_number": {
+   "ch": "2.3.2",
+   "goal": "把 input() 拿到的字串轉成數字，才能拿來計算。",
+   "ask": "使用者打 3 和 4，程式直接相加會得到 7 嗎？",
+   "ask_answer": "不會，會得到 \"34\"，因為兩個都是字串。",
+   "explain": [
+    "input() 拿到的是字串，直接用 + 會變成「接起來」。",
+    "要計算就先轉型態：int(input(...)) 轉整數、float(input(...)) 轉浮點數。",
+    "這是初學者最常遇到的錯誤，記得先轉再算！"
+   ],
+   "code": "a = int(input(\"第一個數：\"))\nb = int(input(\"第二個數：\"))\nprint(\"合起來是\", a + b)",
+   "inputs": [
+    "3",
+    "4"
+   ],
+   "output": "第一個數：3\n第二個數：4\n合起來是 7",
+   "quiz": {
+    "q": "x = input()，使用者打 5，想算 x 的兩倍，要寫？",
+    "options": [
+     "x * 2",
+     "int(x) * 2",
+     "str(x) * 2"
+    ],
+    "answer": 1,
+    "why": "先用 int() 轉成數字 5，再乘 2 得 10；x * 2 會得到字串 \"55\"。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "fstring": {
+   "ch": "2.3.1",
+   "goal": "把變數放進字串裡排好格式：% 格式化、format()、f-string。",
+   "ask": "要印出「派派鼠有 5 顆橡實」，一定要用很多逗號和 + 嗎？",
+   "ask_answer": "不用，可以用字串格式化，把變數「填」進句子裡。",
+   "explain": [
+    "% 格式化：%s 代表字串、%d 代表整數、%f 代表浮點數，%5d 固定 5 格、%.2f 小數 2 位。",
+    "format()：用 {} 當位子，\"{}有{}顆\".format(name, n)。",
+    "f-string（遊戲任務最常用）：字串前面加 f，直接在 {} 裡寫變數，f\"{name}有{n}顆\"。"
+   ],
+   "code": "name = \"派派鼠\"\nn = 5\nprint(\"%s有%d顆橡實\" % (name, n))\nprint(\"{}有{}顆橡實\".format(name, n))\nprint(f\"{name}有{n}顆橡實\")\nprint(\"%.2f\" % 3.14159)",
+   "inputs": [],
+   "output": "派派鼠有5顆橡實\n派派鼠有5顆橡實\n派派鼠有5顆橡實\n3.14",
+   "quiz": {
+    "q": "n = 3，print(f\"共{n}本\") 會印出什麼？",
+    "options": [
+     "共{n}本",
+     "共3本",
+     "f共3本"
+    ],
+    "answer": 1,
+    "why": "f-string 會把 {n} 換成變數 n 的值 3。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 2 章 變數與運算式"
+  },
+  "len": {
+   "ch": "5.2.2",
+   "goal": "用 len() 算出長度：字串有幾個字、串列有幾個元素。",
+   "ask": "\"派派森林\" 有幾個字？電腦算得出來嗎？",
+   "ask_answer": "可以，len(\"派派森林\") 是 4。",
+   "explain": [
+    "len() 會回傳長度（一個整數）。",
+    "字串：算有幾個字元，空白也算一個。",
+    "串列：算有幾個元素；常和 range() 一起用來跑過整個串列。"
+   ],
+   "code": "print(len(\"派派森林\"))\nprint(len(\"a b\"))\nfriends = [\"狼\", \"兔\", \"鳥\"]\nprint(len(friends))",
+   "inputs": [],
+   "output": "4\n3\n3",
+   "quiz": {
+    "q": "len(\"hi!\") 是多少？",
+    "options": [
+     "2",
+     "3",
+     "4"
+    ],
+    "answer": 1,
+    "why": "h、i、! 三個字元，所以是 3。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "str_index": {
+   "ch": "5.1.3",
+   "goal": "用索引 s[0] 拿出字串裡的某一個字（和串列取元素一樣）。",
+   "ask": "\"ABC\" 的第一個字，編號是 1 還是 0？",
+   "ask_answer": "是 0！Python 的索引從 0 開始數。",
+   "explain": [
+    "字串和串列一樣，每個位置都有編號（索引），第一個是 0，第二個是 1……",
+    "負的索引從後面數：-1 是最後一個，-2 是倒數第二個。",
+    "索引不能超過範圍，不然會出現 index out of range 錯誤。"
+   ],
+   "code": "word = \"派派森林\"\nprint(word[0])\nprint(word[2])\nprint(word[-1])",
+   "inputs": [],
+   "output": "派\n森\n林",
+   "quiz": {
+    "q": "s = \"apple\"，s[1] 是？",
+    "options": [
+     "a",
+     "p",
+     "l"
+    ],
+    "answer": 1,
+    "why": "索引從 0 開始：s[0] 是 a，s[1] 是 p。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "str_in": {
+   "ch": "6.2.2",
+   "goal": "用 in 檢查「裡面有沒有」：字串裡有沒有某段字。",
+   "ask": "要怎麼知道一封信裡有沒有寫到「寶藏」？",
+   "ask_answer": "用 \"寶藏\" in letter，有就是 True。",
+   "explain": [
+    "A in B：如果 B 裡面有 A，就回傳 True，沒有就回傳 False。",
+    "字串、串列、字典都可以用 in 檢查（字典是檢查「鍵」）。",
+    "not in 則是反過來：沒有才是 True。"
+   ],
+   "code": "letter = \"明天到天空樹頂找寶藏\"\nprint(\"寶藏\" in letter)\nprint(\"蘿蔔\" in letter)\nprint(\"蘿蔔\" not in letter)",
+   "inputs": [],
+   "output": "True\nFalse\nTrue",
+   "quiz": {
+    "q": "\"林\" in \"派派森林\" 的結果是？",
+    "options": [
+     "True",
+     "False"
+    ],
+    "answer": 0,
+    "why": "「派派森林」裡面有「林」這個字，所以是 True。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 6 章 字典"
+  },
+  "str_methods": {
+   "ch": "7.3",
+   "goal": "使用字串函式：startswith/endswith、find、replace、strip、ljust/rjust/center。",
+   "ask": "要把「2025-8-23」改成用「/」分隔，要一個字一個字改嗎？",
+   "ask_answer": "不用，replace(\"-\", \"/\") 一次全部換掉。",
+   "explain": [
+    "startswith() / endswith()：檢查開頭 / 結尾是不是某段字，回傳 True 或 False。",
+    "find()：找某段字在哪個位置（從 0 數），找不到回傳 -1。replace(舊, 新)：把舊的字換成新的。",
+    "strip() 去掉左右的空白；ljust / rjust / center 把字串補成固定長度，可以排得很整齊。"
+   ],
+   "code": "date = \"2025-8-23\"\nprint(date.replace(\"-\", \"/\"))\nprint(date.startswith(\"2025\"))\nprint(date.find(\"8\"))\nprint(\"  兔兔  \".strip())\nprint(\"鼠\".rjust(4, \"*\"))",
+   "inputs": [],
+   "output": "2025/8/23\nTrue\n5\n兔兔\n***鼠",
+   "quiz": {
+    "q": "\"forest\".find(\"z\") 的結果是？",
+    "options": [
+     "0",
+     "-1",
+     "會出錯"
+    ],
+    "answer": 1,
+    "why": "find() 找不到的時候回傳 -1。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "if": {
+   "ch": "3.1–3.2.2",
+   "goal": "用 if（單向判斷式）：條件成立才做某件事；並認識冒號和縮排。",
+   "ask": "「如果下雨，就帶傘」，電腦要怎麼寫？",
+   "ask_answer": "if raining: 然後下一行縮排寫 print(\"帶傘\")。",
+   "explain": [
+    "if 後面接條件，再加冒號 :。條件是 True 才執行下面縮排的程式區塊。",
+    "Python 用冒號和縮排（4 個空白或 1 個 Tab）表示「這幾行是一組的」。",
+    "條件是 False 就整組跳過，什麼都不做。"
+   ],
+   "code": "rain = True\nif rain:\n    print(\"記得帶傘\")\n    print(\"穿雨鞋\")\nprint(\"出門囉\")",
+   "inputs": [],
+   "output": "記得帶傘\n穿雨鞋\n出門囉",
+   "quiz": {
+    "q": "下面的程式會印出什麼？\nx = 3\nif x > 5:\n    print(\"大\")\nprint(\"完\")",
+    "options": [
+     "大 和 完",
+     "只有 完",
+     "什麼都沒有"
+    ],
+    "answer": 1,
+    "why": "3 > 5 是 False，縮排裡的 print(\"大\") 被跳過，但沒縮排的 print(\"完\") 一定會執行。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 3 章 判斷式"
+  },
+  "if_else": {
+   "ch": "3.2.3",
+   "goal": "用 if…else（雙向判斷式）：條件成立做 A，不成立做 B。",
+   "ask": "「下雨帶傘，不然戴帽子」，要寫兩個 if 嗎？",
+   "ask_answer": "用一組 if…else 就好。",
+   "explain": [
+    "條件是 True，做 if 下面的區塊；是 False，就做 else 下面的區塊。",
+    "else 後面不用寫條件，但要加冒號。",
+    "兩個區塊一定會做其中一個，而且只做一個。"
+   ],
+   "code": "carrots = 7\nif carrots >= 10:\n    print(\"夠做蘿蔔派了\")\nelse:\n    print(\"還要再拔\", 10 - carrots, \"根\")",
+   "inputs": [],
+   "output": "還要再拔 3 根",
+   "quiz": {
+    "q": "score = 55 時，下面會印出什麼？\nif score >= 60:\n    print(\"過關\")\nelse:\n    print(\"再加油\")",
+    "options": [
+     "過關",
+     "再加油",
+     "兩個都印"
+    ],
+    "answer": 1,
+    "why": "55 >= 60 是 False，所以做 else：再加油。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 3 章 判斷式"
+  },
+  "elif": {
+   "ch": "3.2.4",
+   "goal": "用 if…elif…else（多向判斷式）處理好幾種情況。",
+   "ask": "成績要分成「優、甲、乙、丙、丁」五種，要怎麼判斷？",
+   "ask_answer": "用 if、好幾個 elif、最後一個 else。",
+   "explain": [
+    "由上往下一個一個檢查條件，第一個成立的區塊會執行，後面的就不看了。",
+    "elif 是 else if 的縮寫，可以寫很多個。",
+    "全部都不成立，才會執行最後的 else。"
+   ],
+   "code": "score = 84\nif score >= 90:\n    print(\"優等\")\nelif score >= 80:\n    print(\"甲等\")\nelif score >= 70:\n    print(\"乙等\")\nelse:\n    print(\"要多練習\")",
+   "inputs": [],
+   "output": "甲等",
+   "quiz": {
+    "q": "score = 95 時，上面的程式會印出幾個結果？",
+    "options": [
+     "1 個（優等）",
+     "2 個（優等、甲等）",
+     "3 個"
+    ],
+    "answer": 0,
+    "why": "第一個成立的是 score >= 90，印出優等後，後面的 elif 就不會再檢查了。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 3 章 判斷式"
+  },
+  "nested_if": {
+   "ch": "3.2.5",
+   "goal": "巢狀判斷式：if 裡面再放 if。",
+   "ask": "「如果是週末，再看有沒有下雨」，要怎麼寫？",
+   "ask_answer": "在週末的 if 裡面，再寫一個下雨的 if。",
+   "explain": [
+    "判斷式裡面可以再包判斷式，叫做巢狀判斷式。",
+    "裡面那一層要再多縮排一層。",
+    "先通過外層的條件，才會檢查裡面的條件。"
+   ],
+   "code": "weekend = True\nrain = False\nif weekend:\n    if rain:\n        print(\"在家看書\")\n    else:\n        print(\"去薰衣草原\")\nelse:\n    print(\"上學去\")",
+   "inputs": [],
+   "output": "去薰衣草原",
+   "quiz": {
+    "q": "weekend = False、rain = True 時，上面的程式印出什麼？",
+    "options": [
+     "在家看書",
+     "去薰衣草原",
+     "上學去"
+    ],
+    "answer": 2,
+    "why": "外層 weekend 是 False，直接做最外面的 else，裡面的 if 根本不會檢查。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 3 章 判斷式"
+  },
+  "for_range": {
+   "ch": "4.1–4.2",
+   "goal": "用 for 迴圈搭配 range(n)，把同一件事做固定的次數。",
+   "ask": "要說三次「早安」，一定要寫三個 print 嗎？",
+   "ask_answer": "不用！for i in range(3): 會重複三次。",
+   "explain": [
+    "迴圈就是處理重複的事。for 迴圈用在「次數固定」的時候。",
+    "range(n) 會產生 0, 1, 2, …, n-1 一共 n 個整數；每一圈，變數 i 會依序拿到其中一個。",
+    "要重複的程式寫在冒號下面、縮排。"
+   ],
+   "code": "for i in range(3):\n    print(\"早安！第\", i, \"次\")",
+   "inputs": [],
+   "output": "早安！第 0 次\n早安！第 1 次\n早安！第 2 次",
+   "quiz": {
+    "q": "for i in range(4): 會重複幾次？",
+    "options": [
+     "3 次",
+     "4 次",
+     "5 次"
+    ],
+    "answer": 1,
+    "why": "range(4) 是 0、1、2、3，一共 4 個數，所以重複 4 次。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "range_args": {
+   "ch": "4.1.2",
+   "goal": "range 的三種寫法：range(終止)、range(起始, 終止)、range(起始, 終止, 間隔)。",
+   "ask": "要數 1, 3, 5, 7, 9，range 要怎麼寫？",
+   "ask_answer": "range(1, 10, 2)：從 1 開始、到 10 之前停、每次加 2。",
+   "explain": [
+    "range(起始, 終止)：從起始值開始，到終止值「之前」停（不包含終止值）。",
+    "range(起始, 終止, 間隔)：每次跳間隔那麼多；起始和終止也可以是負數。",
+    "間隔是負數就倒著數，這時起始值要比終止值大。"
+   ],
+   "code": "print(list(range(5)))\nprint(list(range(2, 6)))\nprint(list(range(1, 10, 2)))\nprint(list(range(5, 0, -1)))",
+   "inputs": [],
+   "output": "[0, 1, 2, 3, 4]\n[2, 3, 4, 5]\n[1, 3, 5, 7, 9]\n[5, 4, 3, 2, 1]",
+   "quiz": {
+    "q": "list(range(3, 8)) 是？",
+    "options": [
+     "[3, 4, 5, 6, 7, 8]",
+     "[3, 4, 5, 6, 7]",
+     "[4, 5, 6, 7, 8]"
+    ],
+    "answer": 1,
+    "why": "從 3 開始、到 8 之前停，不包含 8。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "for_str": {
+   "ch": "4.2",
+   "goal": "用 for 把字串裡的字一個一個拿出來。",
+   "ask": "for 只能搭配 range 嗎？",
+   "ask_answer": "不是，for 也可以直接走過一個字串（或串列）的每一個元素。",
+   "explain": [
+    "for ch in 字串: 每一圈 ch 會拿到字串裡的下一個字。",
+    "這樣就不用自己算索引。",
+    "串列也一樣可以這樣走一遍（第 5 章會再學）。"
+   ],
+   "code": "for ch in \"派派鼠\":\n    print(ch + \"！\")",
+   "inputs": [],
+   "output": "派！\n派！\n鼠！",
+   "quiz": {
+    "q": "for c in \"ab\": print(c) 會印出幾行？",
+    "options": [
+     "1 行",
+     "2 行",
+     "3 行"
+    ],
+    "answer": 1,
+    "why": "\"ab\" 有 a、b 兩個字，迴圈跑兩圈，印兩行。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "accumulate": {
+   "ch": "4.2",
+   "goal": "用迴圈做累加：先準備一個 0，每一圈加上去。",
+   "ask": "1 + 2 + … + 100 是多少？要自己一個一個加嗎？",
+   "ask_answer": "讓迴圈幫你加！答案是 5050。",
+   "explain": [
+    "先準備一個變數當「總和」，一開始是 0。",
+    "每跑一圈，就把這一圈的數加進總和（total += i）。",
+    "迴圈跑完，總和就算好了；記得 range 要到 101 才會包含 100。"
+   ],
+   "code": "total = 0\nfor i in range(1, 101):\n    total += i\nprint(\"1 加到 100 =\", total)",
+   "inputs": [],
+   "output": "1 加到 100 = 5050",
+   "quiz": {
+    "q": "total = 0；for i in range(1, 4): total += i；最後 total 是？",
+    "options": [
+     "6",
+     "10",
+     "3"
+    ],
+    "answer": 0,
+    "why": "range(1, 4) 是 1、2、3，加起來是 6。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "while": {
+   "ch": "4.3",
+   "goal": "用 while 迴圈：條件成立就一直重複，次數不固定時使用。",
+   "ask": "「一直問密碼，直到答對為止」，要用 for 還是 while？",
+   "ask_answer": "用 while，因為不知道要問幾次。",
+   "explain": [
+    "while 條件: 先檢查條件，是 True 才執行區塊，執行完再回來檢查。",
+    "條件變成 False，迴圈就結束。",
+    "一定要讓條件有機會變成 False，不然會變成停不下來的「無窮迴圈」。"
+   ],
+   "code": "n = 1\nresult = 1\nwhile n <= 5:\n    result *= n\n    n += 1\nprint(\"5! =\", result)",
+   "inputs": [],
+   "output": "5! = 120",
+   "quiz": {
+    "q": "下面的迴圈會怎樣？\ni = 0\nwhile i < 3:\n    print(i)",
+    "options": [
+     "印 0、1、2",
+     "一直印 0，停不下來",
+     "什麼都不印"
+    ],
+    "answer": 1,
+    "why": "迴圈裡沒有改變 i，i < 3 永遠是 True，變成無窮迴圈。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "break": {
+   "ch": "4.2.2",
+   "goal": "用 break 在迴圈中途直接跳出去。",
+   "ask": "找到想要的東西以後，還要繼續找嗎？",
+   "ask_answer": "不用！用 break 立刻離開迴圈。",
+   "explain": [
+    "break 通常放在 if 裡面：某個條件成立，就跳出整個迴圈。",
+    "跳出後，從迴圈後面的程式繼續執行。",
+    "for 和 while 都可以用 break。"
+   ],
+   "code": "for n in range(1, 100):\n    if n % 6 == 0 and n % 4 == 0:\n        print(\"最小公倍數是\", n)\n        break",
+   "inputs": [],
+   "output": "最小公倍數是 12",
+   "quiz": {
+    "q": "for i in range(10):\n    if i == 3:\n        break\n    print(i)\n會印出哪些數字？",
+    "options": [
+     "0 1 2",
+     "0 1 2 3",
+     "3"
+    ],
+    "answer": 0,
+    "why": "i 等於 3 時就 break，3 還沒印就離開了。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "continue": {
+   "ch": "4.2.3",
+   "goal": "用 continue 跳過這一圈剩下的部分，直接進下一圈。",
+   "ask": "數數字時想跳過 5 的倍數，要怎麼做？",
+   "ask_answer": "遇到 5 的倍數就 continue，這一圈後面的 print 就不做了。",
+   "explain": [
+    "continue 會停下這一圈，回到迴圈開頭繼續下一圈。",
+    "和 break 不同：break 是整個離開，continue 只跳過這一圈。",
+    "也常放在 if 裡面使用。"
+   ],
+   "code": "for n in range(1, 12):\n    if n % 5 == 0:\n        continue\n    print(n, end=\" \")",
+   "inputs": [],
+   "output": "1 2 3 4 6 7 8 9 11 ",
+   "quiz": {
+    "q": "for i in range(4):\n    if i == 1:\n        continue\n    print(i)\n會印出？",
+    "options": [
+     "0 2 3",
+     "0",
+     "1"
+    ],
+    "answer": 0,
+    "why": "i 是 1 的那一圈被跳過，其他都會印。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "nested_loop": {
+   "ch": "4.2.1",
+   "goal": "巢狀迴圈：迴圈裡面再放迴圈。",
+   "ask": "九九乘法表有 9 × 9 格，要寫 81 行嗎？",
+   "ask_answer": "用兩層迴圈就好：外層管「第幾列」，內層管「第幾行」。",
+   "explain": [
+    "外層跑一圈，內層就要整個跑完一輪。",
+    "總共執行的次數 = 外層次數 × 內層次數。",
+    "排成直角三角形、乘法表，都會用到巢狀迴圈。"
+   ],
+   "code": "for i in range(1, 4):\n    for j in range(i):\n        print(\"#\", end=\"\")\n    print()",
+   "inputs": [],
+   "output": "#\n##\n###",
+   "quiz": {
+    "q": "外層 range(3)、內層 range(2)，最裡面的 print 總共執行幾次？",
+    "options": [
+     "5 次",
+     "6 次",
+     "3 次"
+    ],
+    "answer": 1,
+    "why": "3 × 2 = 6 次。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 4 章 迴圈"
+  },
+  "list": {
+   "ch": "5.1",
+   "goal": "用串列（list）一次存很多資料。",
+   "ask": "要記住全班 30 個人的名字，要開 30 個變數嗎？",
+   "ask_answer": "不用，放進一個串列就好：names = [\"狼\", \"兔\", …]。",
+   "explain": [
+    "串列把好幾個元素放在中括號 [] 裡，元素之間用逗號分開。",
+    "元素的型態可以一樣，也可以不一樣；[] 是空串列。",
+    "串列裡也可以放串列，變成二維串列，例如 [[\"帳號\", \"密碼\"], …]。"
+   ],
+   "code": "friends = [\"派派狼\", \"派派兔\", \"拍拍鳥\"]\nprint(friends)\nmixed = [3, \"橡實\", True]\nprint(mixed)\nempty = []\nprint(len(empty))",
+   "inputs": [],
+   "output": "['派派狼', '派派兔', '拍拍鳥']\n[3, '橡實', True]\n0",
+   "quiz": {
+    "q": "下面哪一個是正確的串列？",
+    "options": [
+     "(1, 2, 3)",
+     "[1, 2, 3]",
+     "{1, 2, 3}"
+    ],
+    "answer": 1,
+    "why": "串列用中括號 []；小括號是元組，大括號是集合或字典。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "list_index": {
+   "ch": "5.1.3",
+   "goal": "用索引讀取和修改串列的元素：串列[索引]。",
+   "ask": "friends 的第一個朋友是 friends[1] 嗎？",
+   "ask_answer": "不是，是 friends[0]，索引從 0 開始。",
+   "explain": [
+    "串列[索引] 可以拿出那一個元素；索引從 0 開始，-1 是最後一個。",
+    "索引不能超出範圍，不然會出現「list index out of range」錯誤。",
+    "串列[索引] = 新值，可以把那個位置換成新的元素。"
+   ],
+   "code": "scores = [85, 79, 93]\nprint(scores[0])\nprint(scores[-1])\nscores[1] = 88\nprint(scores)",
+   "inputs": [],
+   "output": "85\n93\n[85, 88, 93]",
+   "quiz": {
+    "q": "a = [10, 20, 30]，a[3] 會怎樣？",
+    "options": [
+     "得到 30",
+     "得到 10",
+     "出錯：超出範圍"
+    ],
+    "answer": 2,
+    "why": "只有 a[0]、a[1]、a[2]，a[3] 超出範圍。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "for_list": {
+   "ch": "5.2",
+   "goal": "用 for 讀取串列：for x in 串列、for i in range(len(串列))。",
+   "ask": "要把串列裡每個東西都印出來，要寫很多次 print 嗎？",
+   "ask_answer": "用 for 走一遍就好。",
+   "explain": [
+    "for x in 串列: 每一圈 x 會依序拿到一個元素。",
+    "需要索引時，用 for i in range(len(串列))，再用 串列[i] 取元素。",
+    "兩個一樣長的串列，可以用同一個 i 一起讀。"
+   ],
+   "code": "subjects = [\"國文\", \"數學\", \"英文\"]\nscores = [85, 79, 93]\nfor s in subjects:\n    print(s)\nfor i in range(len(scores)):\n    print(subjects[i], scores[i])",
+   "inputs": [],
+   "output": "國文\n數學\n英文\n國文 85\n數學 79\n英文 93",
+   "quiz": {
+    "q": "for x in [2, 4, 6]: print(x * 10) 會印出？",
+    "options": [
+     "2 4 6",
+     "20 40 60",
+     "246"
+    ],
+    "answer": 1,
+    "why": "每一圈 x 分別是 2、4、6，乘 10 印出。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "list_in": {
+   "ch": "5.3",
+   "goal": "在串列裡找東西：in 檢查有沒有、index() 找位置、count() 算次數。",
+   "ask": "背包裡有沒有「地圖」？在第幾格？",
+   "ask_answer": "\"地圖\" in bag 看有沒有，bag.index(\"地圖\") 看在第幾格。",
+   "explain": [
+    "元素 in 串列：有就是 True。",
+    "串列.index(元素)：回傳第一個找到的位置（從 0 數）。",
+    "串列.count(元素)：回傳出現了幾次。"
+   ],
+   "code": "bag = [\"地圖\", \"橡實\", \"繩子\", \"橡實\"]\nprint(\"地圖\" in bag)\nprint(bag.index(\"繩子\"))\nprint(bag.count(\"橡實\"))",
+   "inputs": [],
+   "output": "True\n2\n2",
+   "quiz": {
+    "q": "[1, 2, 2, 3].count(2) 是？",
+    "options": [
+     "1",
+     "2",
+     "3"
+    ],
+    "answer": 1,
+    "why": "2 出現了兩次。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "split": {
+   "ch": "7.3.2",
+   "goal": "用 split() 把字串切成串列，用 join() 把串列接回字串。",
+   "ask": "\"胡蘿蔔 馬鈴薯 洋蔥\" 要怎麼變成三個東西的清單？",
+   "ask_answer": "用 split()，預設用空白切開。",
+   "explain": [
+    "字串.split(分隔字串)：照分隔字串切開，得到一個串列；不寫的話用空白切。",
+    "連接字串.join(串列)：把串列的元素接成一個字串，中間插入連接字串。",
+    "split 和 join 剛好相反。"
+   ],
+   "code": "items = \"胡蘿蔔 馬鈴薯 洋蔥\".split()\nprint(items)\nprint(\"2025-8-23\".split(\"-\"))\nprint(\"、\".join(items))",
+   "inputs": [],
+   "output": "['胡蘿蔔', '馬鈴薯', '洋蔥']\n['2025', '8', '23']\n胡蘿蔔、馬鈴薯、洋蔥",
+   "quiz": {
+    "q": "\"a,b,c\".split(\",\") 的結果是？",
+    "options": [
+     "[\"a,b,c\"]",
+     "[\"a\", \"b\", \"c\"]",
+     "\"abc\""
+    ],
+    "answer": 1,
+    "why": "用逗號切開，得到三個元素的串列。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "list_append": {
+   "ch": "5.4.1",
+   "goal": "用 append() 把元素加到最後面，用 insert() 插在指定位置。",
+   "ask": "背包串列裝滿了還能再放東西嗎？",
+   "ask_answer": "可以！串列可以隨時加東西。",
+   "explain": [
+    "串列.append(元素)：加在最後面。",
+    "串列.insert(索引, 元素)：插在那個位置，後面的往後移；索引太大就等於加在最後。",
+    "常用來一邊輸入一邊收集資料。"
+   ],
+   "code": "bag = [\"地圖\"]\nbag.append(\"橡實\")\nprint(bag)\nbag.insert(0, \"帽子\")\nprint(bag)",
+   "inputs": [],
+   "output": "['地圖', '橡實']\n['帽子', '地圖', '橡實']",
+   "quiz": {
+    "q": "a = [1, 2]；a.append(3)；a 是？",
+    "options": [
+     "[3, 1, 2]",
+     "[1, 2, 3]",
+     "[1, 3, 2]"
+    ],
+    "answer": 1,
+    "why": "append 加在最後面。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "list_remove": {
+   "ch": "5.4.2",
+   "goal": "刪除串列元素：remove()、pop()、del。",
+   "ask": "背包裡的「爛蘋果」要怎麼丟掉？",
+   "ask_answer": "bag.remove(\"爛蘋果\")。",
+   "explain": [
+    "串列.remove(元素)：刪掉第一個符合的元素。",
+    "串列.pop()：拿出最後一個元素（也可以 pop(索引)），拿出來的同時從串列移除。",
+    "del 串列[索引] 刪除一個元素；del 串列[起:止] 刪除一段。"
+   ],
+   "code": "bag = [\"地圖\", \"爛蘋果\", \"橡實\", \"繩子\"]\nbag.remove(\"爛蘋果\")\nprint(bag)\nlast = bag.pop()\nprint(last, bag)\ndel bag[0]\nprint(bag)",
+   "inputs": [],
+   "output": "['地圖', '橡實', '繩子']\n繩子 ['地圖', '橡實']\n['橡實']",
+   "quiz": {
+    "q": "a = [5, 6, 7]；x = a.pop()；x 是多少？",
+    "options": [
+     "5",
+     "7",
+     "[5, 6]"
+    ],
+    "answer": 1,
+    "why": "pop() 沒有給索引，就拿出最後一個 7。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "list_sort": {
+   "ch": "5.5",
+   "goal": "排序：sort() 由小到大、reverse() 反轉、sort(reverse=True)、sorted()。",
+   "ask": "考完試，要怎麼把分數從高排到低？",
+   "ask_answer": "scores.sort(reverse=True)，或用 sorted() 排出一個新的串列。",
+   "explain": [
+    "串列.sort()：由小到大排好（直接改掉原本的串列）。",
+    "串列.reverse()：把順序整個倒過來；串列.sort(reverse=True) 由大到小。",
+    "sorted(串列)：排好後回傳一個「新的」串列，原來的串列不會改變。"
+   ],
+   "code": "scores = [70, 95, 82]\nnew = sorted(scores, reverse=True)\nprint(new, scores)\nscores.sort()\nprint(scores)\nscores.reverse()\nprint(scores)",
+   "inputs": [],
+   "output": "[95, 82, 70] [70, 95, 82]\n[70, 82, 95]\n[95, 82, 70]",
+   "quiz": {
+    "q": "a = [3, 1, 2]；b = sorted(a)；a 是？",
+    "options": [
+     "[1, 2, 3]",
+     "[3, 1, 2]",
+     "[3, 2, 1]"
+    ],
+    "answer": 1,
+    "why": "sorted() 不會改原來的串列，a 還是 [3, 1, 2]。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "list_slice": {
+   "ch": "5.4.2",
+   "goal": "切片：用 串列[起:止] 拿出（或刪掉）一段元素。",
+   "ask": "相簿有 10 張照片，只想拿前 3 張，要怎麼做？",
+   "ask_answer": "photos[0:3]，也可以寫 photos[:3]。",
+   "explain": [
+    "串列[起:止] 拿出從「起」到「止」之前的元素，不包含「止」。",
+    "起不寫代表從頭開始，止不寫代表到最後；字串也可以這樣切。",
+    "del 串列[起:止] 可以一次刪掉那一段。"
+   ],
+   "code": "photos = [\"a\", \"b\", \"c\", \"d\", \"e\"]\nprint(photos[0:3])\nprint(photos[2:])\nprint(\"派派森林\"[:2])\ndel photos[1:3]\nprint(photos)",
+   "inputs": [],
+   "output": "['a', 'b', 'c']\n['c', 'd', 'e']\n派派\n['a', 'd', 'e']",
+   "quiz": {
+    "q": "[10, 20, 30, 40][1:3] 是？",
+    "options": [
+     "[10, 20]",
+     "[20, 30]",
+     "[20, 30, 40]"
+    ],
+    "answer": 1,
+    "why": "從索引 1 到索引 3 之前：20 和 30。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "tuple": {
+   "ch": "5.7",
+   "goal": "元組（tuple）：不能修改的串列。",
+   "ask": "有些資料一輩子都不會變（例如座標），要怎麼保護它不被改？",
+   "ask_answer": "放進元組，用小括號 ()。",
+   "explain": [
+    "元組用小括號 () 建立，讀取方式和串列一樣（索引、for、len）。",
+    "但元組的元素個數和值都不能改，改了會出錯。",
+    "list() 可以把元組變成串列，tuple() 可以把串列變成元組。"
+   ],
+   "code": "home = (3, 5)\nprint(home[0], home[1])\nprint(list(home))\nprint(tuple([1, 2, 3]))",
+   "inputs": [],
+   "output": "3 5\n[3, 5]\n(1, 2, 3)",
+   "quiz": {
+    "q": "p = (1, 2)；p[0] = 9 會怎樣？",
+    "options": [
+     "p 變成 (9, 2)",
+     "出錯：元組不能修改",
+     "p 變成 (1, 9)"
+    ],
+    "answer": 1,
+    "why": "元組是「不能修改的串列」。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 5 章 串列與元組"
+  },
+  "dict": {
+   "ch": "6.1.1–6.1.2",
+   "goal": "用字典（dict）以「鍵: 值」存資料，用鍵拿出值。",
+   "ask": "想用名字查到每個朋友的生日，用串列方便嗎？",
+   "ask_answer": "用字典更方便：birthday[\"派派兔\"] 直接查到。",
+   "explain": [
+    "字典把元素放在大括號 {} 裡，每個元素是「鍵: 值」一對。也可以用 dict() 建立。",
+    "字典[鍵] 拿出對應的值。鍵必須唯一，重複的話後面的會蓋掉前面的。",
+    "字典沒有「第幾個」的順序觀念，不能用 0、1 當位置來拿；鍵不存在會出錯。"
+   ],
+   "code": "price = {\"蘋果\": 10, \"蘿蔔\": 5}\nprint(price[\"蘋果\"])\nd = dict(wolf=3, rabbit=4)\nprint(d)\ndup = {\"a\": 1, \"a\": 2}\nprint(dup)",
+   "inputs": [],
+   "output": "10\n{'wolf': 3, 'rabbit': 4}\n{'a': 2}",
+   "quiz": {
+    "q": "d = {\"狼\": 3, \"兔\": 5}，d[\"兔\"] 是？",
+    "options": [
+     "3",
+     "5",
+     "\"兔\""
+    ],
+    "answer": 1,
+    "why": "用鍵 \"兔\" 拿到它的值 5。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 6 章 字典"
+  },
+  "dict_update": {
+   "ch": "6.1.3",
+   "goal": "修改、新增和刪除字典的元素。",
+   "ask": "價目表要加一樣新水果，要重新寫整本字典嗎？",
+   "ask_answer": "不用，字典[新鍵] = 值 就加進去了。",
+   "explain": [
+    "字典[鍵] = 值：鍵存在就是「修改」，鍵不存在就是「新增」。",
+    "del 字典[鍵] 刪掉一個元素；字典.clear() 清空全部；del 字典 把整個字典刪掉。",
+    "寫法一樣，所以要知道鍵原本在不在。"
+   ],
+   "code": "price = {\"蘋果\": 10}\nprice[\"蘋果\"] = 12\nprice[\"香蕉\"] = 8\nprint(price)\ndel price[\"蘋果\"]\nprint(price)",
+   "inputs": [],
+   "output": "{'蘋果': 12, '香蕉': 8}\n{'香蕉': 8}",
+   "quiz": {
+    "q": "d = {\"a\": 1}；d[\"b\"] = 2；d 是？",
+    "options": [
+     "{\"a\": 1}",
+     "{\"a\": 1, \"b\": 2}",
+     "出錯"
+    ],
+    "answer": 1,
+    "why": "鍵 \"b\" 不存在，所以是新增。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 6 章 字典"
+  },
+  "dict_get": {
+   "ch": "6.1.2、6.2.2、6.2.5",
+   "goal": "安全地查字典：get()、in、setdefault()。",
+   "ask": "查一個不存在的鍵，程式一定會壞掉嗎？",
+   "ask_answer": "用 get() 就不會，它會回傳 None 或你給的預設值。",
+   "explain": [
+    "字典.get(鍵, 預設值)：鍵存在回傳值；不存在回傳預設值（沒給就是 None），不會出錯。",
+    "鍵 in 字典：先檢查鍵在不在，在才去拿。",
+    "字典.setdefault(鍵, 預設值)：和 get 很像，但鍵不存在時會「把它加進字典」。"
+   ],
+   "code": "price = {\"蘋果\": 10}\nprint(price.get(\"蘋果\"))\nprint(price.get(\"西瓜\", \"沒有賣\"))\nprint(\"西瓜\" in price)\nprice.setdefault(\"西瓜\", 30)\nprint(price)",
+   "inputs": [],
+   "output": "10\n沒有賣\nFalse\n{'蘋果': 10, '西瓜': 30}",
+   "quiz": {
+    "q": "d = {\"a\": 1}，d.get(\"z\", 0) 是？",
+    "options": [
+     "出錯",
+     "0",
+     "None"
+    ],
+    "answer": 1,
+    "why": "鍵 \"z\" 不存在，回傳給的預設值 0。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 6 章 字典"
+  },
+  "dict_loop": {
+   "ch": "6.2.3–6.2.4",
+   "goal": "用 keys()、values()、items() 拿出字典的鍵、值和鍵值對，再用 for 走一遍。",
+   "ask": "要把整本價目表印出來，要一個一個查嗎？",
+   "ask_answer": "用 for 名, 價 in price.items() 一次走完。",
+   "explain": [
+    "字典.keys() 拿出所有鍵，字典.values() 拿出所有值。",
+    "字典.items() 拿出所有「(鍵, 值)」，常寫成 for k, v in 字典.items():。",
+    "它們不能直接用索引，需要時先用 list() 轉成串列。"
+   ],
+   "code": "medals = {\"金\": 26, \"銀\": 34, \"銅\": 30}\nprint(list(medals.keys()))\nprint(sum(medals.values()))\nfor k, v in medals.items():\n    print(k, \"牌\", v, \"面\")",
+   "inputs": [],
+   "output": "['金', '銀', '銅']\n90\n金 牌 26 面\n銀 牌 34 面\n銅 牌 30 面",
+   "quiz": {
+    "q": "for k in {\"a\": 1, \"b\": 2}: print(k) 會印出？",
+    "options": [
+     "a b",
+     "1 2",
+     "a 1 b 2"
+    ],
+    "answer": 0,
+    "why": "直接用 for 走字典，拿到的是鍵。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 6 章 字典"
+  },
+  "set": {
+   "ch": "補充",
+   "goal": "集合（set）：沒有順序、不會重複的收藏。（課本第五版沒有這一節，是補充）",
+   "ask": "收集到好幾張一樣的郵票，要怎麼只留一張？",
+   "ask_answer": "放進集合，重複的會自動不見。",
+   "explain": [
+    "集合用大括號 {} 或 set() 建立，裡面的元素不會重複、也沒有順序。",
+    "add() 加入元素；in 檢查有沒有。",
+    "常用來「去掉重複」：set(串列)。"
+   ],
+   "code": "stamps = [\"松果\", \"楓葉\", \"松果\", \"蘑菇\"]\nprint(len(set(stamps)))\ns = {\"松果\"}\ns.add(\"楓葉\")\ns.add(\"松果\")\nprint(len(s))",
+   "inputs": [],
+   "output": "3\n2",
+   "quiz": {
+    "q": "len(set([1, 1, 2, 2, 3])) 是？",
+    "options": [
+     "5",
+     "3",
+     "2"
+    ],
+    "answer": 1,
+    "why": "去掉重複後剩 1、2、3 三個。"
+   },
+   "tasks": null,
+   "note": "課本第五版沒有集合，這一課是補充。",
+   "chapter": "補充"
+  },
+  "builtin": {
+   "ch": "7.2",
+   "goal": "內建數值函式：abs、pow、divmod、round、max、min、sum、sorted。",
+   "ask": "要找出一群數字裡最大的，要自己比嗎？",
+   "ask_answer": "不用，max() 一下就找到。",
+   "explain": [
+    "abs() 絕對值；pow(x, y) 是 x 的 y 次方；divmod(a, b) 同時給商和餘數。",
+    "round(x, 位數) 四捨六入：5 的時候看前一位，偶數捨去、奇數進位。",
+    "max() / min() 最大最小；sum(串列) 加總；sorted(串列, reverse=True) 由大到小排序。"
+   ],
+   "code": "bills = [520, 380, 615]\nprint(max(bills), min(bills), sum(bills))\nprint(divmod(17, 5))\nprint(pow(2, 5))\nprint(round(2.5), round(3.5), round(3.14159, 2))",
+   "inputs": [],
+   "output": "615 380 1515\n(3, 2)\n32\n2 4 3.14",
+   "quiz": {
+    "q": "divmod(20, 6) 的結果是？",
+    "options": [
+     "(3, 2)",
+     "3",
+     "(2, 3)"
+    ],
+    "answer": 0,
+    "why": "20 ÷ 6 商 3 餘 2，divmod 一次給 (商, 餘數)。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "def": {
+   "ch": "7.1.1",
+   "goal": "用 def 自己做一個函式，需要時再呼叫它。",
+   "ask": "同一段打招呼的程式要用很多次，要每次都重寫嗎？",
+   "ask_answer": "不用，把它做成函式，取個名字，之後呼叫名字就好。",
+   "explain": [
+    "def 函式名稱(): 下面縮排寫要做的事。",
+    "函式建立好不會自己執行，要寫 函式名稱() 呼叫它才會執行。",
+    "好處：可以分工、程式變短、重複使用、比較好讀也好除錯。"
+   ],
+   "code": "def greet():\n    print(\"歡迎來到圖書館！\")\n    print(\"慢慢來，比較快。\")\n\ngreet()\ngreet()",
+   "inputs": [],
+   "output": "歡迎來到圖書館！\n慢慢來，比較快。\n歡迎來到圖書館！\n慢慢來，比較快。",
+   "quiz": {
+    "q": "下面的程式會印出幾次「嗨」？\ndef hi():\n    print(\"嗨\")",
+    "options": [
+     "1 次",
+     "0 次",
+     "會出錯"
+    ],
+    "answer": 1,
+    "why": "只有定義、沒有呼叫 hi()，函式不會執行。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "param": {
+   "ch": "7.1.1–7.1.2",
+   "goal": "用參數把資料傳進函式；也可以給參數預設值。",
+   "ask": "打招呼的函式，能不能每次跟不同的人打招呼？",
+   "ask_answer": "可以，給它一個參數：greet(name)。",
+   "explain": [
+    "參數寫在 def 的括號裡，用來接住呼叫時傳進來的資料；多個參數用逗號分開。",
+    "呼叫時要照順序傳，數量要對。",
+    "參數 = 值 可以設預設值：呼叫時沒傳，就用預設值。"
+   ],
+   "code": "def greet(name, times=1):\n    for i in range(times):\n        print(\"你好，\" + name)\n\ngreet(\"派派兔\")\ngreet(\"拍拍鳥\", 2)",
+   "inputs": [],
+   "output": "你好，派派兔\n你好，拍拍鳥\n你好，拍拍鳥",
+   "quiz": {
+    "q": "def f(a, b=5): print(a + b)；f(1) 印出？",
+    "options": [
+     "1",
+     "6",
+     "出錯"
+    ],
+    "answer": 1,
+    "why": "b 沒有傳，用預設值 5，1 + 5 = 6。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "return": {
+   "ch": "7.1.1",
+   "goal": "用 return 把函式算好的結果傳回來。",
+   "ask": "函式算出答案以後，要怎麼交給呼叫它的人？",
+   "ask_answer": "用 return 把答案傳回去，再用變數接住。",
+   "explain": [
+    "return 值：結束函式，並把值傳回呼叫的地方。",
+    "可以傳回好幾個值，用逗號分開；接的時候變數數量要一樣。",
+    "沒有 return 的函式，傳回的是 None。"
+   ],
+   "code": "def c_to_f(c):\n    return c * 1.8 + 32\n\ndef split_acorns(total, n):\n    return total // n, total % n\n\nprint(c_to_f(25))\neach, left = split_acorns(17, 5)\nprint(each, left)",
+   "inputs": [],
+   "output": "77.0\n3 2",
+   "quiz": {
+    "q": "def double(x): return x * 2；y = double(4)；y 是？",
+    "options": [
+     "4",
+     "8",
+     "None"
+    ],
+    "answer": 1,
+    "why": "函式傳回 4 * 2 = 8，存進 y。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "scope": {
+   "ch": "7.1.3",
+   "goal": "變數的有效範圍：全域變數和區域變數。",
+   "ask": "在函式裡建立的變數，函式外面看得到嗎？",
+   "ask_answer": "看不到，它是區域變數，只在函式裡有效。",
+   "explain": [
+    "全域變數：定義在函式外，整個檔案都能用。",
+    "區域變數：定義在函式裡，只在那個函式裡有效。",
+    "名字一樣時，函式裡用的是區域變數。"
+   ],
+   "code": "x = \"外面的 x\"\n\ndef show():\n    x = \"裡面的 x\"\n    print(x)\n\nshow()\nprint(x)",
+   "inputs": [],
+   "output": "裡面的 x\n外面的 x",
+   "quiz": {
+    "q": "上面的程式，最後一行 print(x) 印出？",
+    "options": [
+     "裡面的 x",
+     "外面的 x",
+     "出錯"
+    ],
+    "answer": 1,
+    "why": "函式外面只看得到全域變數 x。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "random": {
+   "ch": "7.4",
+   "goal": "匯入模組（import）並使用亂數模組 random。",
+   "ask": "電腦可以擲骰子嗎？",
+   "ask_answer": "可以，用 random.randint(1, 6)。",
+   "explain": [
+    "import 模組 匯入後，用 模組.函式() 使用；也可以 import 模組 as 別名，或 from 模組 import *。",
+    "randint(a, b) 產生 a 到 b 的整數（包含 b）；randrange(a, b, 間隔) 不包含 b；random() 產生 0～1 的浮點數；uniform(a, b) 產生範圍內的浮點數。",
+    "choice() 隨機拿一個；sample(串列, n) 隨機拿 n 個不重複的元素。"
+   ],
+   "code": "import random as r\nprint(r.randint(1, 6))\nprint(r.choice([\"狼\", \"兔\", \"鳥\"]))\nprint(sorted(r.sample(range(1, 50), 6)))",
+   "inputs": [],
+   "output": "（每次執行都不一樣，例如）\n4\n兔\n[3, 11, 19, 27, 38, 45]",
+   "quiz": {
+    "q": "random.randint(1, 3) 可能出現哪些數？",
+    "options": [
+     "1、2",
+     "1、2、3",
+     "0、1、2、3"
+    ],
+    "answer": 1,
+    "why": "randint 的終止值也包含在內。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "time_mod": {
+   "ch": "7.5",
+   "goal": "使用時間模組 time：取得現在時間、讓程式休息、計算執行時間。",
+   "ask": "程式知道現在幾點嗎？",
+   "ask_answer": "知道，用 time.localtime() 問電腦的時鐘。",
+   "explain": [
+    "time() 取得從 1970 年 1 月 1 日開始的秒數；localtime() 取得現在的日期時間（元組，tm_year、tm_hour…）；ctime() 以字串表示。",
+    "sleep(秒數) 讓程式停一下。",
+    "perf_counter() 可以量程式跑了多久。"
+   ],
+   "code": "import time as t\nnow = t.localtime()\nprint(now.tm_year, \"年\", now.tm_mon, \"月\")\nprint(t.ctime())\nt.sleep(1)\nprint(\"休息了一秒\")",
+   "inputs": [],
+   "output": "（依執行的時間而定，例如）\n2025 年 8 月\nSat Aug 23 10:30:00 2025\n休息了一秒",
+   "quiz": {
+    "q": "要讓程式停 2 秒，應該寫？",
+    "options": [
+     "time.wait(2)",
+     "time.sleep(2)",
+     "time.stop(2)"
+    ],
+    "answer": 1,
+    "why": "sleep 的單位是秒。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 7 章 函式與模組"
+  },
+  "file_write": {
+   "ch": "9.1.1–9.1.3",
+   "goal": "用 open() 開檔，用 write() 把文字寫進檔案。",
+   "ask": "程式關掉以後，資料還留得住嗎？",
+   "ask_answer": "寫進檔案就留得住。",
+   "explain": [
+    "open(檔名, 模式, encoding=編碼) 開啟檔案：\"w\" 寫入（會蓋掉舊內容）、\"a\" 附加在後面、\"r\" 讀取（預設）。",
+    "用完要 close() 關閉；用 with open(...) as f: 的寫法，區塊結束會自動關閉。",
+    "中文建議用 encoding=\"UTF-8\"。"
+   ],
+   "code": "with open(\"note.txt\", \"w\", encoding=\"UTF-8\") as f:\n    f.write(\"借書：森林植物圖鑑\\n\")\n    f.write(\"借書人：派派鼠\\n\")\nprint(\"寫好了\")",
+   "inputs": [],
+   "output": "寫好了",
+   "quiz": {
+    "q": "用 \"w\" 模式打開一個已經有內容的檔案，會怎樣？",
+    "options": [
+     "接在後面寫",
+     "舊內容被清掉，重新寫",
+     "出錯"
+    ],
+    "answer": 1,
+    "why": "\"w\" 會覆蓋；要接在後面用 \"a\"。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 9 章 檔案與例外處理"
+  },
+  "file_read": {
+   "ch": "9.1.4、9.2",
+   "goal": "讀取檔案：read()、readlines()、readline()；用 os.path 檢查檔案在不在。",
+   "ask": "上次寫的借書筆記，要怎麼讀回來？",
+   "ask_answer": "用 \"r\" 模式打開，再 read()。",
+   "explain": [
+    "read(n) 讀 n 個字元，不寫就全部讀；readlines() 讀全部、每一行變成串列的一個元素（含 \\n）。",
+    "readline() 一次讀一行。",
+    "os.path.exists(檔名) 檢查檔案在不在；os.remove() 刪檔、os.mkdir() 建資料夾。"
+   ],
+   "code": "with open(\"note.txt\", \"w\", encoding=\"UTF-8\") as f:\n    f.write(\"第一行\\n第二行\\n\")\nwith open(\"note.txt\", \"r\", encoding=\"UTF-8\") as f:\n    lines = f.readlines()\nprint(lines)\nfor i in range(len(lines)):\n    print(i + 1, lines[i].strip())",
+   "inputs": [],
+   "output": "['第一行\\n', '第二行\\n']\n1 第一行\n2 第二行",
+   "quiz": {
+    "q": "readlines() 傳回的資料是什麼型態？",
+    "options": [
+     "字串",
+     "串列",
+     "字典"
+    ],
+    "answer": 1,
+    "why": "每一行是一個元素，整個是串列。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 9 章 檔案與例外處理"
+  },
+  "try": {
+   "ch": "9.3",
+   "goal": "用 try…except 處理錯誤（例外），讓程式不會直接壞掉。",
+   "ask": "使用者亂打字，int() 轉不過去，程式一定會當掉嗎？",
+   "ask_answer": "不一定！用 try…except 接住錯誤，改成提醒使用者。",
+   "explain": [
+    "可能出錯的程式放在 try 裡；出錯時跳到 except 執行。",
+    "可以指定錯誤種類：ValueError（值不對，例如轉數字失敗）、ZeroDivisionError（除以 0）。",
+    "else：沒出錯才執行；finally：不管有沒有出錯都執行。"
+   ],
+   "code": "for text in [\"12\", \"abc\", \"0\"]:\n    try:\n        n = int(text)\n        print(12 / n)\n    except ValueError:\n        print(text, \"不是數字！\")\n    except ZeroDivisionError:\n        print(\"不能除以 0！\")\n    finally:\n        print(\"--\")",
+   "inputs": [],
+   "output": "1.0\n--\nabc 不是數字！\n--\n不能除以 0！\n--",
+   "quiz": {
+    "q": "try:\n    print(1 / 0)\nexcept ZeroDivisionError:\n    print(\"除以0\")\n會印出？",
+    "options": [
+     "除以0",
+     "程式當掉",
+     "0"
+    ],
+    "answer": 0,
+    "why": "1 / 0 引發 ZeroDivisionError，被 except 接住。"
+   },
+   "tasks": null,
+   "note": "",
+   "chapter": "第 9 章 檔案與例外處理"
+  },
+  "algo": {
+   "ch": "8.1",
+   "goal": "認識演算法：解決問題的方法和步驟（虛擬碼、流程圖）。",
+   "ask": "做蘿蔔派之前，要先想好步驟嗎？",
+   "ask_answer": "要！把步驟想清楚、寫下來，就是演算法。",
+   "explain": [
+    "演算法就是解決一個問題的步驟。",
+    "可以先用虛擬碼（用自己的話一步一步寫）或流程圖畫出來，再寫成程式。",
+    "流程：想演算法 → 寫程式碼 → 觀察執行結果，不對再改。"
+   ],
+   "code": "# 虛擬碼：輸入底和高 → 面積 = 底 × 高 ÷ 2 → 印出面積\nbase = 6\nheight = 4\narea = base * height / 2\nprint(\"三角形面積：\", area)",
+   "inputs": [],
+   "output": "三角形面積： 12.0",
+   "quiz": {
+    "q": "下面哪一個最像「演算法」？",
+    "options": [
+     "一張照片",
+     "一份照著做的步驟清單",
+     "一個變數"
+    ],
+    "answer": 1,
+    "why": "演算法就是解決問題的步驟。"
+   },
+   "tasks": [
+    "K_max"
+   ],
+   "note": "",
+   "chapter": "第 8 章 演算法：排序與搜尋"
+  },
+  "bubble": {
+   "ch": "8.2",
+   "goal": "泡沫排序：相鄰兩個比大小，順序不對就交換，大的會像泡泡一樣冒到後面。",
+   "ask": "沒有 sort() 的話，你會怎麼把 3, 5, 2, 1 排好？",
+   "ask_answer": "一次比相鄰的兩個，不對就換，一輪一輪做下去。",
+   "explain": [
+    "每一輪從頭開始，把第 i 個和第 i+1 個比，前面比較大就交換。",
+    "一輪結束，最大的會跑到最後面；下一輪就少比一個。",
+    "要用兩層迴圈（巢狀迴圈）來做。"
+   ],
+   "code": "data = [3, 5, 2, 1]\nn = len(data)\nfor i in range(n - 1):\n    for j in range(n - 1 - i):\n        if data[j] > data[j + 1]:\n            data[j], data[j + 1] = data[j + 1], data[j]\n    print(\"第\", i + 1, \"輪：\", data)",
+   "inputs": [],
+   "output": "第 1 輪： [3, 2, 1, 5]\n第 2 輪： [2, 1, 3, 5]\n第 3 輪： [1, 2, 3, 5]",
+   "quiz": {
+    "q": "[4, 1, 3] 做完泡沫排序的「第一輪」後是？",
+    "options": [
+     "[1, 3, 4]",
+     "[1, 4, 3]",
+     "[4, 3, 1]"
+    ],
+    "answer": 0,
+    "why": "4 和 1 換 → [1, 4, 3]，4 和 3 換 → [1, 3, 4]。"
+   },
+   "tasks": [
+    "K_bubble"
+   ],
+   "note": "",
+   "chapter": "第 8 章 演算法：排序與搜尋"
+  },
+  "seq_search": {
+   "ch": "8.3.1",
+   "goal": "循序搜尋：從第一個開始，一個一個找。",
+   "ask": "在一排沒有排序的編號裡找 9，要從哪裡開始找？",
+   "ask_answer": "從第一個開始，一個一個看，找到就停。",
+   "explain": [
+    "資料不用先排序。",
+    "從頭一個一個比，找到就結束；全部找完都沒有，就是不在裡面。",
+    "方法簡單，但資料很多時比較慢。"
+   ],
+   "code": "nums = [8, 6, 1, 2, 4, 7, 9, 3]\ntarget = 9\nfor i in range(len(nums)):\n    if nums[i] == target:\n        print(\"在第\", i + 1, \"個找到\")\n        break\nelse:\n    print(\"找不到\")",
+   "inputs": [],
+   "output": "在第 7 個找到",
+   "quiz": {
+    "q": "在 [5, 3, 8] 用循序搜尋找 8，要比幾次？",
+    "options": [
+     "1 次",
+     "2 次",
+     "3 次"
+    ],
+    "answer": 2,
+    "why": "5、3、8 一個一個比，第 3 次才找到。"
+   },
+   "tasks": [
+    "K_search"
+   ],
+   "note": "",
+   "chapter": "第 8 章 演算法：排序與搜尋"
+  },
+  "binary_search": {
+   "ch": "8.3.2",
+   "goal": "二分搜尋：資料排好序後，每次和中間比，丟掉不可能的一半。",
+   "ask": "猜 1～100 的數字，最快的猜法是什麼？",
+   "ask_answer": "先猜 50，再看大了還是小了，每次丟掉一半。",
+   "explain": [
+    "二分搜尋前，資料一定要先排序。",
+    "每次拿正中間的元素和目標比：一樣就找到；中間比較大就留左半邊，比較小就留右半邊。",
+    "比循序搜尋快很多，但程式比較複雜。"
+   ],
+   "code": "nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\ntarget = 9\nlow, high = 0, len(nums) - 1\ncount = 0\nwhile low <= high:\n    mid = (low + high) // 2\n    count += 1\n    if nums[mid] == target:\n        print(\"找到了，比了\", count, \"次\")\n        break\n    elif nums[mid] > target:\n        high = mid - 1\n    else:\n        low = mid + 1",
+   "inputs": [],
+   "output": "找到了，比了 3 次",
+   "quiz": {
+    "q": "二分搜尋之前，資料一定要怎樣？",
+    "options": [
+     "先排序",
+     "先反轉",
+     "沒有限制"
+    ],
+    "answer": 0,
+    "why": "要先排好序，才能用「中間比大小」丟掉一半。"
+   },
+   "tasks": [
+    "K_binary"
+   ],
+   "note": "",
+   "chapter": "第 8 章 演算法：排序與搜尋"
+  }
+ }
+}
