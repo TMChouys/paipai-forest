@@ -400,7 +400,8 @@ def bell() -> tuple[Song, float]:
 
 def battle() -> tuple[Song, float]:
     """出發冒險（第二版，F 大調、快節奏）：三下切分的重擊「咚、咚—咚」→ 弦樂往上衝的音階 →
-    小號英雄號角＋法國號和聲、小鼓一路推進、筒鼓過門 → 停在明亮的 F 大和弦，定音鼓滾奏收尾。"""
+    小號英雄號角＋法國號和聲、小鼓一路推進、筒鼓過門 → 停在沒有解決的 C7（屬七和弦）上，滾奏漸強，
+    聽起來是「還要繼續」，不是結束。"""
     s = Song(160, seed=11)
     dr = s.part(9, 0, vol=112, rev=40)                  # 打擊樂（GM 第 10 聲道）
     tim = s.part(0, 47, vol=110, pan=60, rev=55)        # 定音鼓
@@ -437,20 +438,24 @@ def battle() -> tuple[Song, float]:
     # 第 6.5 拍：筒鼓過門
     for k, t in enumerate([50, 48, 47, 45]):
         s.note(dr, 6.5 + k * 0.125, 0.12, t, 96 + k * 6)
-    # 第 7 拍：明亮的 F 大和弦＋鈸，鐵琴閃一下，定音鼓滾奏收尾
-    s.note(dr, 7, 1.8, 49, 122)
-    s.note(dr, 7, 0.3, 36, 122)
-    for n in ["F2", "C3", "F3", "A3", "C4", "F4", "A4", "C5"]:
-        s.note(strn, 7, 2.4, pitch(n), 106)
-    s.note(tpt, 7, 2.2, pitch("F5"), 108)
-    for n in ["A4", "C5"]:
-        s.note(hrn, 7, 2.2, pitch(n), 98)
-    for k, n in enumerate(["C6", "F6", "A6", "C7"]):
-        s.note(glk, 7 + k * 0.125, 1.6, pitch(n), 72 + k * 6)
+    # 第 7 拍：不回到 F 大和弦（那樣會有「結束了」的感覺），停在屬七和弦 C7 上：
+    # 和弦撐住、小鼓和定音鼓滾奏一路漸強、鐵琴往上爬——像在說「出發囉，接下來還有更多！」
+    s.note(dr, 7, 1.2, 49, 112)
+    s.note(dr, 7, 0.3, 36, 116)
+    for n in ["C3", "G3", "Bb3", "C4", "E4", "G4", "C5"]:
+        s.note(strn, 7, 3.0, pitch(n), 100)
+    s.note(tpt, 7, 3.0, pitch("G5"), 106)
+    for n in ["E4", "Bb4"]:
+        s.note(hrn, 7, 3.0, pitch(n), 96)
+    for k, n in enumerate(["C6", "E6", "G6", "Bb6", "C7"]):
+        s.note(glk, 7.25 + k * 0.25, 1.2, pitch(n), 64 + k * 6)
+    for k in range(24):
+        s.note(dr, 7.25 + k * 0.0833, 0.08, 38, 50 + k * 3)
+    for k in range(12):
+        s.note(tim, 7.5 + k * 0.125, 0.12, pitch("C2"), 64 + k * 5)
+    s.expr(strn, 0, 100)
     for k in range(10):
-        s.note(tim, 7.5 + k * 0.1, 0.1, pitch("F2"), 70 + k * 4)
-    s.note(tim, 8.5, 0.4, pitch("F2"), 124)
-    s.note(dr, 8.5, 1.5, 49, 110)
+        s.expr(strn, 7 + k * 0.2, min(127, 100 + k * 3))
     return s, 11
 
 
@@ -471,7 +476,7 @@ def main() -> None:
         raw = render(song, name, beats, loop)
         if name in MAX_SEC and len(raw) > MAX_SEC[name] * SR:   # 音效不要拖太長：剪掉，最後淡出
             raw = raw[:int(MAX_SEC[name] * SR)].copy()
-            n = int(SR * 0.8)
+            n = int(SR * 0.35)
             raw[-n:] *= np.linspace(1.0, 0.0, n)[:, None] ** 2
         a = finish(raw, rms)
         path = os.path.join(GAME, f"{name}.ogg")
