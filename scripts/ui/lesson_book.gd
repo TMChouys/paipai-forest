@@ -53,7 +53,6 @@ const SCENE_W := 640.0
 signal teacher_changed(who: String)   # 上課換了一課：這一課的老師（main 安排老師站上講台）
 var teacher := "turtle"
 var class_cfg: Dictionary = {}
-const TEACHER_NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "wolf": "派派狼", "crow": "拍拍鳥", "calico": "三花奶奶"}
 var title_book: Label
 var sub_book: Label
 
@@ -271,7 +270,7 @@ func show_concept(cid: String) -> void:
 		return
 	concept_id = cid
 	area_id = concepts[cid].area
-	teacher = class_cfg.get("teachers", {}).get(area_id, "turtle") if quiz_mode else "turtle"
+	teacher = ClassBoard.teacher_of(class_cfg, cid) if quiz_mode else "turtle"
 	if scene_on:
 		teacher_changed.emit(teacher)
 	step = -1
@@ -436,13 +435,13 @@ func _wolf(t: String) -> void:
 	v.add_child(_text(t, 17))
 
 
-## 這一課的老師說話（上課：輪流當老師的角色；館長的知識地圖：館長）
+## 這一課的老師說話（上課：講這一課故事的角色；館長的知識地圖：館長）
 func _teach(t: String) -> void:
 	if teacher == "turtle":
 		_turtle(t)
 		return
 	var v := _card(Color("fff3e0"), Color("e0b880"))
-	v.add_child(_text(TEACHER_NAMES.get(teacher, "老師") + "老師：", 14, Color("8f5f12")))
+	v.add_child(_text(ClassBoard.teacher_name(class_cfg, teacher) + "老師：", 14, Color("8f5f12")))
 	v.add_child(_text(t, 17))
 
 

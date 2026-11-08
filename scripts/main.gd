@@ -1923,14 +1923,22 @@ var class_teacher := ""
 
 
 func _on_teacher(who: String) -> void:
-	if who == class_teacher:
+	if who != class_teacher:
+		class_teacher = who
+		library.arrange_class(who)
+		_class_gen += 1
+		_class_life(_class_gen)
+	if not library.npcs.has(who):
 		return
-	class_teacher = who
-	library.arrange_class(who)
-	_class_gen += 1
-	_class_life(_class_gen)
 	var line: String = class_board.cfg.get("teacher_lines", {}).get(who, "大家坐好，我們開始上課囉。")
-	library.npcs[who].say(line, "say")
+	var story := ClassBoard.story_of(class_board.cfg, lessons.concept_id)
+	var a: GopherActor = library.npcs[who]
+	a.say(line, "say")
+	if story != "":
+		var g := _class_gen
+		await get_tree().create_timer(2.6).timeout
+		if g == _class_gen and class_teacher == who and is_instance_valid(a):
+			a.say("今天的故事：" + story, "say")
 
 
 ## 上課表選了一堂課：派派兔帶大家去圖書館的教室
@@ -2650,7 +2658,7 @@ func _npc_under_mouse() -> String:
 # ---------------- 跟派派狼、派派兔說話 ----------------
 const FIRST_MEET := {
 	"wolf": [["wolf", "嘿！新來的，看你的家空空的，我教你怎麼打工拿獎勵。"], ["gopher", "……？"], ["wolf", "........怎麼不說話？"], ["wolf", "喔！你是不會用表達式 print() 吧！"], ["wolf", "我看你甚麼都不會的樣子，沒關係！以後跟著我混，我教你！"]],
-	"rabbit": [["rabbit", "你好呀！我是派派兔。"], ["rabbit", "半年前才來到派派森林，跟著慢慢館長學習草藥的知識，"], ["rabbit", "平常會在圖書館打工。"], ["rabbit", "沒有排班的時候都跟著派狼老大冒險。"], ["rabbit", "你也可以叫我兔兔學姊，以後就跟著我們一起冒險吧！"]],
+	"rabbit": [["rabbit", "你好呀！我是派派兔。"], ["rabbit", "半年前才來到派派森林，跟著慢慢館長學習草藥的知識，"], ["rabbit", "平常會在圖書館打工。"], ["rabbit", "沒有排班的時候都跟著派狼隊長冒險。"], ["rabbit", "你也可以叫我兔兔學姊，以後就跟著我們一起冒險吧！"]],
 }
 const RABBIT_TIPS := [
 	"有不會的就問我喔！",

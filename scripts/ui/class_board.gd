@@ -1,14 +1,14 @@
 class_name ClassBoard
 extends Control
 ## 派派兔的上課表：「準備好一起去上課了嗎？」先選要上什麼課（和派派狼的冒險任務板一樣）。
-## 每一堂課寫老師是誰（各角色輪流當老師）、地點（圖書館・教室）、小測驗幾題、對應的實作任務。
+## 每一堂課寫老師是誰、用什麼故事講、地點（圖書館・教室）、小測驗幾題、對應的實作任務。
+## 老師是先安排好的：講這個知識點用的是誰的故事，就由誰來上課（classes.json）。
 ## 每個概念都有兩種鑑定：認知＝上課的選擇題；實作＝派派狼的冒險任務。
 
 signal chosen(concept_id: String)
 signal closed
 
 const PATH := "res://data/curriculum/classes.json"
-const TEACHER_NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "wolf": "派派狼", "crow": "拍拍鳥", "calico": "三花奶奶"}
 
 var cfg: Dictionary = {}
 var list: VBoxContainer
@@ -56,7 +56,7 @@ func _ready() -> void:
 	var x := UIKit.button("×", close, "關閉（Esc）")
 	x.custom_minimum_size = Vector2(36, 36)
 	h.add_child(x)
-	var sub := UIKit.label("上課在圖書館的教室，各位老師輪流來上課。上課考選擇題（認知），派派狼的冒險考實作。", 14, UIKit.TEXT_MUTED)
+	var sub := UIKit.label("上課在圖書館的教室。每一課用誰的故事講，就由誰來當老師。上課考選擇題（認知），派派狼的冒險考實作。", 14, UIKit.TEXT_MUTED)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
@@ -70,8 +70,17 @@ func _ready() -> void:
 	sc.add_child(list)
 
 
-func teacher_of(area: String) -> String:
-	return cfg.get("teachers", {}).get(area, "turtle")
+## 這一課的老師（id）和故事
+static func teacher_of(c: Dictionary, cid: String) -> String:
+	return c.get("classes", {}).get(cid, {}).get("teacher", "turtle")
+
+
+static func story_of(c: Dictionary, cid: String) -> String:
+	return c.get("classes", {}).get(cid, {}).get("story", "")
+
+
+static func teacher_name(c: Dictionary, who: String) -> String:
+	return c.get("teacher_names", {}).get(who, "慢慢館長")
 
 
 ## 這一課能不能上：先修的課都上完（答對全部小測驗）了
@@ -131,7 +140,10 @@ func open(book: LessonBook, done_list: Array) -> void:
 		for kt in kmap.get("tasks", []):
 			if cid in kt.get("concepts", []) and kt.get("game_task", "") != "":
 				tasks += 1
-		info.add_child(UIKit.label("老師：%s　地點：%s　小測驗 %d 題" % [TEACHER_NAMES.get(teacher_of(c.area), "慢慢館長"), cfg.get("place", "圖書館・教室"), nq], 14, Color("8a6a50")))
+		info.add_child(UIKit.label("老師：%s　地點：%s　小測驗 %d 題" % [teacher_name(cfg, teacher_of(cfg, cid)), cfg.get("place", "圖書館・教室"), nq], 14, Color("8a6a50")))
+		var stl := UIKit.label("故事：" + story_of(cfg, cid), 14, Color("6b5a48"))
+		stl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info.add_child(stl)
 		var prac := ("實作：派派狼的冒險有 %d 個任務會用到" % tasks) if tasks > 0 else "實作：冒險任務準備中"
 		info.add_child(UIKit.label("%s　｜　%s" % [les.chapter, prac], 13, UIKit.TEXT_MUTED))
 		var id: String = cid

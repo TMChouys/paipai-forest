@@ -11,7 +11,7 @@ func codes(rep: Dictionary) -> Array:
 
 func run(t) -> void:
 	var tasks := TaskRunner.list_tasks()
-	t.check("10 tasks loaded", tasks.size() == 10, str(tasks.size()))
+	t.check("13 tasks loaded", tasks.size() == 13, str(tasks.size()))
 	var by_id := {}
 	for task in tasks:
 		by_id[task.id] = task
@@ -100,7 +100,7 @@ print(\"派派兔\")
 	var d1: Dictionary = by_id.D01_hello
 	var rd := TaskChecker.evaluate(d1, "print(\"你好！我是派派鼠。\")
 print(\"學姊好!請多指教。\")
-print(\"謝謝派狼老大！\")
+print(\"謝謝派狼隊長！\")
 ")
 	t.check("D1 halfwidth ! -> listener confused", not rd.passed and "action.fail" in codes(rd), str(codes(rd)))
 	var punct_hint := false

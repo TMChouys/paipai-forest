@@ -1,13 +1,289 @@
 {
- "note": "派派兔的上課：每個概念都有兩種鑑定——認知（上課的選擇題小測驗）＋實作（派派狼的冒險任務）。上課地點都在圖書館的教室；各角色輪流當老師（依知識地圖分類）。",
+ "note": "派派兔的上課：每個概念都有兩種鑑定——認知（上課的選擇題小測驗）＋實作（派派狼的冒險任務）。上課地點都在圖書館的教室。每一課的老師是先安排好的：講這個知識點用的是誰的故事，就由誰來上課——家具找大牙師傅、買賣找拉拉老闆、草藥找派派兔、冒險走位找派派狼、漂亮優雅找三花奶奶、其他或哲學找慢慢館長。",
  "place": "圖書館・教室",
- "teachers": {"A": "turtle", "B": "turtle", "C": "rabbit", "D": "crow", "E": "wolf", "F": "rabbit", "G": "turtle", "H": "turtle", "I": "calico", "J": "turtle", "K": "calico"},
  "teacher_lines": {
   "turtle": "慢慢來，比較快。大家坐好，我們開始上課囉。",
-  "rabbit": "今天換我當老師！大家要認真聽喔～",
-  "wolf": "咳咳……今天我來教！誰打瞌睡就完蛋了。",
-  "crow": "拍拍！今天由郵差拍拍鳥來上課！",
-  "calico": "哎呀，今天奶奶來上課。慢慢想，不要急。"
+  "rabbit": "今天換我當老師！這是草藥園裡的故事，大家要認真聽喔～",
+  "wolf": "咳咳……今天派狼隊長來教！誰打瞌睡就完蛋了。",
+  "calico": "哎呀，今天奶奶來上課。慢慢想，不要急，要做得漂漂亮亮的。",
+  "lala": "歡迎光臨～今天拉拉老闆來上課！做生意的事，我最熟了。",
+  "daya": "嘿咻！大牙師傅來上課。做家具要認真，學程式也一樣！"
  },
- "extra_prereqs": {"algo": ["list_sort"], "bubble": ["algo"], "seq_search": ["algo"], "binary_search": ["seq_search", "list_sort"]}
+ "extra_prereqs": {
+  "algo": [
+   "list_sort"
+  ],
+  "bubble": [
+   "algo"
+  ],
+  "seq_search": [
+   "algo"
+  ],
+  "binary_search": [
+   "seq_search",
+   "list_sort"
+  ]
+ },
+ "teacher_names": {
+  "turtle": "慢慢館長",
+  "rabbit": "派派兔",
+  "wolf": "派派狼",
+  "calico": "三花奶奶",
+  "lala": "拉拉老闆",
+  "daya": "大牙師傅"
+ },
+ "classes": {
+  "print": {
+   "teacher": "turtle",
+   "story": "爺爺留下的第一句話：「會說話了嗎？那就先說『你好』。」"
+  },
+  "comment": {
+   "teacher": "turtle",
+   "story": "圖書館要小聲：心裡的筆記用 # 寫下來，不用念出來。"
+  },
+  "print_multi": {
+   "teacher": "calico",
+   "story": "奶奶教大家把名字排得整整齊齊、中間放上漂亮的分隔符號。"
+  },
+  "variable": {
+   "teacher": "lala",
+   "story": "拉拉老闆幫派派鼠辦會員卡，名字寫在貼了標籤的盒子裡。"
+  },
+  "bool": {
+   "teacher": "wolf",
+   "story": "出門冒險前，派狼隊長一項一項確認：門鎖好了沒？是或不是。"
+  },
+  "types": {
+   "teacher": "rabbit",
+   "story": "兩包薰衣草的重量寫成了文字，秤出來怎麼變成 34 克？"
+  },
+  "convert": {
+   "teacher": "lala",
+   "story": "價錢是數字，要接在「蘋果」後面寫成價錢牌，得先轉成文字。"
+  },
+  "reassign": {
+   "teacher": "rabbit",
+   "story": "胡蘿蔔園每天多長一根，記數量的小牌子要一直更新。"
+  },
+  "arith": {
+   "teacher": "lala",
+   "story": "買三顆蘋果、兩根胡蘿蔔，一共要付多少？"
+  },
+  "floordiv_mod": {
+   "teacher": "daya",
+   "story": "17 公尺的木板，每 3 公尺鋸一段，能鋸幾段？剩下多長？"
+  },
+  "aug_assign": {
+   "teacher": "lala",
+   "story": "每賣出一樣東西，收銀盒就多一點錢：+= 一下就記好。"
+  },
+  "compare": {
+   "teacher": "rabbit",
+   "story": "誰的胡蘿蔔比較長？草藥長到 10 公分了沒？"
+  },
+  "logic": {
+   "teacher": "wolf",
+   "story": "派狼隊長說：要有燈「而且」有水才可以出發。"
+  },
+  "str_concat": {
+   "teacher": "calico",
+   "story": "奶奶教大家寫一封漂亮的信：「親愛的」接上名字。"
+  },
+  "str_repeat": {
+   "teacher": "calico",
+   "story": "信紙的花邊：一朵小花乘上十次，就是一整排。"
+  },
+  "input": {
+   "teacher": "turtle",
+   "story": "館長請新來的讀者說出名字，好寫在借書證上。"
+  },
+  "input_number": {
+   "teacher": "lala",
+   "story": "客人說要買幾個，回答要變成數字才能算錢。"
+  },
+  "fstring": {
+   "teacher": "lala",
+   "story": "拉拉老闆開收據：誰、買了幾個、一共多少錢，一行寫好。"
+  },
+  "len": {
+   "teacher": "turtle",
+   "story": "這本書的書名有幾個字？館長的書架上的書有幾本？"
+  },
+  "str_index": {
+   "teacher": "wolf",
+   "story": "寶箱上刻著一串密碼，第一個字就是開箱口令。"
+  },
+  "str_in": {
+   "teacher": "wolf",
+   "story": "地圖的說明裡有沒有寫到「寶庫」兩個字？"
+  },
+  "str_methods": {
+   "teacher": "calico",
+   "story": "把字整理得乾乾淨淨、置中擺好，看起來就優雅多了。"
+  },
+  "if": {
+   "teacher": "wolf",
+   "story": "冒險路上：如果前面有水坑，就繞過去。"
+  },
+  "if_else": {
+   "teacher": "wolf",
+   "story": "岔路口：有路標就往左，沒有就往右。"
+  },
+  "elif": {
+   "teacher": "rabbit",
+   "story": "草藥長得怎麼樣？還沒發芽、長一半、可以採了。"
+  },
+  "nested_if": {
+   "teacher": "wolf",
+   "story": "先檢查有沒有燈，有燈再檢查有沒有鑰匙，才能進寶庫。"
+  },
+  "for_range": {
+   "teacher": "wolf",
+   "story": "派狼隊長喊口令：向前走，一、二、三！"
+  },
+  "range_args": {
+   "teacher": "wolf",
+   "story": "踩著石頭過溪，一次跳兩格：2、4、6、8。"
+  },
+  "for_str": {
+   "teacher": "turtle",
+   "story": "慢慢讀，一次讀一個字，就不會讀錯。"
+  },
+  "accumulate": {
+   "teacher": "lala",
+   "story": "今天賣了好幾筆，打烊前一筆一筆加起來算營業額。"
+  },
+  "while": {
+   "teacher": "wolf",
+   "story": "一直往前走，走到牆邊才停下來。"
+  },
+  "break": {
+   "teacher": "wolf",
+   "story": "一個洞一個洞找，找到寶物就馬上停。"
+  },
+  "continue": {
+   "teacher": "rabbit",
+   "story": "給草藥澆水，枯掉的那盆先跳過。"
+  },
+  "nested_loop": {
+   "teacher": "daya",
+   "story": "大牙師傅鋪地板：一排一排、每排一塊一塊鋪上木板。"
+  },
+  "list": {
+   "teacher": "lala",
+   "story": "拉拉老闆寫一張進貨清單，一次記好多樣東西。"
+  },
+  "list_index": {
+   "teacher": "daya",
+   "story": "工具箱一格一格排好：第 0 格是鐵鎚、第 1 格是鋸子。"
+  },
+  "for_list": {
+   "teacher": "rabbit",
+   "story": "草藥圃裡的每一盆，都要一盆一盆照顧到。"
+  },
+  "list_in": {
+   "teacher": "daya",
+   "story": "要做書櫃，看看材料清單裡有沒有木板。"
+  },
+  "split": {
+   "teacher": "lala",
+   "story": "客人用空白隔開寫的購物單，切開變成一張清單。"
+  },
+  "list_append": {
+   "teacher": "daya",
+   "story": "做好一件新家具，放進收藏冊的最後面。"
+  },
+  "list_remove": {
+   "teacher": "daya",
+   "story": "從收藏冊拿出一件家具，擺到房間裡。"
+  },
+  "list_sort": {
+   "teacher": "calico",
+   "story": "奶奶的珍珠項鍊，要從小到大排得整整齊齊。"
+  },
+  "list_slice": {
+   "teacher": "calico",
+   "story": "從花園挑出前三朵最美的花，綁成一束。"
+  },
+  "tuple": {
+   "teacher": "daya",
+   "story": "家具的尺寸（長、寬、高）量好就固定，不能隨便改。"
+  },
+  "dict": {
+   "teacher": "lala",
+   "story": "攤位上每樣東西都有名字和價錢，做成一張價目表。"
+  },
+  "dict_update": {
+   "teacher": "lala",
+   "story": "新貨上架、價錢調整，價目表也要跟著改。"
+  },
+  "dict_get": {
+   "teacher": "lala",
+   "story": "客人問一樣店裡沒賣的東西，也要好好回答，不能當機。"
+  },
+  "dict_loop": {
+   "teacher": "daya",
+   "story": "把家具清單上的每一件和數量，一件一件念一遍。"
+  },
+  "set": {
+   "teacher": "wolf",
+   "story": "派狼隊長記下今天去過的地方，同一個地方只記一次。"
+  },
+  "builtin": {
+   "teacher": "lala",
+   "story": "架上哪樣最貴、哪樣最便宜、全部加起來多少？"
+  },
+  "def": {
+   "teacher": "daya",
+   "story": "大牙師傅做好一個模具，以後要做同樣的家具，拿出來用就好。"
+  },
+  "param": {
+   "teacher": "daya",
+   "story": "同一個模具，換上不同的尺寸，就做出大小不同的椅子。"
+  },
+  "return": {
+   "teacher": "daya",
+   "story": "交代大牙師傅做家具，做好會把成品交回來。"
+  },
+  "scope": {
+   "teacher": "turtle",
+   "story": "房間裡的東西，出了房間就看不到；哲學課：我在哪裡，才看得到什麼？"
+  },
+  "random": {
+   "teacher": "lala",
+   "story": "雜貨店的週年抽獎：每次抽到的都不一樣。"
+  },
+  "time_mod": {
+   "teacher": "calico",
+   "story": "奶奶的下午茶：時間到了才泡茶，等茶葉泡開再倒。"
+  },
+  "file_write": {
+   "teacher": "turtle",
+   "story": "館長請派派鼠把今天借出的書寫進紀錄本。"
+  },
+  "file_read": {
+   "teacher": "turtle",
+   "story": "把紀錄本打開，一行一行讀出來。"
+  },
+  "try": {
+   "teacher": "turtle",
+   "story": "犯錯沒關係：先試試看，出錯了也有接住你的辦法。"
+  },
+  "algo": {
+   "teacher": "turtle",
+   "story": "解決一個問題，要先想好方法和步驟——館長的哲學課。"
+  },
+  "bubble": {
+   "teacher": "calico",
+   "story": "大家照身高優雅地排隊，旁邊兩個比一比、換一換。"
+  },
+  "seq_search": {
+   "teacher": "wolf",
+   "story": "沿著山洞一間一間找，直到找到寶物。"
+  },
+  "binary_search": {
+   "teacher": "turtle",
+   "story": "書照編號排好了，翻到中間看一看，一次少找一半。"
+  }
+ }
 }

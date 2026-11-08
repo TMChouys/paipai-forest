@@ -570,6 +570,10 @@ static func character(who: String) -> Node3D:
 			return Anthro.build("crow", "Crow", 1.05)
 		"calico":
 			return Anthro.build("calico", "Calico", 1.0)
+		"lala":
+			return Anthro.build("lala", "Lala", 1.15)
+		"daya":
+			return Anthro.build("daya", "Daya", 1.05)
 		"blackcat":
 			return Anthro.build("blackcat", "BlackCat", 0.82)
 		"wolf":

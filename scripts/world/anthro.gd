@@ -48,6 +48,9 @@ const DEFS := {
 		"patch_a": "#e39a4a", "patch_b": "#3a302c", "eyes": "smile"},
 	"blackcat": {"body": "character-male-a", "proc": "cat", "fur": "#34303a", "feet": "#2a2630", "shirt": "#e8c35a", "pants": "#4a5f86", "head_width": 0.58,
 		"eyes": "round"},
+	# 拉拉老闆（雜貨店老闆娘，拉布拉多）、大牙師傅（河狸木匠）：程式做的頭，模型之後再換
+	"lala": {"body": "character-female-b", "proc": "dog", "fur": "#e9c27a", "feet": "#d9ad62", "shirt": "#f2e3c4", "pants": "#7a8f5a", "head_width": 0.58},
+	"daya": {"body": "character-male-d", "proc": "beaver", "fur": "#8a5a36", "feet": "#5a3a24", "shirt": "#d9b27a", "pants": "#5a6f8a", "head_width": 0.56},
 	"neighbor_fox": {"body": "character-female-c", "animal": "Fox", "fur": "#d9672e", "feet": "#3b2018", "shirt": "#7fb7d9", "pants": "#f2efe6",
 		"head_width": 0.54, "tail": {"from": "auto", "scale": 0.55}, "extras": []},
 }
@@ -405,6 +408,52 @@ static func build_proc(id: String, node_name: String, height: float = 1.0) -> No
 			for k in range(5):
 				var tt := float(k) / 4.0
 				add.call(torso, Models.sphere(0.045 - tt * 0.008), fur if k < 4 or not d.has("patch_a") else Color(d.patch_a), Vector3(0, -0.2 + tt * 0.22, -0.16 - sin(tt * PI * 0.8) * 0.12), Vector3.ONE, Vector3.ZERO, k == 4)
+		"dog":
+			# 拉拉老闆：金黃色拉布拉多、垂耳、長嘴套、黑鼻子、紅頭巾、雜貨店圍裙、粗尾巴
+			add.call(head, Models.sphere(r), fur, Vector3(0, y0, 0), Vector3(1.02, 0.95, 0.95))
+			add.call(head, Models.sphere(r * 0.5), Color("f4dcae"), Vector3(0, y0 - r * 0.28, r * 0.72), Vector3(1.1, 0.78, 0.95))  # 嘴套
+			add.call(head, Models.sphere(r * 0.13), Color("2b2220"), Vector3(0, y0 - r * 0.08, r * 1.16), Vector3(1.4, 1.0, 0.8), Vector3.ZERO, false)  # 鼻子
+			add.call(head, Models.capsule(r * 0.03, r * 0.22), Color("6b4a36"), Vector3(0, y0 - r * 0.45, r * 1.1), Vector3.ONE, Vector3(0, 0, 90), false)  # 微笑
+			for sx in [-1, 1]:
+				add.call(head, Models.sphere(r * 0.42), Color("c99a52"), Vector3(0.9 * r * sx, y0 - r * 0.1, -r * 0.05), Vector3(0.45, 1.25, 0.85), Vector3(0, 0, 14 * sx))  # 垂耳
+				var e := Vector3(0.36 * r * sx, y0 + r * 0.16, r * 0.84)
+				add.call(head, Models.sphere(r * 0.15), Color("2b1d14"), e, Vector3(1, 1.15, 0.6), Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.05), Color("ffffff"), e + Vector3(r * 0.05, r * 0.06, r * 0.08), Vector3.ONE, Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.1), Color("6b4a36"), e + Vector3(0, r * 0.3, 0), Vector3(1.4, 0.45, 0.6), Vector3.ZERO, false)  # 眉毛
+				add.call(head, Models.sphere(r * 0.12), Color("ef9a8a"), Vector3(0.62 * r * sx, y0 - r * 0.24, r * 0.64), Vector3(1, 0.6, 0.4), Vector3.ZERO, false)  # 腮紅
+			add.call(head, Models.sphere(r * 0.62), Color("d9605a"), Vector3(0, y0 + r * 0.62, -r * 0.1), Vector3(1.55, 0.6, 1.45))  # 紅頭巾
+			add.call(head, Models.sphere(r * 0.16), Color("d9605a"), Vector3(r * 0.5, y0 + r * 0.55, -r * 0.95), Vector3(1, 0.7, 0.6))  # 頭巾結
+			# 圍裙＋口袋裡的小筆記本
+			add.call(torso, Models.box(0.3, 0.3, 0.03), Color("6f9a5a"), Vector3(0, 0.02, 0.16))
+			add.call(torso, Models.box(0.14, 0.08, 0.02), Color("5a8048"), Vector3(0, -0.05, 0.18), Vector3.ONE, Vector3.ZERO, false)
+			add.call(torso, Models.box(0.06, 0.08, 0.02), Color("fff8ec"), Vector3(0.04, -0.02, 0.19), Vector3.ONE, Vector3(0, 0, 8), false)
+			for k in range(4):
+				var tt := float(k) / 3.0
+				add.call(torso, Models.sphere(0.055 - tt * 0.012), fur, Vector3(0, -0.2 + tt * 0.12, -0.17 - tt * 0.12), Vector3.ONE, Vector3.ZERO, k == 3)
+		"beaver":
+			# 大牙師傅：咖啡色河狸、小圓耳、淺色嘴套、兩顆大門牙、耳朵夾鉛筆、工作頭帶、工具腰帶、扁扁的尾巴
+			add.call(head, Models.sphere(r), fur, Vector3(0, y0, 0), Vector3(1.05, 0.95, 0.95))
+			add.call(head, Models.sphere(r * 0.48), Color("d9b48a"), Vector3(0, y0 - r * 0.3, r * 0.68), Vector3(1.25, 0.8, 0.85))  # 嘴套
+			add.call(head, Models.sphere(r * 0.12), Color("3a2418"), Vector3(0, y0 - r * 0.1, r * 1.06), Vector3(1.5, 0.9, 0.8), Vector3.ZERO, false)  # 鼻子
+			for sx in [-1, 1]:
+				add.call(head, Models.box(r * 0.17, r * 0.26, r * 0.08), Color("fffaf0"), Vector3(0.09 * r * sx, y0 - r * 0.62, r * 1.0), Vector3.ONE, Vector3.ZERO, true)  # 大門牙
+				add.call(head, Models.sphere(r * 0.22), fur, Vector3(0.72 * r * sx, y0 + r * 0.66, -r * 0.05), Vector3(1, 1, 0.6))  # 小圓耳
+				add.call(head, Models.sphere(r * 0.12), Color("c98a7a"), Vector3(0.72 * r * sx, y0 + r * 0.66, r * 0.04), Vector3(1, 1, 0.4), Vector3.ZERO, false)
+				var e := Vector3(0.36 * r * sx, y0 + r * 0.16, r * 0.84)
+				add.call(head, Models.sphere(r * 0.14), Color("1e1410"), e, Vector3(1, 1.1, 0.6), Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.05), Color("ffffff"), e + Vector3(r * 0.05, r * 0.06, r * 0.08), Vector3.ONE, Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.11), Color("3a2418"), e + Vector3(0, r * 0.28, 0), Vector3(1.6, 0.5, 0.6), Vector3(0, 0, -10 * sx), false)  # 粗眉毛（認真）
+				add.call(head, Models.sphere(r * 0.11), Color("e09a84"), Vector3(0.62 * r * sx, y0 - r * 0.26, r * 0.62), Vector3(1, 0.6, 0.4), Vector3.ZERO, false)
+			add.call(head, Models.cyl(r * 1.0, r * 1.0, r * 0.2), Color("3f6fa8"), Vector3(0, y0 + r * 0.42, 0), Vector3(1.04, 1, 0.97))  # 工作頭帶
+			add.call(head, Models.cyl(r * 0.05, r * 0.05, r * 0.7), Color("f2c14e"), Vector3(r * 0.95, y0 + r * 0.35, r * 0.1), Vector3.ONE, Vector3(70, 0, 10))  # 耳朵上的鉛筆
+			add.call(head, Models.cyl(0.0, r * 0.05, r * 0.12), Color("3a2418"), Vector3(r * 0.97, y0 + r * 0.32, r * 0.46), Vector3.ONE, Vector3(70, 0, 10), false)
+			# 工具腰帶：小鐵鎚、捲尺
+			add.call(torso, Models.cyl(0.25, 0.25, 0.06), Color("8a5a2a"), Vector3(0, -0.13, 0.0), Vector3(1, 1, 0.8))
+			add.call(torso, Models.box(0.03, 0.14, 0.03), Color("b07a4a"), Vector3(0.17, -0.2, 0.14), Vector3.ONE, Vector3(0, 0, 10))
+			add.call(torso, Models.box(0.09, 0.04, 0.04), Color("6b7480"), Vector3(0.18, -0.13, 0.14), Vector3.ONE, Vector3(0, 0, 10))
+			add.call(torso, Models.cyl(0.045, 0.045, 0.03), Color("f2c14e"), Vector3(-0.17, -0.16, 0.15), Vector3.ONE, Vector3(90, 0, 0))
+			# 扁扁的大尾巴
+			add.call(torso, Models.sphere(0.16), Color("4a3020"), Vector3(0, -0.24, -0.26), Vector3(0.8, 0.2, 1.3), Vector3(-25, 0, 0))
 	var head_h := r * 2.0 * 0.95
 	var total_h := 0.34 + head_h
 	var bs: float = height / total_h
