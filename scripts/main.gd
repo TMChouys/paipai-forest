@@ -2472,6 +2472,11 @@ const RABBIT_TIPS := [
 	"胡蘿蔔今天也很有精神～",
 	"派派狼說話很兇，其實人很好喔。",
 ]
+## 派派鼠做完第一個任務、會用 print() 說話以後，點派派兔有機會聊到的小故事（一句一句說）
+const RABBIT_STORIES := [
+	["你問我為什麼愛吃紅蘿蔔還要戴眼鏡？", "可能是因為我讀書忘記休息了。", "保護眼睛除了要有充足的營養，更重要的是適當的休息喔！", "這是我剛從草藥學的書裡學到的知識喔！"],
+]
+const RABBIT_STORY_CHANCE := 0.35
 var talk_to := ""  # 走過去以後要跟誰說話
 var talk_tries := 0
 
@@ -2523,6 +2528,18 @@ func _talk(who: String) -> void:
 				return
 		_mark_met(who)
 		_write_save()
+	elif who == "rabbit" and _first_task_done() and randf() < RABBIT_STORY_CHANCE:
+		# 聊一段小故事，說完才打開任務書
+		for line: String in RABBIT_STORIES.pick_random():
+			a.say(line, "say")
+			await get_tree().create_timer(maxf(2.4, 1.0 + line.length() * 0.12)).timeout
+			if mode != "home" or click_walking:
+				roam_busy = false
+				return
+		roam_busy = false
+		roam_timer = 10.0
+		_open_book()
+		return
 	roam_busy = false
 	roam_timer = 10.0
 	# 派派狼給任務；派派兔管任務書
