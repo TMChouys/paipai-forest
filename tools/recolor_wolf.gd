@@ -1,7 +1,8 @@
 extends SceneTree
-## 派派狼的尾巴重新上色：藍灰色、尾巴尖白色（照角色設定圖）。
+## 派派狼重新上色：全身灰色的毛改成藍色；尾巴藍色、尾巴尖白色（照角色設定圖）。
+## 身上的毛：貼圖裡灰灰的（彩度低、不太亮也不太暗）的地方換成藍色，保留明暗；衣服、白毛、眼睛不動。
 ## 找身體後面、貼圖顏色深的頂點＝尾巴，在 UV 上把那些三角形重畫，保留原本的毛流明暗。
-## 用法：godot --headless --path . --script res://tools/recolor_wolf_tail.gd -- [stats]
+## 用法：godot --headless --path . --script res://tools/recolor_wolf.gd -- [stats]
 ## 原始貼圖備份在 tools/orig/，每次都從原始貼圖重畫。
 
 const TEX := "res://models/wolf/wolf_rigged_Image_0.jpg"
@@ -65,7 +66,7 @@ func _init() -> void:
 	for i in v.size():
 		if sel[i]:
 			root_d = maxf(root_d, v[i].distance_to(tip_p))
-	var out := img.duplicate() as Image
+	var out := _blue_fur(img)
 	var painted := 0
 	for f in range(0, idx.size(), 3):
 		var a := idx[f]
@@ -106,3 +107,37 @@ func _init() -> void:
 	print("painted px ", painted)
 	out.save_jpg(ProjectSettings.globalize_path(TEX), 0.95)
 	quit()
+
+
+## 灰毛的權重：彩度低、亮度在中間
+static func _fur_w(c: Color) -> float:
+	var l := c.get_luminance()
+	return (1.0 - smoothstep(0.10, 0.19, c.s)) * smoothstep(0.16, 0.26, l) * (1.0 - smoothstep(0.66, 0.76, l))
+
+
+static func _blue_fur(img: Image) -> Image:
+	var out := img.duplicate() as Image
+	var sz := img.get_size()
+	var lsum := 0.0
+	var wsum := 0.0
+	for y in range(0, sz.y, 4):
+		for x in range(0, sz.x, 4):
+			var c := img.get_pixel(x, y)
+			var w := _fur_w(c)
+			lsum += c.get_luminance() * w
+			wsum += w
+	var lref := lsum / maxf(wsum, 1.0)
+	print("fur lum avg ", lref)
+	var n := 0
+	for y in sz.y:
+		for x in sz.x:
+			var c := img.get_pixel(x, y)
+			var w := _fur_w(c)
+			if w <= 0.0:
+				continue
+			var k := clampf(0.55 + 0.45 * c.get_luminance() / lref, 0.6, 1.35)
+			var col := Color(BLUE.r * k, BLUE.g * k, BLUE.b * k)
+			out.set_pixel(x, y, c.lerp(col, w))
+			n += 1
+	print("fur px ", n)
+	return out
