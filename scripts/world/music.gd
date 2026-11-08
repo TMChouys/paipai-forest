@@ -68,7 +68,7 @@ func _crossfade(s: AudioStream) -> void:
 		_tw.tween_property(nw, "volume_db", VOLUME_DB, 2.0)
 
 
-## 過關的小樂句：背景音樂先壓小聲，播完再回來
+## 小樂句（過關 clear、上課鐘 bell、出發冒險 battle）：背景音樂先壓小聲，播完再回來
 func jingle(track: String = "clear") -> void:
 	if not enabled:
 		return
@@ -77,6 +77,10 @@ func jingle(track: String = "clear") -> void:
 		return
 	_jingle.stream = s
 	_jingle.play()
+	if _tw and _tw.is_running():
+		# 剛好在換背景音樂：舊的直接停，新的從小聲開始
+		_tw.kill()
+		_b.stop()
 	if _a.playing:
 		var tw := create_tween()
 		tw.tween_property(_a, "volume_db", VOLUME_DB - 14.0, 0.3)

@@ -387,8 +387,66 @@ def clear() -> tuple[Song, float]:
     return s, 6
 
 
+def bell() -> tuple[Song, float]:
+    """上課鐘：學校的「噹噹噹噹」鐘聲（西敏寺鐘聲，1793 年的公共領域旋律），管鐘＋一點鋼片琴。"""
+    s = Song(132, seed=7)
+    tb = s.part(0, 14, vol=110, pan=64, rev=90)       # 管鐘
+    cel = s.part(1, CELESTA, vol=60, pan=80, rev=80)
+    phr = "E5:1 C5:1 D5:1 G4:2 r:.5  G4:1 D5:1 E5:1 C5:2.5"
+    s.melody(tb, 0, phr, vel=96, legato=1.6, accent=0)
+    s.melody(cel, 0, phr, vel=50, octave=1, legato=1.2, accent=0)
+    return s, 11
+
+
+def battle() -> tuple[Song, float]:
+    """出發冒險：小鼓和定音鼓滾奏越來越大聲 → 管弦樂重擊 → 小號衝鋒號角＋弦樂奔馳 → 停在明亮的 D 大和弦。"""
+    s = Song(144, seed=9)
+    dr = s.part(9, 0, vol=110, rev=40)                  # 打擊樂（GM 第 10 聲道）
+    tim = s.part(0, 47, vol=112, pan=60, rev=55)        # 定音鼓
+    brs = s.part(1, 61, vol=100, pan=50, rev=60)        # 銅管組
+    tpt = s.part(2, 56, vol=108, pan=74, rev=60)        # 小號
+    strn = s.part(3, STRINGS, vol=96, pan=40, rev=55)
+    hit = s.part(4, 55, vol=96, pan=64, rev=60)         # 管弦樂重擊
+    # 0–2 拍：滾奏漸強
+    for k in range(16):
+        s.note(dr, k * 0.125, 0.1, 38, 34 + k * 5)
+    for k in range(8):
+        s.note(tim, k * 0.25, 0.24, pitch("A2"), 50 + k * 8)
+    # 第 2 拍：重擊！
+    s.note(dr, 2, 0.5, 49, 120)
+    s.note(dr, 2, 0.3, 36, 120)
+    for n in ["D3", "A3", "D4", "F4", "A4"]:
+        s.note(hit, 2, 0.6, pitch(n), 118)
+    s.note(tim, 2, 0.5, pitch("D2"), 124)
+    # 2–6 拍：弦樂奔馳（八分＋兩個十六分），定音鼓跟著
+    for b in range(4):
+        root = ["D3", "D3", "Bb2", "A2"][b]
+        for off, d in [(0, 0.5), (0.5, 0.25), (0.75, 0.25)]:
+            s.note(strn, 2 + b + off, d * 0.9, pitch(root), 96)
+            s.note(strn, 2 + b + off, d * 0.9, pitch(root) + 12, 88)
+        s.note(tim, 2 + b, 0.3, pitch(root) - 12 if b < 2 else pitch(root), 96)
+        s.note(dr, 2 + b + 0.5, 0.2, 38, 70 + b * 8)
+        s.note(dr, 2 + b, 0.2, 36, 100)
+    # 小號衝鋒號角
+    s.melody(tpt, 0, "r:2 D5:.5 r:.25 D5:.25 F5:.5 D5:.5 G5:.5 F5:.5 E5:.5 C#5:.5 D5:2.5", vel=104, legato=0.85)
+    s.melody(brs, 0, "r:2 D4:.75 D4:.25 r:1 Bb3:1 A3:1 D4:2.5", vel=96, legato=0.9)
+    s.melody(brs, 0, "r:2 A3:.75 A3:.25 r:1 F3:1 E3:1 F#4:2.5", vel=90, legato=0.9)
+    # 第 6 拍：明亮的 D 大和弦＋鈸
+    s.note(dr, 6, 1.5, 49, 118)
+    s.note(dr, 6, 0.3, 36, 118)
+    s.note(tim, 6, 0.3, pitch("D2"), 120)
+    for n in ["D3", "A3", "D4", "F#4", "A4", "D5"]:
+        s.note(strn, 6, 2.2, pitch(n), 104)
+    s.note(tim, 6.5, 0.25, pitch("A2"), 100)
+    s.note(tim, 6.75, 0.25, pitch("A2"), 100)
+    s.note(tim, 7, 0.4, pitch("D2"), 124)
+    s.note(dr, 7, 1.5, 49, 110)
+    return s, 10
+
+
 TRACKS = {"home": (home, True, 0.11), "town": (town, True, 0.11),
-          "task": (task, True, 0.09), "clear": (clear, False, 0.14)}
+          "task": (task, True, 0.09), "clear": (clear, False, 0.14),
+          "bell": (bell, False, 0.13), "battle": (battle, False, 0.16)}
 
 
 def main() -> None:

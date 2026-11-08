@@ -2033,6 +2033,8 @@ func _class_life(gen: int) -> void:
 func _open_lessons(cid: String = "", quiz: bool = true) -> void:
 	hud.show_status("", Vector2.ZERO)
 	lessons.open(save.get("lessons_done", []), cid, quiz)
+	if quiz:
+		music.jingle("bell")   # 上課鐘：噹噹噹噹
 
 
 ## 點下去的地方冒一個小圈圈
@@ -2971,6 +2973,7 @@ func _enter_task(id: String) -> void:
 	_write_save()
 	mode = "task"
 	music.play("task")
+	music.jingle("battle")   # 出發冒險：走位、解謎、奪寶，開場要刺激一點
 	bubbles.avoid_side_panels = true
 	if intro_running:
 		intro_skip = true  # 開場還沒演完就進任務：開場直接結束
