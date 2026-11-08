@@ -1893,7 +1893,7 @@ func _open_review() -> void:
 
 
 ## 派派兔的森林小課
-## 派派兔帶來上課：在圖書館大廳演。館長站在講台（平台）上，派派狼、派派鼠、派派兔坐在台下的課桌椅上；
+## 派派兔帶來上課：在圖書館西邊的教室演。館長站在講台上，派派狼、派派鼠、派派兔坐在台下面向黑板的課桌椅上；
 ## 派派兔很認真（常常點頭），派派狼在打瞌睡（輪到他說話才醒過來）
 const RABBIT_COUNTER := Vector3(-5.0, 0, 1.7)
 var _class_gen := 0
@@ -1925,17 +1925,15 @@ func _on_lesson_scene(on: bool) -> void:
 			a.visible = true
 			a.moving = false
 			a.position = LibraryView.CLASS_SEATS[who] + Vector3(0, LibraryView.SEAT_Y, 0.05)
-			a.face("N")
+			a.face("W")
 			a.model.rotation.y = a.target_yaw
 			a.set_seated(true)
-		var tt: GopherActor = library.npcs["turtle"]
-		tt.face("S")
 		rig.follow_target = null
-		rig.home_focus = Vector3(-0.6, 0.3, -2.0)
-		rig.home_distance = 9.5
+		rig.home_focus = Vector3(-10.4, 0.4, -2.0)
+		rig.home_distance = 10.0
 		rig.reset_view()
-		rig.target_yaw = deg_to_rad(28.0)   # 從斜後方看：台下的同學排成一排，講台上的館長看得到臉
-		rig.target_pitch = deg_to_rad(-30.0)
+		rig.target_yaw = deg_to_rad(90.0)   # 從教室後面看：講台、黑板、館長在前面，同學坐成一排面向黑板
+		rig.target_pitch = deg_to_rad(-34.0)
 		_class_life(_class_gen)
 		bubbles.avoid_side_panels = true
 		bubbles.side_left = 8.0
