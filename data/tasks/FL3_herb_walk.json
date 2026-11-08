@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好一起去冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range",
+    "len"
+  ],
+  "id": "FL3_herb_walk",
+  "order": 207,
+  "difficulty": 2,
+  "title": "草藥採集清單",
+  "concept": "走訪串列 for x in 清單＋len（薰衣草原・花田）",
+  "place": "薰衣草原・花田",
+  "sheet": {
+    "story": "慢慢館長要做安神茶，給了派派兔一張[b]草藥清單[/b]。清單上寫什麼，就去採什麼，照清單的順序一樣一樣採。",
+    "given": [
+      "地點：薰衣草原・花田：有薰衣草、薄荷、洋甘菊。",
+      "程式第 1 行已經寫好 herbs：今天的草藥清單（交件時會換別的清單）。"
+    ],
+    "rules": [
+      "用 for 迴圈走過清單：派派兔走到○○（f-string），採草藥。",
+      "採完走到草藥籃。",
+      "說：一共採了○種草藥（用 len 算）"
+    ],
+    "limits": [
+      "保留 herbs 這一行，用 for 走訪清單，數量用 len 算。"
+    ],
+    "expected": "按「▶ 看示範」看派派兔怎麼照清單採草藥。交件時會換別的清單再檢查。"
+  },
+  "patterns": [
+    {
+      "say": "派派兔走到薰衣草",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "薰衣草"
+      },
+      "desc": "派派兔走到薰衣草"
+    },
+    {
+      "say": "派派兔走到薄荷",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "薄荷"
+      },
+      "desc": "派派兔走到薄荷"
+    },
+    {
+      "say": "派派兔走到洋甘菊",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "洋甘菊"
+      },
+      "desc": "派派兔走到洋甘菊"
+    },
+    {
+      "say": "派派兔走到草藥籃",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "草藥籃"
+      },
+      "desc": "派派兔走到草藥籃"
+    },
+    {
+      "say": "派派兔採草藥",
+      "act": "do",
+      "args": {
+        "who": "rabbit",
+        "verb": "採草藥",
+        "text": "採好了～"
+      },
+      "desc": "派派兔採面前的草藥"
+    }
+  ],
+  "speech_example": "一共採了3種草藥",
+  "room": {
+    "name": "薰衣草原・花田",
+    "scene": "lavender",
+    "size": [
+      8,
+      6
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        4,
+        5
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          5,
+          5
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          3,
+          5
+        ],
+        "dir": "N"
+      }
+    ],
+    "spots": {
+      "薰衣草": {
+        "cell": [
+          2,
+          2
+        ],
+        "face": "N"
+      },
+      "薄荷": {
+        "cell": [
+          5,
+          2
+        ],
+        "face": "N"
+      },
+      "洋甘菊": {
+        "cell": [
+          6,
+          4
+        ],
+        "face": "E"
+      },
+      "草藥籃": {
+        "cell": [
+          2,
+          4
+        ],
+        "face": "W"
+      }
+    },
+    "decor": [
+      {
+        "type": "herb_basket",
+        "cell": [
+          1,
+          4
+        ]
+      }
+    ],
+    "furniture": [
+      {
+        "uid": "lv1",
+        "type": "lavender_patch",
+        "cell": [
+          1,
+          1
+        ]
+      },
+      {
+        "uid": "lv2",
+        "type": "lavender_patch",
+        "cell": [
+          2,
+          1
+        ]
+      },
+      {
+        "uid": "lv3",
+        "type": "lavender_patch",
+        "cell": [
+          3,
+          1
+        ]
+      },
+      {
+        "uid": "mt1",
+        "type": "yard_bush",
+        "cell": [
+          5,
+          1
+        ]
+      },
+      {
+        "uid": "mt2",
+        "type": "yard_bush",
+        "cell": [
+          6,
+          1
+        ]
+      },
+      {
+        "uid": "ch1",
+        "type": "yard_flower_yellow",
+        "cell": [
+          7,
+          4
+        ]
+      },
+      {
+        "uid": "ch2",
+        "type": "yard_flower_yellow",
+        "cell": [
+          7,
+          3
+        ]
+      }
+    ]
+  },
+  "goal_items": [],
+  "goal_actors": [
+    "rabbit"
+  ],
+  "starter_code": "herbs = [\"薰衣草\", \"薄荷\", \"洋甘菊\"]\n\n# 1. 用 for 走過清單：派派兔走到○○、採草藥\n\n\n# 2. 派派兔走到草藥籃\n\n\n# 3. 說：一共採了○種草藥（用 len）\n\n",
+  "given_vars": [
+    "herbs"
+  ],
+  "reference": "herbs = [\"薰衣草\", \"薄荷\", \"洋甘菊\"]\nfor h in herbs:\n    print(f\"派派兔走到{h}\")\n    print(\"派派兔採草藥\")\nprint(\"派派兔走到草藥籃\")\nprint(f\"一共採了{len(herbs)}種草藥\")\n",
+  "tests": [
+    {
+      "name": "薰衣草、薄荷、洋甘菊",
+      "vars": {
+        "herbs": [
+          "薰衣草",
+          "薄荷",
+          "洋甘菊"
+        ]
+      }
+    },
+    {
+      "name": "隱藏測資",
+      "hidden": true,
+      "vars": {
+        "herbs": [
+          "洋甘菊",
+          "薰衣草"
+        ]
+      }
+    },
+    {
+      "name": "隱藏測資：只要薄荷",
+      "hidden": true,
+      "vars": {
+        "herbs": [
+          "薄荷"
+        ]
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "herbs"
+    },
+    {
+      "id": "must_use",
+      "node": "For",
+      "label": "for 迴圈"
+    }
+  ],
+  "reward": {
+    "furniture": "plant_book",
+    "message": "慢慢館長喝了安神茶，送你一本森林植物圖鑑：「慢慢看，比較快。」"
+  },
+  "qa_wrong": [
+    "herbs = [\"薰衣草\", \"薄荷\", \"洋甘菊\"]\nprint(\"派派兔走到薰衣草\")\nprint(\"派派兔採草藥\")\nprint(\"派派兔走到薄荷\")\nprint(\"派派兔採草藥\")\nprint(\"派派兔走到洋甘菊\")\nprint(\"派派兔採草藥\")\nprint(\"派派兔走到草藥籃\")\nprint(\"一共採了3種草藥\")\n"
+  ],
+  "author_notes": "薰衣草原第 3 個冒險：走訪串列＋len。字典目前直譯器還不支援，所以草藥配方用清單。",
+  "lessons": ["print", "variable", "fstring", "len", "list", "for_list"]
+}

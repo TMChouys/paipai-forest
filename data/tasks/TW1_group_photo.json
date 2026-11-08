@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "TW1_group_photo",
+  "lessons": ["print"],
   "order": 102,
   "track": "side",
   "unlock_after_main": 1,

@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "D03_questions",
+  "lessons": ["print", "variable", "arith", "input", "input_number", "fstring"],
   "order": 3,
   "track": "main",
   "difficulty": 2,

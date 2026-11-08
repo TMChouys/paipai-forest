@@ -2,7 +2,7 @@
   "schema": 1,
   "track": "adventure",
   "npc": "wolf",
-  "lessons": ["floordiv_mod"],
+  "lessons": ["print", "variable", "arith", "floordiv_mod", "fstring"],
   "npc_line": "準備好一起去冒險了嗎？",
   "print_role": "mixed",
   "scoring": {},

@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "S01_crate_weight",
+  "lessons": ["print", "variable", "compare", "fstring", "if", "if_else"],
   "order": 101,
   "track": "side",
   "unlock_after_main": 6,

@@ -1,0 +1,259 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好一起去冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range",
+    "len"
+  ],
+  "id": "FA2_stream_fishing",
+  "order": 204,
+  "difficulty": 3,
+  "title": "溪邊釣魚比賽",
+  "concept": "while 迴圈＋break（派派森林・溪畔）",
+  "place": "派派森林・溪畔",
+  "sheet": {
+    "story": "派派狼說：「今天的晚餐靠我了！」他要在溪邊一直甩竿，[b]釣到魚就停[/b]。\n可是誰也不知道第幾竿才會上鉤——所以不能先決定要甩幾次。",
+    "given": [
+      "地點：派派森林・溪畔。",
+      "程式第 1 行已經寫好 bite = 3：第幾竿魚才會上鉤（交件時會換別的數字）。",
+      "這個任務的 print()：符合句型表的話是角色的動作；其他的話是派派鼠說的話。"
+    ],
+    "rules": [
+      "派派狼先走到溪邊。",
+      "用 while 迴圈一直甩竿：每甩一竿，次數 count 加 1，說「派派狼甩竿」。",
+      "count 等於 bite 的時候，用 break 停下來。",
+      "停下來以後說：甩了○次，釣到魚了！（f-string）",
+      "派派鼠走到水桶，裝魚。"
+    ],
+    "limits": [
+      "保留 bite 這一行，甩竿要用 while 迴圈，不能直接寫好幾行。"
+    ],
+    "expected": "按「▶ 看示範」看 bite = 3 時派派狼怎麼釣魚。交件時會換別的 bite 再檢查。"
+  },
+  "patterns": [
+    {
+      "say": "派派狼走到溪邊",
+      "act": "walk_to",
+      "args": {
+        "who": "wolf",
+        "spot": "溪邊"
+      },
+      "desc": "派派狼走到溪邊（面向小溪）"
+    },
+    {
+      "say": "派派狼甩竿",
+      "act": "do",
+      "args": {
+        "who": "wolf",
+        "verb": "甩竿",
+        "text": "咻——",
+        "spot": "溪邊"
+      },
+      "desc": "派派狼在溪邊甩一竿"
+    },
+    {
+      "say": "派派鼠走到水桶",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "水桶"
+      },
+      "desc": "派派鼠走到水桶旁邊"
+    },
+    {
+      "say": "派派鼠裝魚",
+      "act": "do",
+      "args": {
+        "who": "gopher",
+        "verb": "裝魚",
+        "text": "裝進水桶了！",
+        "spot": "水桶"
+      },
+      "desc": "派派鼠把魚裝進水桶"
+    }
+  ],
+  "speech_example": "甩了3次，釣到魚了！",
+  "room": {
+    "name": "派派森林・溪畔",
+    "scene": "forest",
+    "size": [
+      8,
+      6
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        3,
+        5
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          4,
+          5
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          1,
+          4
+        ],
+        "dir": "E"
+      }
+    ],
+    "spots": {
+      "溪邊": {
+        "cell": [
+          4,
+          1
+        ],
+        "face": "N"
+      },
+      "水桶": {
+        "cell": [
+          3,
+          1
+        ],
+        "face": "N"
+      }
+    },
+    "decor": [
+      {
+        "type": "picnic_mat",
+        "cell": [
+          1,
+          3
+        ]
+      }
+    ],
+    "furniture": [
+      {
+        "uid": "r1",
+        "type": "yard_rock",
+        "cell": [
+          0,
+          0
+        ]
+      },
+      {
+        "uid": "r2",
+        "type": "yard_rock",
+        "cell": [
+          1,
+          0
+        ]
+      },
+      {
+        "uid": "lg",
+        "type": "forest_log",
+        "cell": [
+          2,
+          0
+        ]
+      },
+      {
+        "uid": "r3",
+        "type": "yard_rock",
+        "cell": [
+          6,
+          0
+        ]
+      },
+      {
+        "uid": "r4",
+        "type": "yard_rock",
+        "cell": [
+          7,
+          0
+        ]
+      },
+      {
+        "uid": "m1",
+        "type": "mushroom_ring",
+        "cell": [
+          6,
+          3
+        ]
+      },
+      {
+        "uid": "m2",
+        "type": "mushroom_ring",
+        "cell": [
+          7,
+          4
+        ]
+      }
+    ]
+  },
+  "goal_items": [],
+  "goal_actors": [
+    "gopher",
+    "wolf"
+  ],
+  "starter_code": "bite = 3\n\n# 1. 派派狼走到溪邊\n\n\n# 2. count 從 0 開始；用 while 一直甩竿\n#    每甩一竿：count 加 1，說「派派狼甩竿」\n#    count 等於 bite 就 break\n\n\n# 3. 說：甩了○次，釣到魚了！\n\n\n# 4. 派派鼠走到水桶，裝魚\n\n",
+  "given_vars": [
+    "bite"
+  ],
+  "reference": "bite = 3\nprint(\"派派狼走到溪邊\")\ncount = 0\nwhile True:\n    count += 1\n    print(\"派派狼甩竿\")\n    if count == bite:\n        break\nprint(f\"甩了{count}次，釣到魚了！\")\nprint(\"派派鼠走到水桶\")\nprint(\"派派鼠裝魚\")\n",
+  "tests": [
+    {
+      "name": "bite = 3",
+      "vars": {
+        "bite": 3
+      }
+    },
+    {
+      "name": "隱藏測資：bite = 1",
+      "hidden": true,
+      "vars": {
+        "bite": 1
+      }
+    },
+    {
+      "name": "隱藏測資：bite = 5",
+      "hidden": true,
+      "vars": {
+        "bite": 5
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "bite"
+    },
+    {
+      "id": "must_use",
+      "node": "While",
+      "label": "while 迴圈"
+    },
+    {
+      "id": "must_use",
+      "node": "Break",
+      "label": "break"
+    }
+  ],
+  "reward": {
+    "furniture": "mushroom_lamp",
+    "message": "派派狼釣到一條大魚！大家在溪邊烤魚，派派兔送你一盞蘑菇檯燈：「晚上看書用！」"
+  },
+  "qa_wrong": [
+    "bite = 3\nprint(\"派派狼走到溪邊\")\nprint(\"派派狼甩竿\")\nprint(\"派派狼甩竿\")\nprint(\"派派狼甩竿\")\nprint(\"甩了3次，釣到魚了！\")\nprint(\"派派鼠走到水桶\")\nprint(\"派派鼠裝魚\")\n",
+    "bite = 3\nprint(\"派派狼走到溪邊\")\ncount = 0\nwhile count < bite:\n    count += 1\n    print(\"派派狼甩竿\")\nprint(f\"甩了{count}次，釣到魚了！\")\nprint(\"派派鼠走到水桶\")\nprint(\"派派鼠裝魚\")\n"
+  ],
+  "author_notes": "派派森林第 2 個冒險：while＋break（不知道要重複幾次）。第二個錯誤示範沒有 break，結果對但寫法規則不過。",
+  "lessons": ["print", "variable", "bool", "aug_assign", "compare", "fstring", "if", "while", "break"]
+}

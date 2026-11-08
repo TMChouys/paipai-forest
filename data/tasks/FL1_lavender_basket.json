@@ -2,7 +2,7 @@
   "schema": 1,
   "track": "adventure",
   "npc": "wolf",
-  "lessons": ["elif"],
+  "lessons": ["print", "variable", "compare", "fstring", "if", "if_else", "elif"],
   "npc_line": "準備好一起去冒險了嗎？",
   "print_role": "mixed",
   "scoring": {},

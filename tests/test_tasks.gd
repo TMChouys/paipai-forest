@@ -11,7 +11,7 @@ func codes(rep: Dictionary) -> Array:
 
 func run(t) -> void:
 	var tasks := TaskRunner.list_tasks()
-	t.check("13 tasks loaded", tasks.size() == 13, str(tasks.size()))
+	t.check("19 tasks loaded", tasks.size() == 19, str(tasks.size()))
 	var by_id := {}
 	for task in tasks:
 		by_id[task.id] = task

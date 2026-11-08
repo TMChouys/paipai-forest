@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "TW3_library_note",
+  "lessons": ["print", "comment"],
   "order": 104,
   "track": "side",
   "unlock_after_main": 1,

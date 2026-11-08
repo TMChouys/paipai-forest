@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "T02_variable",
+  "lessons": ["print", "variable", "fstring"],
   "order": 5,
   "track": "main",
   "difficulty": 1,

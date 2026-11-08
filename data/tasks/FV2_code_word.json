@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好一起去冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range",
+    "len"
+  ],
+  "id": "FV2_code_word",
+  "order": 208,
+  "difficulty": 2,
+  "title": "寶箱的密碼字",
+  "concept": "字串索引＋型態轉換（螢光寶庫・入口）",
+  "place": "螢光寶庫・入口",
+  "sheet": {
+    "story": "寶庫的第二道石門上刻著一串數字，旁邊寫著：「[b]第一個字和最後一個字[/b]接起來，就是開門的密碼。」\n門後面有一個爺爺留下的木箱。",
+    "given": [
+      "地點：螢光寶庫・入口。",
+      "程式第 1 行已經寫好 word：石門上刻的數字（是文字，交件時會換別的）。",
+      "說「開門」加上密碼（例如「開門71」），密碼對了石門才會打開。"
+    ],
+    "rules": [
+      "用 word[0] 和 word[-1] 拿出第一個字和最後一個字，接起來，再用 int() 變成數字 code。",
+      "說：開門○（f-string）",
+      "派派鼠走到木箱、搬起來，帶到門口放下。"
+    ],
+    "limits": [
+      "保留 word 這一行，密碼要用索引算出來，不能直接寫答案。"
+    ],
+    "expected": "按「▶ 看示範」看石門怎麼打開。交件時會換別的 word 再檢查（密碼也會跟著變）。"
+  },
+  "patterns": [
+    {
+      "say": "開門{code}",
+      "act": "open_gate",
+      "args": {},
+      "desc": "派派鼠說出密碼，對了石門就打開"
+    },
+    {
+      "say": "派派鼠走到木箱",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "木箱"
+      },
+      "desc": "派派鼠走到木箱前面"
+    },
+    {
+      "say": "派派鼠走到門口",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "門口"
+      },
+      "desc": "派派鼠走回門口"
+    },
+    {
+      "say": "派派鼠搬起",
+      "act": "pick_up",
+      "args": {},
+      "desc": "派派鼠把面前的東西抱起來"
+    },
+    {
+      "say": "派派鼠放下",
+      "act": "put_down",
+      "args": {},
+      "desc": "派派鼠把手上的東西放在面前"
+    }
+  ],
+  "speech_example": "開門71",
+  "room": {
+    "name": "螢光寶庫・入口",
+    "scene": "vault",
+    "size": [
+      8,
+      7
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        3,
+        6
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          2,
+          6
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          4,
+          6
+        ],
+        "dir": "N"
+      }
+    ],
+    "lock": {
+      "code": 71,
+      "gate": "gate"
+    },
+    "spots": {
+      "木箱": {
+        "cell": [
+          3,
+          2
+        ],
+        "face": "N"
+      },
+      "門口": {
+        "cell": [
+          3,
+          5
+        ],
+        "face": "N"
+      }
+    },
+    "furniture": [
+      {
+        "uid": "w0",
+        "type": "cave_rock",
+        "cell": [
+          0,
+          3
+        ]
+      },
+      {
+        "uid": "w1",
+        "type": "cave_rock",
+        "cell": [
+          1,
+          3
+        ]
+      },
+      {
+        "uid": "w2",
+        "type": "cave_rock",
+        "cell": [
+          2,
+          3
+        ]
+      },
+      {
+        "uid": "w4",
+        "type": "cave_rock",
+        "cell": [
+          4,
+          3
+        ]
+      },
+      {
+        "uid": "w5",
+        "type": "cave_rock",
+        "cell": [
+          5,
+          3
+        ]
+      },
+      {
+        "uid": "w6",
+        "type": "cave_rock",
+        "cell": [
+          6,
+          3
+        ]
+      },
+      {
+        "uid": "w7",
+        "type": "cave_rock",
+        "cell": [
+          7,
+          3
+        ]
+      },
+      {
+        "uid": "gate",
+        "type": "stone_gate",
+        "cell": [
+          3,
+          3
+        ]
+      },
+      {
+        "uid": "box",
+        "type": "crate",
+        "cell": [
+          3,
+          1
+        ]
+      },
+      {
+        "uid": "gs",
+        "type": "glow_stone",
+        "cell": [
+          6,
+          1
+        ]
+      }
+    ]
+  },
+  "goal_items": [
+    "gate",
+    "box"
+  ],
+  "goal_actors": [
+    "gopher"
+  ],
+  "starter_code": "word = \"7531\"\n\n# 1. 第一個字 word[0] 和最後一個字 word[-1] 接起來，用 int() 變成數字 code\n\n\n# 2. 說：開門○\n\n\n# 3. 派派鼠走到木箱、搬起，走到門口、放下\n\n",
+  "given_vars": [
+    "word"
+  ],
+  "reference": "word = \"7531\"\ncode = int(word[0] + word[-1])\nprint(f\"開門{code}\")\nprint(\"派派鼠走到木箱\")\nprint(\"派派鼠搬起\")\nprint(\"派派鼠走到門口\")\nprint(\"派派鼠放下\")\n",
+  "tests": [
+    {
+      "name": "word = \"7531\"",
+      "vars": {
+        "word": "7531"
+      }
+    },
+    {
+      "name": "隱藏測資：word = \"2468\"",
+      "hidden": true,
+      "vars": {
+        "word": "2468"
+      },
+      "lock": 28
+    },
+    {
+      "name": "隱藏測資：word = \"90315\"",
+      "hidden": true,
+      "vars": {
+        "word": "90315"
+      },
+      "lock": 95
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "word"
+    }
+  ],
+  "reward": {
+    "furniture": "clock",
+    "message": "木箱裡是爺爺的圓圓掛鐘，指針停在三點——爺爺的下午茶時間。"
+  },
+  "qa_wrong": [
+    "word = \"7531\"\nprint(\"開門71\")\nprint(\"派派鼠走到木箱\")\nprint(\"派派鼠搬起\")\nprint(\"派派鼠走到門口\")\nprint(\"派派鼠放下\")\n",
+    "word = \"7531\"\ncode = int(word[0] + word[1])\nprint(f\"開門{code}\")\nprint(\"派派鼠走到木箱\")\nprint(\"派派鼠搬起\")\nprint(\"派派鼠走到門口\")\nprint(\"派派鼠放下\")\n"
+  ],
+  "author_notes": "螢光寶庫第 2 個冒險（解謎）：字串索引 s[0]、s[-1]、字串相加、int()。",
+  "lessons": ["print", "variable", "arith", "convert", "fstring", "str_index"]
+}

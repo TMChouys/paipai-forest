@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "D01_hello",
+  "lessons": [],
   "order": 1,
   "track": "main",
   "difficulty": 1,

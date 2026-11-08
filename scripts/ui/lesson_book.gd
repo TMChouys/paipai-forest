@@ -15,7 +15,8 @@ signal closed
 
 const LESSON_PATH := "res://data/curriculum/lessons.json"
 const CLASS_PATH := "res://data/class/class_lessons.json"
-const STEPS := ["① 要知道什麼事？", "② 為什麼？", "③ 怎麼做？", "④ 小測驗", "⑤ 去冒險"]
+const STEPS := ["① 要知道什麼事？", "② 為什麼？", "③ 怎麼做？", "④ 小測驗", "⑤ 去冒險", "④ 在派派森林裡"]
+const QUIZ_STEPS := 5   # 上課用前五個；館長的知識地圖用 ①②③ 和「在派派森林裡」
 const CHEER_RIGHT := ["好厲害！", "派派鼠也在幫你拍手！", "就是這樣！", "你越來越懂派派森林了！", "完全正確！"]
 const CHEER_WRONG := ["沒關係，錯了才知道哪裡要注意。", "差一點點！看懂原因就學會了。", "慢慢來，比較快。", "下一題一定可以！"]
 const CLASS_STEPS := ["📖 課本整理", "✎ 習題"]
@@ -23,6 +24,8 @@ const CODE_BG := Color("2f3a33")
 const CODE_INK := Color("f4efe2")
 
 var kmap: Dictionary = {}
+## 遊戲裡真的有的任務（main 載入後設定）：冒險委託和知識點的關係都從這裡算
+static var game_tasks: Array = []
 var lessons: Dictionary = {}
 var class_content: Dictionary = {} # 班級版：id -> {slides, exercises}
 var areas: Array = []              # 知識地圖的分類（班級版多 P、Q）
@@ -281,13 +284,15 @@ func show_concept(cid: String) -> void:
 	_shown.clear()
 	steps = []
 	if lessons.has(cid):
-		steps.append_array(range(STEPS.size()) if quiz_mode else [0, 1, 2])
+		steps.append_array(range(QUIZ_STEPS) if quiz_mode else [0, 1, 2])
 	if class_content.has(cid):
 		var cc: Dictionary = class_content[cid]
 		if not cc.get("slides", []).is_empty():
 			steps.append(10)
 		if quiz_mode and not cc.get("exercises", []).is_empty():
 			steps.append(11)
+	if not quiz_mode:
+		steps.append(5)   # 館長的知識地圖：每個知識點都可以看「在派派森林裡」（上課、冒險、接下來學什麼）
 	_fill_index()
 	var c: Dictionary = concepts[cid]
 	title_l.text = c.name
@@ -348,7 +353,10 @@ func _next() -> void:
 	if step < steps.size() - 1:
 		_go(step + 1)
 		return
-	var i := order.find(concept_id)   # 最後一步：下一課
+	if quiz_mode:
+		class_list.emit()   # 上課：最後一步回上課表（下一課開了沒，由上課表管）
+		return
+	var i := order.find(concept_id)   # 館長的知識地圖：全部都可以看，直接看下一個
 	if i >= 0 and i + 1 < order.size():
 		show_concept(order[i + 1])
 
@@ -375,8 +383,12 @@ func _go(s: int) -> void:
 		step_row.add_child(b)
 	prev_b.disabled = step == 0
 	var i_c := order.find(concept_id)
-	next_b.text = "下一步 →" if step < steps.size() - 1 else ("下一課 →" if i_c + 1 < order.size() else "全部上完了！")
-	next_b.disabled = step == steps.size() - 1 and i_c + 1 >= order.size()
+	if quiz_mode:
+		next_b.text = "下一步 →" if step < steps.size() - 1 else "回上課表 →"
+		next_b.disabled = false
+	else:
+		next_b.text = "下一步 →" if step < steps.size() - 1 else ("下一個 →" if i_c + 1 < order.size() else "全部看完了！")
+		next_b.disabled = step == steps.size() - 1 and i_c + 1 >= order.size()
 	for n in body.get_children():
 		n.queue_free()
 	body_scroll.scroll_vertical = 0
@@ -387,6 +399,7 @@ func _go(s: int) -> void:
 		2: _step_explain(les)
 		3: _step_quiz(les)
 		4: _step_tasks(les)
+		5: _step_world()
 		10: _step_slides()
 		11: _step_exercises()
 
@@ -650,28 +663,74 @@ func _pick(i: int) -> void:
 
 
 func _step_tasks(les: Dictionary) -> void:
-	var ids: Array = les.get("tasks") if les.get("tasks") != null else []
-	var ts: Array = kmap.get("tasks", []).filter(func(t): return concept_id in t.concepts or t.id in ids)
-	ts.sort_custom(func(a, b):
-		if a.compound != b.compound:
-			return not a.compound
-		return int(a.difficulty) < int(b.difficulty))
-	_wolf("學會了「%s」？準備好一起去冒險了嗎？上完課，這些委託就解鎖了，來找我就出發！" % concepts[concept_id].name if not ts.is_empty() else "這件事的冒險還在準備中，先去認識下一件事吧！")
+	var real := _task_cards()
+	_wolf(("學會了「%s」？準備好一起去冒險了嗎？用到這一課的委託在這裡，課都上齊了就來找我出發！" % concepts[concept_id].name) if real > 0
+		else "這一課的冒險委託還在準備中，先去上下一課吧！")
+
+
+## 用到這一課的冒險委託（遊戲裡真的有的）：任務名、地點、還要先上哪些課。回傳張數
+func _task_cards() -> int:
+	var ts: Array = game_tasks.filter(func(t): return concept_id in t.get("lessons", []))
+	ts.sort_custom(func(a, b): return int(a.order) < int(b.order))
+	var names := {}
+	for c in concepts:
+		names[c] = concepts[c].name
 	for t in ts:
 		var v := _card(Color("fffdf6"))
 		var top := HBoxContainer.new()
 		top.add_theme_constant_override("separation", 8)
 		v.add_child(top)
-		top.add_child(QuestBook._tag("複合知識" if t.compound else "單一概念", Color("f4a8a0") if t.compound else Color("cfe3f5")))
+		var tr: String = {"main": "主線", "side": "支線", "adventure": "野外冒險"}.get(t.get("track", "main"), "")
+		top.add_child(QuestBook._tag(tr, Color("f4c48a") if tr == "野外冒險" else Color("cfe3f5")))
 		var tl := UIKit.label(t.title, 18)
 		tl.add_theme_font_override("font", UIKit.font_bold())
 		top.add_child(tl)
-		top.add_child(UIKit.label("★".repeat(int(t.difficulty)) + "☆".repeat(5 - int(t.difficulty)), 15, UIKit.TEXT_WARN))
-		var place: String = kmap.get("places", {}).get(t.place, t.place)
-		var npc: String = kmap.get("npcs", {}).get(t.npc, t.npc)
-		var status: String = kmap.get("status_names", {}).get(t.status, t.status)
-		v.add_child(_text("%s・%s的委託　｜　%s" % [place, npc, status], 14, Color("8a6a50")))
-		v.add_child(_text(t.story, 16))
+		var place: String = t.get("place", t.get("room", {}).get("name", ""))
+		if place != "":
+			v.add_child(_text(place, 14, Color("8a6a50")))
+		var miss: Array = t.get("lessons", []).filter(func(c): return not done.has(c))
+		if miss.is_empty():
+			v.add_child(_text("課都上齊了：可以找派派狼出發！", 15, UIKit.TEXT_GREEN))
+		else:
+			v.add_child(_text("還要先上：" + "、".join(miss.map(func(c): return "「%s」" % names.get(c, c))), 15, Color("b0603a")))
+	return ts.size()
+
+
+## 館長的知識地圖：這個知識點在派派森林裡的哪裡——誰來上課、用什麼故事、哪些委託會用到、接下來可以學什麼
+func _step_world() -> void:
+	var c: Dictionary = concepts[concept_id]
+	var names := {}
+	for k in concepts:
+		names[k] = concepts[k].name
+	_turtle("「%s」在派派森林裡會出現在這些地方。知識地圖什麼都可以看；要考小測驗，找派派兔去上課。" % c.name)
+	# 上課
+	var v := _card(Color("fff3e0"), Color("e0b880"))
+	v.add_child(_text("上課（派派兔：準備好一起去上課了嗎？）", 15, Color("8f5f12")))
+	if lessons.has(concept_id):
+		v.add_child(_text("老師：%s　地點：%s" % [ClassBoard.teacher_name(class_cfg, ClassBoard.teacher_of(class_cfg, concept_id)), class_cfg.get("place", "圖書館・教室")], 16))
+		var story := ClassBoard.story_of(class_cfg, concept_id)
+		if story != "":
+			v.add_child(_text("故事：" + story, 16))
+		var pre: Array = (c.get("prereqs", []) + class_cfg.get("extra_prereqs", {}).get(concept_id, [])).filter(func(p): return lessons.has(p))
+		if not pre.is_empty():
+			v.add_child(_text("先上過：" + "、".join(pre.map(func(p): return ("✓" if done.has(p) else "○") + names.get(p, p))), 15, UIKit.TEXT_MUTED))
+		v.add_child(_text("✓ 已經通過這一課" if done.has(concept_id) else "還沒有上過這一課", 15, UIKit.TEXT_GREEN if done.has(concept_id) else UIKit.TEXT_MUTED))
+	else:
+		v.add_child(_text("這是課本的補充知識，沒有上課和小測驗，在知識地圖看就好。", 16))
+	# 冒險委託
+	var w := _card(Color("eef4ff"), Color("9db8dd"))
+	w.add_child(_text("冒險委託（派派狼：準備好一起去冒險了嗎？）", 15, Color("3d5f8f")))
+	if _task_cards() == 0:
+		w.add_child(_text("用到這一課的委託還在準備中。", 15, UIKit.TEXT_MUTED))
+	# 接下來可以學
+	var nxt: Array = []
+	for k in order:
+		if concept_id in concepts[k].get("prereqs", []) + class_cfg.get("extra_prereqs", {}).get(k, []):
+			nxt.append(names.get(k, k))
+	if not nxt.is_empty():
+		var n2 := _card(Color("f1f7ea"), Color("a9c58a"))
+		n2.add_child(_text("學會以後可以接著學", 15, Color("4f7a3a")))
+		n2.add_child(_text("、".join(nxt), 16))
 
 
 # ---------------- 班級版：課本整理、習題 ----------------

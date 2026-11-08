@@ -440,6 +440,7 @@ static func needed_lessons(t: Dictionary) -> Array:
 				_task_concepts[kt.game_task] = kt.concepts
 		for c in km.get("concepts", []):
 			_concept_names[c.id] = c.name
+	# 任務 JSON 的 lessons＝任務程式實際用到的課（tools/curriculum/audit.py 檢查、產生）
 	var need: Array = t.get("lessons", _task_concepts.get(t.id, []))
 	return need.filter(func(c): return not lessons_done.has(c))
 
@@ -448,8 +449,6 @@ static func _lock_reason(t: Dictionary, tasks: Array, progress: Dictionary) -> S
 	if _order_ok(t, tasks, progress):
 		var names := needed_lessons(t).map(func(c): return "「%s」" % _concept_names.get(c, c))
 		return "先去上課：%s（找派派兔：準備好一起去上課了嗎？）" % "、".join(names)
-	if t.get("track", "main") in ["side", "adventure"]:
-		return "完成 %d 個主線任務後解鎖" % int(t.get("unlock_after_main", 2))
 	var first := 999
 	for x in tasks:
 		if x.get("track", "main") == "main" and int(x.order) < int(t.order) and progress.get(x.id, 0) == 0:
@@ -463,15 +462,10 @@ static func is_unlocked(t: Dictionary, tasks: Array, progress: Dictionary) -> bo
 	return _order_ok(t, tasks, progress) and needed_lessons(t).is_empty()
 
 
-## 原本的順序規則：主線照順序；支線、冒險要先完成幾個主線
+## 順序規則：主線照故事順序一個一個來；支線和野外冒險不看順序，只看上過的課（2026-11-08）
 static func _order_ok(t: Dictionary, tasks: Array, progress: Dictionary) -> bool:
 	if t.get("track", "main") in ["side", "adventure"]:
-		# 支線：完成 2 個主線任務後解鎖
-		var done := 0
-		for x in tasks:
-			if x.get("track", "main") == "main" and progress.get(x.id, 0) > 0:
-				done += 1
-		return done >= int(t.get("unlock_after_main", 2))
+		return true
 	for x in tasks:
 		if x.get("track", "main") == "main" and int(x.order) < int(t.order) and progress.get(x.id, 0) == 0:
 			return false

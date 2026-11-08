@@ -1,0 +1,316 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好一起去冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range",
+    "len"
+  ],
+  "id": "FL2_watering",
+  "order": 206,
+  "difficulty": 3,
+  "title": "枯掉的那盆先跳過",
+  "concept": "for 迴圈＋continue（薰衣草原・花田）",
+  "place": "薰衣草原・花田",
+  "sheet": {
+    "story": "派派兔在花田種了一排五盆草藥。今天要一盆一盆澆水，可是[b]枯掉的那盆澆了也沒用[/b]，先跳過，等一下再換新的。",
+    "given": [
+      "地點：薰衣草原・花田。",
+      "程式第 1 行已經寫好 pots：五盆草藥的狀況，\"好\" 或 \"枯\"（交件時會換別的）。",
+      "第 1 盆是 pots[0]，第 5 盆是 pots[4]。"
+    ],
+    "rules": [
+      "用 for 迴圈看第 1 盆到第 5 盆。",
+      "這一盆是 \"枯\"：用 continue 跳過。",
+      "不是枯的：派派兔走到第○盆（f-string），澆水。",
+      "全部看完以後說：全部澆好了！"
+    ],
+    "limits": [
+      "保留 pots 這一行，用 for 和 continue。"
+    ],
+    "expected": "按「▶ 看示範」看派派兔怎麼跳過枯掉的盆。交件時會換別的 pots 再檢查。"
+  },
+  "patterns": [
+    {
+      "say": "派派兔走到第1盆",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "第1盆"
+      },
+      "desc": "派派兔走到第 1 盆前面"
+    },
+    {
+      "say": "派派兔走到第2盆",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "第2盆"
+      },
+      "desc": "派派兔走到第 2 盆前面"
+    },
+    {
+      "say": "派派兔走到第3盆",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "第3盆"
+      },
+      "desc": "派派兔走到第 3 盆前面"
+    },
+    {
+      "say": "派派兔走到第4盆",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "第4盆"
+      },
+      "desc": "派派兔走到第 4 盆前面"
+    },
+    {
+      "say": "派派兔走到第5盆",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "第5盆"
+      },
+      "desc": "派派兔走到第 5 盆前面"
+    },
+    {
+      "say": "派派兔澆水",
+      "act": "do",
+      "args": {
+        "who": "rabbit",
+        "verb": "澆水",
+        "text": "咕嘟咕嘟～"
+      },
+      "desc": "派派兔幫面前這一盆澆水"
+    }
+  ],
+  "speech_example": "全部澆好了！",
+  "room": {
+    "name": "薰衣草原・花田",
+    "scene": "lavender",
+    "size": [
+      8,
+      6
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        3,
+        5
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          5,
+          5
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          0,
+          3
+        ],
+        "dir": "E"
+      }
+    ],
+    "spots": {
+      "第1盆": {
+        "cell": [
+          1,
+          2
+        ],
+        "face": "N"
+      },
+      "第2盆": {
+        "cell": [
+          2,
+          2
+        ],
+        "face": "N"
+      },
+      "第3盆": {
+        "cell": [
+          3,
+          2
+        ],
+        "face": "N"
+      },
+      "第4盆": {
+        "cell": [
+          4,
+          2
+        ],
+        "face": "N"
+      },
+      "第5盆": {
+        "cell": [
+          5,
+          2
+        ],
+        "face": "N"
+      }
+    },
+    "decor": [
+      {
+        "type": "herb_basket",
+        "cell": [
+          7,
+          4
+        ]
+      }
+    ],
+    "furniture": [
+      {
+        "uid": "p1",
+        "type": "lavender_patch",
+        "cell": [
+          1,
+          1
+        ]
+      },
+      {
+        "uid": "p2",
+        "type": "lavender_patch",
+        "cell": [
+          2,
+          1
+        ]
+      },
+      {
+        "uid": "p3",
+        "type": "lavender_patch",
+        "cell": [
+          3,
+          1
+        ]
+      },
+      {
+        "uid": "p4",
+        "type": "lavender_patch",
+        "cell": [
+          4,
+          1
+        ]
+      },
+      {
+        "uid": "p5",
+        "type": "lavender_patch",
+        "cell": [
+          5,
+          1
+        ]
+      },
+      {
+        "uid": "lv",
+        "type": "lavender_patch",
+        "cell": [
+          7,
+          0
+        ]
+      }
+    ]
+  },
+  "goal_items": [],
+  "goal_actors": [
+    "rabbit"
+  ],
+  "starter_code": "pots = [\"好\", \"枯\", \"好\", \"好\", \"枯\"]\n\n# 1. 用 for 迴圈看第 1 盆到第 5 盆（pots[0] 到 pots[4]）\n#    枯的：continue 跳過\n#    不是枯的：派派兔走到第○盆、澆水\n\n\n# 2. 說：全部澆好了！\n\n",
+  "given_vars": [
+    "pots"
+  ],
+  "reference": "pots = [\"好\", \"枯\", \"好\", \"好\", \"枯\"]\nfor i in range(5):\n    if pots[i] == \"枯\":\n        continue\n    print(f\"派派兔走到第{i + 1}盆\")\n    print(\"派派兔澆水\")\nprint(\"全部澆好了！\")\n",
+  "tests": [
+    {
+      "name": "好、枯、好、好、枯",
+      "vars": {
+        "pots": [
+          "好",
+          "枯",
+          "好",
+          "好",
+          "枯"
+        ]
+      }
+    },
+    {
+      "name": "隱藏測資",
+      "hidden": true,
+      "vars": {
+        "pots": [
+          "枯",
+          "好",
+          "好",
+          "枯",
+          "好"
+        ]
+      }
+    },
+    {
+      "name": "隱藏測資：全部都好",
+      "hidden": true,
+      "vars": {
+        "pots": [
+          "好",
+          "好",
+          "好",
+          "好",
+          "好"
+        ]
+      }
+    },
+    {
+      "name": "隱藏測資：只有一盆好",
+      "hidden": true,
+      "vars": {
+        "pots": [
+          "枯",
+          "枯",
+          "好",
+          "枯",
+          "枯"
+        ]
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "pots"
+    },
+    {
+      "id": "must_use",
+      "node": "For",
+      "label": "for 迴圈"
+    },
+    {
+      "id": "must_use",
+      "node": "Continue",
+      "label": "continue"
+    }
+  ],
+  "reward": {
+    "furniture": "flower_pot",
+    "message": "派派兔把換下來的空盆洗乾淨送給你：「種一盆自己的花吧！」"
+  },
+  "qa_wrong": [
+    "pots = [\"好\", \"枯\", \"好\", \"好\", \"枯\"]\nprint(\"派派兔走到第1盆\")\nprint(\"派派兔澆水\")\nprint(\"派派兔走到第3盆\")\nprint(\"派派兔澆水\")\nprint(\"派派兔走到第4盆\")\nprint(\"派派兔澆水\")\nprint(\"全部澆好了！\")\n",
+    "pots = [\"好\", \"枯\", \"好\", \"好\", \"枯\"]\nfor i in range(5):\n    if pots[i] == \"好\":\n        print(f\"派派兔走到第{i + 1}盆\")\n        print(\"派派兔澆水\")\nprint(\"全部澆好了！\")\n"
+  ],
+  "author_notes": "薰衣草原第 2 個冒險：continue（跳過這一次）。第二個錯誤示範結果對但沒用 continue。",
+  "lessons": ["print", "variable", "arith", "compare", "fstring", "if", "for_range", "continue", "list", "list_index"]
+}

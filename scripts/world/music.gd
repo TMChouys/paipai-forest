@@ -38,7 +38,7 @@ static func _stream(track: String, loop: bool) -> AudioStream:
 	return s
 
 
-## 換背景音樂（同一首就不重播）；track = home / town / task
+## 換背景音樂（同一首就不重播）；track = home / town / task / forest / lavender / vault
 func play(track: String) -> void:
 	if track == current:
 		return

@@ -459,9 +459,151 @@ def battle() -> tuple[Song, float]:
     return s, 11
 
 
+# ---------------------------------------------------------------- 三張冒險地圖
+HARP, MUSICBOX = 46, 10
+DRUMS = 9   # GM 第 10 聲道是打擊樂（音高 = 樂器）
+
+
+def forest() -> tuple[Song, float]:
+    """派派森林・溪畔：D 大調 104 bpm。長笛唱旋律、吉他指彈和撥奏弦樂往前走，圓號接旋律，沙鈴和響棒輕輕打拍子。
+    輕快、有點出發探險的感覺，可是不吵（還要寫程式）。40 小節約 92 秒循環。"""
+    s = Song(104, seed=61)
+    flu = s.part(0, FLUTE, vol=84, pan=70, rev=60)
+    gtr = s.part(1, NYLON, vol=88, pan=46, rev=50)
+    piz = s.part(2, PIZZ, vol=86, pan=60, rev=45)
+    hrn = s.part(3, HORN, vol=72, pan=36, rev=70)
+    mar = s.part(4, MARIMBA, vol=80, pan=84, rev=55)
+    s.part(DRUMS, 0, vol=70, pan=64, rev=40)
+    A = ["D", "A/C#", "Bm", "G", "D", "G", "A", "D"]
+    B = ["G", "A", "F#m", "Bm", "G", "A", "D", "A7"]
+    mA = ("F#5:1 A5:1 D6:1.5 A5:.5  C#6:1 B5:.5 A5:.5 E5:2  F#5:1 D5:.5 F#5:.5 B5:1 A5:1  G5:1 B5:1 D6:2 "
+          "A5:1.5 F#5:.5 D5:1 F#5:1  G5:1 B5:1 E6:1 D6:1  C#6:1 A5:1 E5:1 G5:1  F#5:3 r:1")
+    mB = ("B5:1.5 A5:.5 G5:1 D5:1  C#6:1.5 B5:.5 A5:2  A5:1 F#5:1 C#6:1 A5:1  B5:3 r:1 "
+          "D6:1.5 B5:.5 G5:1 B5:1  A5:1 C#6:1 E6:1 C#6:1  D6:1 A5:1 F#5:1 A5:1  E5:2 A5:2")
+
+    def walk(bar, chords, vel=64):
+        for i, sym in enumerate(chords):
+            r, q, bass = chord(sym)
+            b0 = (bar + i) * 4
+            lo = near(bass, 45)
+            for beat, p in ((0, lo), (1, near((r + q[2]) % 12, lo + 5)), (2, lo + 12 if lo < 50 else lo), (3, near((r + q[1]) % 12, lo + 4))):
+                s.note(piz, b0 + beat, 0.45, p, vel - (0 if beat == 0 else 10))
+            for k in range(8):   # 沙鈴八分音符，響棒在二、四拍
+                s.note(DRUMS, b0 + k * 0.5, 0.2, 70, 34 if k % 2 else 42)
+            for beat in (1, 3):
+                s.note(DRUMS, b0 + beat, 0.2, 75, 40)
+
+    for k, (chords, m) in enumerate([(A, None), (A, mA), (A, mA), (B, mB), (A, mA)]):
+        bar = k * 8
+        guitar_arp(s, gtr, bar, chords, vel=50 if k else 56)
+        walk(bar, chords, vel=60 if k else 54)
+        if k == 1:
+            s.melody(flu, bar, m, vel=72, legato=0.9)
+        elif k == 2:
+            s.melody(hrn, bar, m, vel=70, octave=-1, legato=0.95)
+            s.melody(mar, bar, m, vel=42, legato=1.0, accent=0)
+        elif k == 3:
+            s.melody(flu, bar, m, vel=74, legato=0.9)
+            pad(s, hrn, bar, chords, vel=34, center=57)
+        elif k == 4:
+            s.melody(flu, bar, m, vel=70, legato=0.9)
+            s.melody(mar, bar, m, vel=48, octave=-1, legato=1.0, accent=0)
+    return s, 40 * 4
+
+
+def lavender() -> tuple[Song, float]:
+    """薰衣草原・花田：G 大調三拍子 92 bpm 的小圓舞曲。豎琴撥「咚—噠噠」，長笛和音樂盒輪流唱，弦樂像風吹過花田。
+    溫柔、香香的、有一點點午後的慵懶。40 小節約 78 秒循環。"""
+    s = Song(92, beats_per_bar=3, seed=71)
+    hrp = s.part(0, HARP, vol=96, pan=50, rev=70)
+    flu = s.part(1, FLUTE, vol=80, pan=72, rev=70)
+    box = s.part(2, MUSICBOX, vol=78, pan=82, rev=80)
+    strn = s.part(3, SLOW_STR, vol=48, pan=40, rev=85)
+    cel = s.part(4, CELESTA, vol=70, pan=30, rev=80)
+    A = ["G", "Em", "Am", "D", "G", "C", "D", "G"]
+    B = ["C", "D", "Bm", "Em", "Am", "D", "G", "G"]
+    mA = "D5:2 B4:1  E5:1.5 D5:.5 B4:1  C5:2 E5:1  D5:3  D5:1 G5:1 B5:1  A5:1.5 G5:.5 E5:1  F#5:1 E5:1 D5:1  G5:3"
+    mB = "E5:1 G5:1 C6:1  B5:1.5 A5:.5 F#5:1  D5:1 F#5:1 B5:1  G5:3  A5:1 C6:1 E5:1  D5:1.5 E5:.5 F#5:1  G5:2 D5:1  G5:3"
+
+    def waltz(bar, chords, vel=56):
+        for i, sym in enumerate(chords):
+            r, q, bass = chord(sym)
+            b0 = (bar + i) * 3
+            s.note(hrp, b0, 2.8, near(bass, 43), vel + 6)
+            up = [near((r + iv) % 12, 60 + k * 4) for k, iv in enumerate(q[:3])]
+            for k, beat in enumerate((1, 1.5, 2, 2.5)):
+                s.note(hrp, b0 + beat, 1.2, up[k % 3] + (12 if k == 3 else 0), vel - 8)
+
+    for k, (chords, m) in enumerate([(A, None), (A, mA), (A, mA), (B, mB), (A, mA)]):
+        bar = k * 8
+        waltz(bar, chords, vel=54 if k else 58)
+        if k >= 2:
+            pad(s, strn, bar, chords, vel=30, center=62)
+        if k == 1:
+            s.melody(flu, bar, m, vel=68, legato=0.95)
+        elif k == 2:
+            s.melody(box, bar, m, vel=66, octave=1, legato=1.0, accent=0)
+        elif k == 3:
+            s.melody(flu, bar, m, vel=70, legato=0.95)
+            s.melody(cel, bar, m, vel=40, octave=1, legato=1.0, accent=0)
+        elif k == 4:
+            s.melody(flu, bar, m, vel=64, legato=0.95)
+            s.melody(box, bar, m, vel=50, octave=1, legato=1.0, accent=0)
+    return s, 40 * 3
+
+
+def vault() -> tuple[Song, float]:
+    """螢光寶庫：A 小調 84 bpm。弦樂低低地墊著，撥奏弦樂像水滴，顫音琴慢慢分解和弦，鋼片琴和鐵琴像螢火蟲一閃一閃。
+    神秘、有點緊張可是不可怕（解謎、奪寶）。40 小節約 114 秒循環。"""
+    s = Song(84, seed=83)
+    strn = s.part(0, SLOW_STR, vol=56, pan=50, rev=85)
+    piz = s.part(1, PIZZ, vol=84, pan=40, rev=70)
+    vib = s.part(2, VIBES, vol=78, pan=74, rev=80)
+    cel = s.part(3, CELESTA, vol=76, pan=60, rev=85)
+    glk = s.part(4, GLOCK, vol=60, pan=88, rev=90)
+    flu = s.part(5, FLUTE, vol=70, pan=30, rev=80)
+    A = ["Am", "F", "Dm", "E", "Am", "F", "G", "E"]
+    B = ["Dm", "Am", "F", "E", "Dm", "Am", "G", "E"]
+    mA = ("E5:1.5 A4:.5 C5:1 E5:1  F5:2 C5:2  D5:1 F5:1 A5:1.5 F5:.5  G#5:3 r:1 "
+          "A5:1.5 E5:.5 C5:1 A4:1  F5:1 A5:1 C6:2  G5:1 B5:1 D6:1 B5:1  E5:3 r:1")
+    mB = ("F5:1.5 D5:.5 A4:2  E5:1.5 C5:.5 A4:2  A5:1 F5:1 C5:1 F5:1  E5:1 G#5:1 B5:2 "
+          "D6:1.5 A5:.5 F5:2  E6:1.5 C6:.5 A5:2  G5:1 B5:1 D6:1 B5:1  G#5:2 E5:2")
+
+    def drip(bar, chords, vel=60):
+        for i, sym in enumerate(chords):
+            r, q, bass = chord(sym)
+            b0 = (bar + i) * 4
+            lo = near(bass, 40)
+            s.note(piz, b0, 0.6, lo, vel)
+            s.note(piz, b0 + 2.5, 0.5, near((r + q[2]) % 12, lo + 7), vel - 14)
+            tones = [near((r + iv) % 12, 57 + k * 4) for k, iv in enumerate(q[:3])]
+            for k, p in enumerate(tones + [tones[1]]):
+                s.note(vib, b0 + k, 1.8, p, vel - 16)
+
+    for k, (chords, m) in enumerate([(A, None), (A, mA), (A, mA), (B, mB), (A, mA)]):
+        bar = k * 8
+        pad(s, strn, bar, chords, vel=36 if k else 30, center=57)
+        drip(bar, chords, vel=58 if k else 52)
+        if k == 0:   # 開頭：鐵琴偶爾閃一下
+            for j in (1, 3, 5, 7):
+                s.note(glk, (bar + j) * 4 + 1.5, 1.5, pitch("E6") if j % 4 == 1 else pitch("A6"), 38)
+        elif k == 1:
+            s.melody(cel, bar, m, vel=68, legato=1.0, accent=0)
+        elif k == 2:
+            s.melody(flu, bar, m, vel=62, octave=-1, legato=0.95)
+            s.melody(glk, bar, m, vel=34, octave=1, legato=1.0, accent=0)
+        elif k == 3:
+            s.melody(cel, bar, m, vel=70, legato=1.0, accent=0)
+        else:
+            s.melody(flu, bar, m, vel=60, octave=-1, legato=0.95)
+            s.melody(cel, bar, m, vel=46, legato=1.0, accent=0)
+    return s, 40 * 4
+
+
 TRACKS = {"home": (home, True, 0.11), "town": (town, True, 0.11),
           "task": (task, True, 0.09), "clear": (clear, False, 0.14),
-          "bell": (bell, False, 0.045), "battle": (battle, False, 0.16)}
+          "bell": (bell, False, 0.045), "battle": (battle, False, 0.16),
+          "forest": (forest, True, 0.10), "lavender": (lavender, True, 0.10), "vault": (vault, True, 0.10)}
 
 
 MAX_SEC = {"battle": 4.6}

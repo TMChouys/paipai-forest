@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "D02_acorns",
+  "lessons": ["print", "variable", "arith", "floordiv_mod", "fstring"],
   "order": 2,
   "track": "main",
   "difficulty": 1,

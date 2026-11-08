@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "TW2_member_card",
+  "lessons": ["print", "variable"],
   "order": 103,
   "track": "side",
   "unlock_after_main": 1,

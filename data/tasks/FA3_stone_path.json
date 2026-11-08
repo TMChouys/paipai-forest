@@ -1,0 +1,232 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好一起去冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range",
+    "len"
+  ],
+  "id": "FA3_stone_path",
+  "order": 205,
+  "difficulty": 2,
+  "title": "繞過石頭的樓梯小路",
+  "concept": "for 迴圈＋走位（派派森林・溪畔）",
+  "place": "派派森林・溪畔",
+  "sheet": {
+    "story": "溪邊草地上散著好多大石頭，[b]石頭會擋路[/b]。派派狼找到一條沒有石頭的小路，像樓梯一樣通到爺爺放野餐木箱的地方。\n派派狼說：「每一階的走法都[b]一模一樣[/b]——用迴圈走！」",
+    "given": [
+      "地點：派派森林・溪畔（地上一格一格的地磚就是座標）。",
+      "派派鼠站在左下角，面向北邊。",
+      "每一階的走法：向前走 1 格、右轉、向前走 2 格、左轉。一共 3 階。"
+    ],
+    "rules": [
+      "用 for 迴圈走 3 階樓梯小路（踩到石頭會被擋住）。",
+      "走完以後，木箱就在派派鼠面前：搬起來。"
+    ],
+    "limits": [
+      "要用 for 迴圈，不能把 12 行一行一行寫出來。"
+    ],
+    "expected": "按「▶ 看示範」看派派鼠怎麼一階一階走上去。"
+  },
+  "patterns": [
+    {
+      "say": "派派鼠向前走{n}格",
+      "act": "forward",
+      "args": {},
+      "desc": "派派鼠往面對的方向走 n 格"
+    },
+    {
+      "say": "派派鼠右轉",
+      "act": "turn_right",
+      "args": {},
+      "desc": "派派鼠向右轉（原地轉身）"
+    },
+    {
+      "say": "派派鼠左轉",
+      "act": "turn_left",
+      "args": {},
+      "desc": "派派鼠向左轉（原地轉身）"
+    },
+    {
+      "say": "派派鼠搬起",
+      "act": "pick_up",
+      "args": {},
+      "desc": "派派鼠把面前的東西抱起來"
+    }
+  ],
+  "room": {
+    "name": "派派森林・溪畔",
+    "scene": "forest",
+    "size": [
+      8,
+      7
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        0,
+        6
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          7,
+          6
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          6,
+          6
+        ],
+        "dir": "N"
+      }
+    ],
+    "spots": {},
+    "furniture": [
+      {
+        "uid": "s1",
+        "type": "yard_rock",
+        "cell": [
+          0,
+          4
+        ]
+      },
+      {
+        "uid": "s2",
+        "type": "yard_rock",
+        "cell": [
+          1,
+          4
+        ]
+      },
+      {
+        "uid": "s3",
+        "type": "yard_rock",
+        "cell": [
+          2,
+          3
+        ]
+      },
+      {
+        "uid": "s4",
+        "type": "yard_rock",
+        "cell": [
+          3,
+          3
+        ]
+      },
+      {
+        "uid": "s5",
+        "type": "yard_rock",
+        "cell": [
+          4,
+          2
+        ]
+      },
+      {
+        "uid": "s6",
+        "type": "yard_rock",
+        "cell": [
+          5,
+          2
+        ]
+      },
+      {
+        "uid": "s7",
+        "type": "yard_rock",
+        "cell": [
+          3,
+          5
+        ]
+      },
+      {
+        "uid": "s8",
+        "type": "yard_rock",
+        "cell": [
+          5,
+          4
+        ]
+      },
+      {
+        "uid": "s9",
+        "type": "yard_rock",
+        "cell": [
+          7,
+          3
+        ]
+      },
+      {
+        "uid": "lg",
+        "type": "forest_log",
+        "cell": [
+          6,
+          0
+        ]
+      },
+      {
+        "uid": "mm",
+        "type": "mushroom_ring",
+        "cell": [
+          1,
+          1
+        ]
+      },
+      {
+        "uid": "box",
+        "type": "crate",
+        "cell": [
+          6,
+          2
+        ]
+      }
+    ]
+  },
+  "goal_items": [
+    "box"
+  ],
+  "goal_actors": [
+    "gopher"
+  ],
+  "starter_code": "# 每一階：向前走 1 格、右轉、向前走 2 格、左轉\n# 1. 用 for 迴圈走 3 階\n\n\n# 2. 搬起木箱\n\n",
+  "given_vars": [],
+  "reference": "for i in range(3):\n    print(\"派派鼠向前走1格\")\n    print(\"派派鼠右轉\")\n    print(\"派派鼠向前走2格\")\n    print(\"派派鼠左轉\")\nprint(\"派派鼠搬起\")\n",
+  "tests": [
+    {
+      "name": "石頭小路",
+      "vars": {}
+    }
+  ],
+  "rules": [
+    {
+      "id": "must_use",
+      "node": "For",
+      "label": "for 迴圈"
+    }
+  ],
+  "reward": {
+    "furniture": "bench",
+    "message": "木箱裡是爺爺做的木長椅零件！派派狼幫你扛回家：「坐著等魚上鉤剛剛好。」"
+  },
+  "qa_wrong": [
+    "print(\"派派鼠向前走1格\")\nprint(\"派派鼠右轉\")\nprint(\"派派鼠向前走2格\")\nprint(\"派派鼠左轉\")\nprint(\"派派鼠向前走1格\")\nprint(\"派派鼠右轉\")\nprint(\"派派鼠向前走2格\")\nprint(\"派派鼠左轉\")\nprint(\"派派鼠向前走1格\")\nprint(\"派派鼠右轉\")\nprint(\"派派鼠向前走2格\")\nprint(\"派派鼠左轉\")\nprint(\"派派鼠搬起\")\n",
+    "for i in range(3):\n    print(\"派派鼠向前走1格\")\n    print(\"派派鼠右轉\")\n    print(\"派派鼠向前走1格\")\n    print(\"派派鼠左轉\")\nprint(\"派派鼠搬起\")\n"
+  ],
+  "author_notes": "派派森林第 3 個冒險（最簡單的走位）：for range 重複同樣的走法。",
+  "lessons": [
+    "print",
+    "for_range"
+  ]
+}

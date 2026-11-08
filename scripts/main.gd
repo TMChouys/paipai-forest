@@ -154,6 +154,7 @@ func _ready() -> void:
 	report.accept_pressed.connect(_accept_reward)
 
 	tasks = TaskRunner.list_tasks()
+	LessonBook.game_tasks = tasks
 	exam.setup(tasks)
 	_load_save()
 	UIKit.reduce_motion = save.get("reduce_motion", false)
@@ -2975,7 +2976,9 @@ func _enter_task(id: String) -> void:
 	hud.set_town_mode(false)
 	_write_save()
 	mode = "task"
-	music.play("task")
+	# 三張冒險地圖（派派森林／薰衣草原／螢光寶庫）各有自己的背景音樂；其他任務用寫程式的音樂
+	var scene: String = task.get("room", {}).get("scene", "house")
+	music.play(scene if FieldView.is_field(scene) else "task")
 	music.jingle("battle")   # 出發冒險：走位、解謎、奪寶，開場要刺激一點
 	bubbles.avoid_side_panels = true
 	if intro_running:
@@ -3312,7 +3315,7 @@ func _auto_shot(path: String) -> void:
 			_open_lessons()
 			await get_tree().create_timer(0.4).timeout
 		elif s.begins_with("turtlebook"):
-			_open_lessons("print", false)
+			_open_lessons(s.substr(11) if s.length() > 11 else "print", false)
 			await get_tree().create_timer(0.4).timeout
 		elif s.begins_with("lesson:"):
 			_open_lessons(s.substr(7))

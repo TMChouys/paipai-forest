@@ -1,0 +1,264 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好一起去冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range",
+    "len"
+  ],
+  "id": "FV3_light_lamps",
+  "order": 209,
+  "difficulty": 3,
+  "title": "點亮螢火蟲燈",
+  "concept": "巢狀迴圈＋走位（螢光寶庫・長廊）",
+  "place": "螢光寶庫・長廊",
+  "sheet": {
+    "story": "寶庫深處的長廊黑漆漆的。牆邊有兩排螢火蟲燈，派派狼說：「沿著長廊[b]一排一排[/b]點亮，往前走一格點一盞。」",
+    "given": [
+      "地點：螢光寶庫・長廊。派派鼠站在左邊那排的最下面，面向北邊。",
+      "程式第 1 行已經寫好 rows = 2：要點幾排（交件時會換）。",
+      "一排有 3 盞燈。點完一排：右轉、向前走 1 格、再右轉，就換到下一排。"
+    ],
+    "rules": [
+      "外層迴圈：一排一排。",
+      "內層迴圈：向前走 1 格、點燈，做 3 次。",
+      "每排點完：右轉、向前走 1 格、右轉。",
+      "最後說：點亮了○盞燈（f-string）"
+    ],
+    "limits": [
+      "保留 rows 這一行，用兩層 for 迴圈。"
+    ],
+    "expected": "按「▶ 看示範」看派派鼠怎麼一排一排點燈。交件時會換別的 rows 再檢查。"
+  },
+  "patterns": [
+    {
+      "say": "派派鼠向前走{n}格",
+      "act": "forward",
+      "args": {},
+      "desc": "派派鼠往面對的方向走 n 格"
+    },
+    {
+      "say": "派派鼠右轉",
+      "act": "turn_right",
+      "args": {},
+      "desc": "派派鼠向右轉（原地轉身）"
+    },
+    {
+      "say": "派派鼠左轉",
+      "act": "turn_left",
+      "args": {},
+      "desc": "派派鼠向左轉（原地轉身）"
+    },
+    {
+      "say": "派派鼠點燈",
+      "act": "do",
+      "args": {
+        "who": "gopher",
+        "verb": "點燈",
+        "text": "亮了！"
+      },
+      "desc": "派派鼠點亮面前的螢火蟲燈"
+    }
+  ],
+  "speech_example": "點亮了6盞燈",
+  "room": {
+    "name": "螢光寶庫・長廊",
+    "scene": "vault",
+    "size": [
+      6,
+      7
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        2,
+        5
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          0,
+          6
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          5,
+          6
+        ],
+        "dir": "N"
+      }
+    ],
+    "spots": {},
+    "furniture": [
+      {
+        "uid": "wl1",
+        "type": "cave_rock",
+        "cell": [
+          1,
+          1
+        ]
+      },
+      {
+        "uid": "wl2",
+        "type": "cave_rock",
+        "cell": [
+          1,
+          2
+        ]
+      },
+      {
+        "uid": "wl3",
+        "type": "cave_rock",
+        "cell": [
+          1,
+          3
+        ]
+      },
+      {
+        "uid": "wl4",
+        "type": "cave_rock",
+        "cell": [
+          1,
+          4
+        ]
+      },
+      {
+        "uid": "wl5",
+        "type": "cave_rock",
+        "cell": [
+          1,
+          5
+        ]
+      },
+      {
+        "uid": "wr1",
+        "type": "cave_rock",
+        "cell": [
+          4,
+          1
+        ]
+      },
+      {
+        "uid": "wr2",
+        "type": "cave_rock",
+        "cell": [
+          4,
+          2
+        ]
+      },
+      {
+        "uid": "wr3",
+        "type": "cave_rock",
+        "cell": [
+          4,
+          3
+        ]
+      },
+      {
+        "uid": "wr4",
+        "type": "cave_rock",
+        "cell": [
+          4,
+          4
+        ]
+      },
+      {
+        "uid": "wr5",
+        "type": "cave_rock",
+        "cell": [
+          4,
+          5
+        ]
+      },
+      {
+        "uid": "wt2",
+        "type": "cave_rock",
+        "cell": [
+          2,
+          0
+        ]
+      },
+      {
+        "uid": "wt3",
+        "type": "cave_rock",
+        "cell": [
+          3,
+          0
+        ]
+      },
+      {
+        "uid": "gs",
+        "type": "glow_stone",
+        "cell": [
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "goal_items": [],
+  "goal_actors": [
+    "gopher"
+  ],
+  "starter_code": "rows = 2\n\n# 1. 外層 for：一排一排\n#    內層 for：向前走 1 格、點燈（3 次）\n#    點完一排：右轉、向前走 1 格、右轉\n\n\n# 2. 說：點亮了○盞燈\n\n",
+  "given_vars": [
+    "rows"
+  ],
+  "reference": "rows = 2\nfor r in range(rows):\n    for k in range(3):\n        print(\"派派鼠向前走1格\")\n        print(\"派派鼠點燈\")\n    print(\"派派鼠右轉\")\n    print(\"派派鼠向前走1格\")\n    print(\"派派鼠右轉\")\nprint(f\"點亮了{rows * 3}盞燈\")\n",
+  "tests": [
+    {
+      "name": "rows = 2",
+      "vars": {
+        "rows": 2
+      }
+    },
+    {
+      "name": "隱藏測資：rows = 1",
+      "hidden": true,
+      "vars": {
+        "rows": 1
+      }
+    },
+    {
+      "name": "隱藏測資：rows = 3",
+      "hidden": true,
+      "vars": {
+        "rows": 3
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "rows"
+    },
+    {
+      "id": "must_use",
+      "node": "For",
+      "label": "for 迴圈"
+    }
+  ],
+  "reward": {
+    "furniture": "picture",
+    "message": "長廊盡頭掛著一幅麥田小畫，畫的角落有爺爺的簽名。"
+  },
+  "qa_wrong": [
+    "rows = 2\nfor k in range(6):\n    print(\"派派鼠向前走1格\")\n    print(\"派派鼠點燈\")\nprint(\"點亮了6盞燈\")\n",
+    "rows = 2\nfor k in range(3):\n    print(\"派派鼠向前走1格\")\n    print(\"派派鼠點燈\")\nprint(\"派派鼠右轉\")\nprint(\"派派鼠向前走1格\")\nprint(\"派派鼠右轉\")\nfor k in range(3):\n    print(\"派派鼠向前走1格\")\n    print(\"派派鼠點燈\")\nprint(\"派派鼠右轉\")\nprint(\"派派鼠向前走1格\")\nprint(\"派派鼠右轉\")\nprint(\"點亮了6盞燈\")\n"
+  ],
+  "author_notes": "螢光寶庫第 3 個冒險（走位）：巢狀迴圈，點完一排迴轉。",
+  "lessons": ["print", "variable", "arith", "fstring", "for_range", "nested_loop"]
+}

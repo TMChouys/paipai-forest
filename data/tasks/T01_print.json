@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "T01_print",
+  "lessons": ["print"],
   "order": 4,
   "track": "main",
   "difficulty": 1,

@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "id": "T03_if_rain",
+  "lessons": ["print", "variable", "bool", "if", "if_else"],
   "order": 6,
   "track": "main",
   "difficulty": 2,

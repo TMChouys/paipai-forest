@@ -2,7 +2,7 @@
   "schema": 1,
   "track": "adventure",
   "npc": "wolf",
-  "lessons": ["accumulate"],
+  "lessons": ["print", "variable", "arith", "aug_assign", "fstring", "for_range", "range_args", "accumulate"],
   "npc_line": "準備好一起去冒險了嗎？",
   "print_role": "mixed",
   "scoring": {},
