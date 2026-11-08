@@ -2,14 +2,16 @@ class_name LibraryView
 extends Node3D
 ## 派森圖書館（第三版，2026-11-08 重新設計）：和派派鼠的家一樣大小的場景，只是建築物比樹屋寬敞。
 ## 家具、花草都和家裡同一套、同樣大小（Models.furniture）；只有石柱、石牆、雕像這些建築材料比較大。
-## 座標（公尺，和家裡一樣 1 格 = 1 公尺）：館內 x -12..8、z -6..6，大門在 x = 0 的南牆上；
-## 西邊 x -12..-8 是加寬的教室（2026-11-08）：講台、黑板、課桌椅，派派兔帶大家來上課，館長站在講台上。
+## 座標（公尺，和家裡一樣 1 格 = 1 公尺）：館內 x -12..12、z -6..6，大門在南牆中間，館長室（平台）在正中間；
+## 2026-11-08 東西各加寬 4 公尺：西邊 x -12..-8 是教室（講台、黑板、課桌椅，派派兔帶大家來上課，館長站在講台上）；
+## 東邊 x 8..12 是書庫：往樓上的大樓梯、更多書櫃。
 ## 門外是小小的前庭（z 6..10.8），矮石牆圍起來，南邊的鐵門回樹屋。
 ## 派派鼠走進館內時，靠鏡頭那一側的牆會藏起來（和家裡一樣），沒有天花板、沒有吊燈、館內沒有獨立的柱子，鏡頭不會被擋住。
 
 const X0 := -8.0                      # 舊的西牆位置（閱讀區、櫃台書櫃以它為準）
 const XW := -12.0                     # 加寬以後真正的西牆（教室在 XW..X0）
-const X1 := 8.0
+const X1 := 8.0                       # 舊的東牆位置（書櫃區以它為準）
+const XE := 12.0                      # 加寬以後真正的東牆
 const ZN := -6.0
 const ZS := 6.0
 const WALL_H := 3.2
@@ -59,7 +61,7 @@ var _unit_prism := PrismMesh.new()
 const CELL := 0.25
 const NAV_X0 := -13.0
 const NAV_Z0 := -6.5
-const NAV_W := 88      # x -13..9
+const NAV_W := 104     # x -13..13
 const NAV_H := 72      # z -6.5..11.5
 var nav := AStarGrid2D.new()
 var _walk_serial := 0
@@ -280,12 +282,12 @@ func _ground() -> void:
 	var grass := StandardMaterial3D.new()
 	grass.albedo_color = GRASS
 	grass.roughness = 1.0
-	_plane(g, -20, -12, 16, 16, -0.02, grass)
+	_plane(g, -20, -12, 20, 16, -0.02, grass)
 	# 館外幾棵樹（和家裡差不多大）
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
-	for p: Vector2 in [Vector2(-15, -3), Vector2(-15.5, 3.5), Vector2(11, -2.5), Vector2(11.5, 4), Vector2(-15, 9.5),
-			Vector2(11, 9.5), Vector2(-5, -8.8), Vector2(3.5, -8.8), Vector2(9.5, -8.2), Vector2(-12, -8)]:
+	for p: Vector2 in [Vector2(-15, -3), Vector2(-15.5, 3.5), Vector2(15, -2.5), Vector2(15.5, 4), Vector2(-15, 9.5),
+			Vector2(15, 9.5), Vector2(-5, -8.8), Vector2(3.5, -8.8), Vector2(12, -8.2), Vector2(-12, -8)]:
 		var t := Node3D.new()
 		t.position = Vector3(p.x, 0, p.y)
 		g.add_child(t)
@@ -297,10 +299,10 @@ func _ground() -> void:
 
 func _plaza() -> void:
 	var g := _group("Plaza")
-	_plane(g, XW, ZS, X1, PLAZA_Z, 0.0, _checker_mat(STONE_LIGHT, STONE, 0.5))
+	_plane(g, XW, ZS, XE, PLAZA_Z, 0.0, _checker_mat(STONE_LIGHT, STONE, 0.5))
 	# 矮石牆（比家裡的柵欄高一點點）：東、西、南三邊，南邊中間是鐵門
 	for sx: float in [-1.0, 1.0]:
-		var ex := (X1 + 0.3) if sx > 0 else (XW - 0.3)
+		var ex := (XE + 0.3) if sx > 0 else (XW - 0.3)
 		_low_wall(g, Vector3(ex, 0, ZS + 0.2), Vector3(ex, 0, PLAZA_Z + 0.2))
 		_low_wall(g, Vector3(ex, 0, PLAZA_Z + 0.2), Vector3(sx * 1.2, 0, PLAZA_Z + 0.2))
 		_box(g, Vector3(sx * 1.2, 0.55, PLAZA_Z + 0.2), Vector3(0.5, 1.1, 0.5), STONE_DARK)   # 門柱
@@ -344,16 +346,16 @@ func _walls() -> void:
 	var t := WALL_T
 	# 北牆
 	var wn: Node3D = walls.N
-	var cx := (XW + X1) / 2.0
-	_box(wn, Vector3(cx, WALL_H / 2, ZN - t / 2), Vector3(X1 - XW + 2 * t, WALL_H, t), STONE)
+	var cx := (XW + XE) / 2.0
+	_box(wn, Vector3(cx, WALL_H / 2, ZN - t / 2), Vector3(XE - XW + 2 * t, WALL_H, t), STONE)
 	# 東、西牆
 	for side in ["W", "E"]:
-		var ex := (XW - t / 2) if side == "W" else (X1 + t / 2)
+		var ex := (XW - t / 2) if side == "W" else (XE + t / 2)
 		_box(walls[side], Vector3(ex, WALL_H / 2, 0), Vector3(t, WALL_H, ZS - ZN), STONE)
 	# 南牆：中間是大門（拱門）
 	var ws: Node3D = walls.S
 	for sx: float in [-1.0, 1.0]:
-		var w := ((X1 if sx > 0 else -XW) + t) - DOOR_HALF
+		var w := ((XE if sx > 0 else -XW) + t) - DOOR_HALF
 		_box(ws, Vector3(sx * (DOOR_HALF + w / 2), WALL_H / 2, ZS + t / 2), Vector3(w, WALL_H, t), STONE)
 	_box(ws, Vector3(0, 2.6 + (WALL_H - 2.6) / 2, ZS + t / 2), Vector3(DOOR_HALF * 2, WALL_H - 2.6, t), STONE)
 	# 大門的石拱框、門口兩根大石柱、山牆、招牌
@@ -375,33 +377,33 @@ func _walls() -> void:
 		ws.add_child(d)
 		_box(d, Vector3(-sx * DOOR_HALF / 2, 1.3, 0), Vector3(DOOR_HALF - 0.04, 2.58, 0.08), WOOD)
 	# 牆內側的方石柱（壁柱，跟著牆一起藏），牆頂的簷口
-	for x: float in [-12.0, -8.0, -4.0, 4.0, 8.0]:
+	for x: float in [-12.0, -8.0, -4.0, 4.0, 8.0, 12.0]:
 		_wall_pillar(walls.N, Vector3(x, 0, ZN + 0.25))
 	_wall_pillar(walls.N, Vector3(0, 0, ZN + 0.25))
-	for x: float in [-12.0, -8.0, -4.0, 4.0, 8.0]:
+	for x: float in [-12.0, -8.0, -4.0, 4.0, 8.0, 12.0]:
 		_wall_pillar(walls.S, Vector3(x, 0, ZS - 0.25))
 	for side in ["W", "E"]:
-		var ex := (XW + 0.25) if side == "W" else (X1 - 0.25)
+		var ex := (XW + 0.25) if side == "W" else (XE - 0.25)
 		for z: float in [-2.0, 2.0]:
 			if side == "W":
 				continue   # 西牆是教室的黑板牆，不放壁柱
 			_wall_pillar(walls[side], Vector3(ex, 0, z))
-	_inst(walls.N, I, Vector3(cx, WALL_H + 0.08, ZN - t / 2), Vector3(X1 - XW + 2 * t + 0.3, 0.16, t + 0.3), STONE_DARK)
-	_inst(walls.S, I, Vector3(cx, WALL_H + 0.08, ZS + t / 2), Vector3(X1 - XW + 2 * t + 0.3, 0.16, t + 0.3), STONE_DARK)
+	_inst(walls.N, I, Vector3(cx, WALL_H + 0.08, ZN - t / 2), Vector3(XE - XW + 2 * t + 0.3, 0.16, t + 0.3), STONE_DARK)
+	_inst(walls.S, I, Vector3(cx, WALL_H + 0.08, ZS + t / 2), Vector3(XE - XW + 2 * t + 0.3, 0.16, t + 0.3), STONE_DARK)
 	for side in ["W", "E"]:
-		var ex := (XW - t / 2) if side == "W" else (X1 + t / 2)
+		var ex := (XW - t / 2) if side == "W" else (XE + t / 2)
 		_inst(walls[side], I, Vector3(ex, WALL_H + 0.08, 0), Vector3(t + 0.3, 0.16, ZS - ZN), STONE_DARK)
 	# 拱窗
-	for x: float in [-10.0, -6.0, 6.0]:
+	for x: float in [-10.0, -6.0, 6.0, 10.0]:
 		_arch_window(walls.N, Vector3(x, 1.9, ZN + 0.01), 0.0)
 	for side in ["W", "E"]:
 		var sx := -1.0 if side == "W" else 1.0
-		var ex := (XW + 0.01) if side == "W" else (X1 - 0.01)
+		var ex := (XW + 0.01) if side == "W" else (XE - 0.01)
 		for z: float in [-4.0, 0.0, 4.0]:
 			if side == "W" and z > -4.5 and z < 0.5:
 				continue   # 黑板在這裡
 			_arch_window(walls[side], Vector3(ex, 1.9, z), -sx * 90.0)
-	for x: float in [-10.0, -6.0, 6.0]:
+	for x: float in [-10.0, -6.0, 6.0, 10.0]:
 		_arch_window(walls.S, Vector3(x, 1.9, ZS + t + 0.01), 180.0, true)
 
 
@@ -433,7 +435,7 @@ func _arch_window(parent: Node3D, c: Vector3, yaw: float, outside: bool = false)
 # ---------------- 館內 ----------------
 func _floor() -> void:
 	var g := _group("Floor")
-	_plane(g, XW, ZN, X1, ZS, 0.005, _checker_mat(Color("efe3c8"), Color("cdb995"), 0.8))
+	_plane(g, XW, ZN, XE, ZS, 0.005, _checker_mat(Color("efe3c8"), Color("cdb995"), 0.8))
 	# 紅地毯：大門 → 雕像 → 館長平台
 	var red := StandardMaterial3D.new()
 	red.albedo_color = RED
@@ -443,13 +445,16 @@ func _floor() -> void:
 	var rug := _m(g, Models.cyl(1.25, 1.25, 0.01), RED, Vector3(0, 0.015, 1.6), Vector3.ZERO, false)
 	rug.name = "StatueRug"
 	_m(g, Models.cyl(1.05, 1.05, 0.012), GOLD, Vector3(0, 0.017, 1.6), Vector3.ZERO, false)
-	# 任務用的格子區（細細的金框）
+	# 任務用的格子區（細細的金框）：平常藏起來，有圖書館任務才打開（set_task_grid）
+	task_grid = Node3D.new()
+	task_grid.name = "TaskGrid"
+	task_grid.visible = false
+	g.add_child(task_grid)
 	var o := GRID_ORIGIN
-	var I := Transform3D.IDENTITY
 	for k in range(GRID_SIZE.x + 1):
-		_inst(g, I, Vector3(o.x + k, 0.02, o.z + GRID_SIZE.y / 2.0), Vector3(0.03, 0.01, GRID_SIZE.y), Color(GOLD, 1.0))
+		_box(task_grid, Vector3(o.x + k, 0.02, o.z + GRID_SIZE.y / 2.0), Vector3(0.03, 0.01, GRID_SIZE.y), GOLD, false)
 	for k in range(GRID_SIZE.y + 1):
-		_inst(g, I, Vector3(o.x + GRID_SIZE.x / 2.0, 0.02, o.z + k), Vector3(GRID_SIZE.x, 0.01, 0.03), Color(GOLD, 1.0))
+		_box(task_grid, Vector3(o.x + GRID_SIZE.x / 2.0, 0.02, o.z + k), Vector3(GRID_SIZE.x, 0.01, 0.03), GOLD, false)
 
 
 ## 大廳：初代大賢者像、門邊的盆栽、角落的燈、沙發
@@ -633,6 +638,12 @@ const TEACHER_SPOT := Vector3(-11.1, PODIUM_H, -2.0)
 const SEAT_Y := 0.42
 var classroom: Node3D
 var reading_tables: Node3D
+var task_grid: Node3D
+
+
+func set_task_grid(on: bool) -> void:
+	if task_grid:
+		task_grid.visible = on
 
 
 func _classroom() -> void:
@@ -683,11 +694,28 @@ func _bookshelves() -> void:
 		_box(g, Vector3(4.15, 1.15, z + 0.05), Vector3(0.05, 0.3, 0.6), Color("f4ecd8"))
 		_label(g, tags[r], Vector3(4.12, 1.15, z + 0.05), 28, UIKit.INK, -90.0)
 	_hot("shelves", "書櫃區", Vector3(5.8, 1.6, 1.2), "一個概念一本書，照課本的章節排好。想學哪一個，就來問我。")
+	# 東邊加寬的書庫：再三排書櫃（後面的章節、參考書）
+	var tags2 := ["第 9 章", "第 10–11 章", "參考書"]
+	for r in range(3):
+		var z: float = zs[r]
+		for x: float in [9.0, 10.0, 11.0]:
+			_tall_shelf(g, Vector3(x, 0, z), 0.0, rng)
+		_box(g, Vector3(8.35, 0.55, z + 0.05), Vector3(0.06, 1.1, 0.06), WOOD)
+		_box(g, Vector3(8.35, 1.15, z + 0.05), Vector3(0.05, 0.3, 0.6), Color("f4ecd8"))
+		_label(g, tags2[r], Vector3(8.32, 1.15, z + 0.05), 28, UIKit.INK, -90.0)
+	_label(g, "書庫", Vector3(10.0, 2.9, ZN + 0.05), 56, UIKit.INK)
+	# 原本樓梯的位置：新書展示桌和兩張椅子
+	_furn(g, "round_table", Vector3(6.0, 0, -4.9))
+	_furn(g, "chair_small", Vector3(5.2, 0, -4.9), 90.0)
+	_furn(g, "chair_small", Vector3(6.8, 0, -4.9), -90.0)
+	_furn(g, "books", Vector3(6.0, 0.75, -4.9), 10.0)
+	_hot("newbooks", "新書展示桌", Vector3(6.0, 1.0, -4.9), "這裡放剛整理好的新書，坐下來翻翻看吧。")
 
 
 ## 往樓上的樓梯（東北角），紅繩擋著
 func _stairs() -> void:
 	var g := _group("Stairs")
+	g.position.x = XE - X1   # 2026-11-08：搬到東邊加寬的書庫（東北角），上樓的小門在新的東牆上
 	for k in range(6):
 		var top := 0.25 * (k + 1)
 		_box(g, Vector3(4.75 + k * 0.4, top / 2, -5.0), Vector3(0.4, top, 1.6), STONE_LIGHT)
@@ -700,7 +728,7 @@ func _stairs() -> void:
 		_m(g, Models.cyl(0.04, 0.06, 0.8), GOLD, Vector3(4.3, 0.4, z))
 		_m(g, Models.sphere(0.07), GOLD, Vector3(4.3, 0.83, z))
 	_m(g, Models.cyl(0.03, 0.03, 1.5), RED, Vector3(4.3, 0.72, -5.0), Vector3(90, 0, 0), false)
-	_hot("stairs", "往樓上的樓梯", Vector3(5.5, 1.2, -5.0), "樓上還在整理，以後再帶你上去。")
+	_hot("stairs", "往樓上的樓梯", Vector3(5.5 + XE - X1, 1.2, -5.0), "樓上還在整理，以後再帶你上去。")
 
 
 # ---------------- 進出、鏡頭 ----------------
@@ -722,18 +750,18 @@ func set_inside(v: bool) -> void:
 
 ## 鏡頭焦點和距離：和家裡一樣（整個場景都看得到）
 func view_focus() -> Vector3:
-	return global_transform * Vector3(-2.0, 0, 1.5)
+	return global_transform * Vector3(0, 0, 1.5)
 
 
 func view_distance() -> float:
-	return 23.0
+	return 25.0
 
 
 ## 派派鼠在館內時，靠鏡頭那一側的牆藏起來（和家裡一樣）
 func update_cutaway(cam_pos: Vector3) -> void:
 	var g: GopherActor = npcs.get("gopher")
 	if g:
-		inside = g.position.z < ZS and g.position.x > XW and g.position.x < X1
+		inside = g.position.z < ZS and g.position.x > XW and g.position.x < XE
 	var to_cam := global_transform.affine_inverse() * cam_pos
 	var normals := {"N": Vector3(0, 0, -1), "S": Vector3(0, 0, 1), "W": Vector3(-1, 0, 0), "E": Vector3(1, 0, 0)}
 	for side in walls:
@@ -855,9 +883,9 @@ func _build_nav() -> void:
 	nav.update()
 	# 先全部擋住，再打開能走的地方：館內、大門、前庭
 	nav.fill_solid_region(nav.region, true)
-	_set_rect(XW + 0.3, ZN + 0.3, X1 - 0.3, ZS - 0.2, false)
+	_set_rect(XW + 0.3, ZN + 0.3, XE - 0.3, ZS - 0.2, false)
 	_set_rect(-DOOR_HALF + 0.2, ZS - 0.3, DOOR_HALF - 0.2, ZS + 0.6, false)
-	_set_rect(XW + 0.1, ZS + 0.5, X1 - 0.1, PLAZA_Z - 0.1, false)
+	_set_rect(XW + 0.1, ZS + 0.5, XE - 0.1, PLAZA_Z - 0.1, false)
 	_set_rect(-0.9, PLAZA_Z - 0.3, 0.9, PLAZA_Z + 0.6, false)
 	# ---- 館內 ----
 	for x: float in [-4.0, 0.0, 4.0]:          # 壁柱
@@ -865,8 +893,8 @@ func _build_nav() -> void:
 	for x: float in [-4.0, 4.0]:
 		_block_rect(x - 0.35, ZS - 0.6, x + 0.35, ZS)
 	for z: float in [-2.0, 2.0]:
-		_block_rect(X1 - 0.6, z - 0.35, X1, z + 0.35)
-	for x: float in [-12.0, -8.0]:
+		_block_rect(XE - 0.6, z - 0.35, XE, z + 0.35)
+	for x: float in [-12.0, -8.0, 8.0, 12.0]:
 		_block_rect(x - 0.35, ZN, x + 0.35, ZN + 0.6)
 		_block_rect(x - 0.35, ZS - 0.6, x + 0.35, ZS)
 	# 教室：講台、講桌、課桌椅、三花奶奶
@@ -892,11 +920,13 @@ func _build_nav() -> void:
 	_block_round(2.5, -4.5, 0.3)                        # 燈
 	_block_rect(-3.1, ZN, 3.1, ZN + 0.55)               # 平台後面的書櫃
 	_block_round(0.0, -4.0, 0.35)                       # 館長
-	_block_rect(4.15, ZN, X1, -4.1)                     # 往樓上的樓梯（紅繩）
+	_block_rect(8.15, ZN, XE, -4.1)                     # 往樓上的樓梯（紅繩）
+	_block_rect(4.9, -5.6, 7.1, -4.2)                   # 新書展示桌
 	for z: float in [-4.6, -2.4]:                       # 閱讀教室的長桌和椅子
 		_block_rect(-7.05, z - 1.05, -4.95, z + 1.05)
 	for z: float in [-1.2, 1.2, 3.6]:                   # 書櫃
 		_block_rect(4.05, z - 0.25, 7.35, z + 0.25)
+		_block_rect(8.25, z - 0.25, 11.55, z + 0.25)
 	_block_rect(5.3, ZS - 1.2, 7.5, ZS)                 # 沙發
 	_block_round(4.9, ZS - 0.7, 0.35)                   # 小邊桌
 	for sx: float in [-1.0, 1.0]:
