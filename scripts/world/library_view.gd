@@ -793,9 +793,11 @@ func update_cutaway(cam_pos: Vector3) -> void:
 		inside = g.position.z < ZS and g.position.x > XW and g.position.x < XE
 	var to_cam := global_transform.affine_inverse() * cam_pos
 	var normals := {"N": Vector3(0, 0, -1), "S": Vector3(0, 0, 1), "W": Vector3(-1, 0, 0), "E": Vector3(1, 0, 0)}
+	# 每面牆離館中心多遠：鏡頭跑到這面牆「外面」才藏（上課時鏡頭在教室裡往西看，黑板那面西牆要留著）
+	var plane := {"N": -ZN, "S": ZS, "W": -XW, "E": XE}
 	for side in walls:
 		var n: Vector3 = normals[side]
-		walls[side].visible = not inside or to_cam.dot(n) < 2.0
+		walls[side].visible = not inside or to_cam.dot(n) - float(plane[side]) < 0.3
 
 
 # ---------------- 居民 ----------------
