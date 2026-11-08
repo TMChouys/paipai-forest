@@ -399,54 +399,67 @@ def bell() -> tuple[Song, float]:
 
 
 def battle() -> tuple[Song, float]:
-    """出發冒險：小鼓和定音鼓滾奏越來越大聲 → 管弦樂重擊 → 小號衝鋒號角＋弦樂奔馳 → 停在明亮的 D 大和弦。"""
-    s = Song(144, seed=9)
-    dr = s.part(9, 0, vol=110, rev=40)                  # 打擊樂（GM 第 10 聲道）
-    tim = s.part(0, 47, vol=112, pan=60, rev=55)        # 定音鼓
-    brs = s.part(1, 61, vol=100, pan=50, rev=60)        # 銅管組
-    tpt = s.part(2, 56, vol=108, pan=74, rev=60)        # 小號
-    strn = s.part(3, STRINGS, vol=96, pan=40, rev=55)
-    hit = s.part(4, 55, vol=96, pan=64, rev=60)         # 管弦樂重擊
-    # 0–2 拍：滾奏漸強
-    for k in range(16):
-        s.note(dr, k * 0.125, 0.1, 38, 34 + k * 5)
-    for k in range(8):
-        s.note(tim, k * 0.25, 0.24, pitch("A2"), 50 + k * 8)
-    # 第 2 拍：重擊！
-    s.note(dr, 2, 0.5, 49, 120)
-    s.note(dr, 2, 0.3, 36, 120)
-    for n in ["D3", "A3", "D4", "F4", "A4"]:
-        s.note(hit, 2, 0.6, pitch(n), 118)
-    s.note(tim, 2, 0.5, pitch("D2"), 124)
-    # 2–6 拍：弦樂奔馳（八分＋兩個十六分），定音鼓跟著
+    """出發冒險（第二版，F 大調、快節奏）：三下切分的重擊「咚、咚—咚」→ 弦樂往上衝的音階 →
+    小號英雄號角＋法國號和聲、小鼓一路推進、筒鼓過門 → 停在明亮的 F 大和弦，定音鼓滾奏收尾。"""
+    s = Song(160, seed=11)
+    dr = s.part(9, 0, vol=112, rev=40)                  # 打擊樂（GM 第 10 聲道）
+    tim = s.part(0, 47, vol=110, pan=60, rev=55)        # 定音鼓
+    hrn = s.part(1, HORN, vol=104, pan=44, rev=60)      # 法國號
+    tpt = s.part(2, 56, vol=110, pan=76, rev=60)        # 小號
+    strn = s.part(3, STRINGS, vol=100, pan=40, rev=55)
+    hit = s.part(4, 55, vol=92, pan=64, rev=60)         # 管弦樂重擊
+    glk = s.part(5, GLOCK, vol=70, pan=90, rev=70)
+    # 0–2 拍：咚、咚—咚（切分）
+    for b, v in [(0, 118), (0.75, 108), (1.5, 124)]:
+        s.note(dr, b, 0.3, 36, v)
+        s.note(tim, b, 0.3, pitch("C2") if b < 1.5 else pitch("F2"), v)
+        for n in ["F2", "C3", "F3", "A3", "C4"]:
+            s.note(hit, b, 0.35, pitch(n), v - 6)
+    s.note(dr, 1.5, 0.6, 49, 112)
+    # 2–3 拍：弦樂往上衝（十六分音符）
+    run = ["C4", "D4", "E4", "F4", "G4", "A4", "Bb4", "C5"]
+    for k, n in enumerate(run):
+        s.note(strn, 2 + k * 0.125, 0.14, pitch(n), 80 + k * 4)
+        s.note(dr, 2 + k * 0.125, 0.1, 38, 50 + k * 8)      # 小鼓跟著漸強
+    # 3–7 拍：小號英雄號角、法國號和聲、小鼓推進
+    s.melody(tpt, 0, "r:3 F5:.5 C5:.25 F5:.25 A5:.5 G5:.25 A5:.25 C6:1 Bb5:.5 A5:.5 G5:1", vel=106, legato=0.88)
+    s.melody(hrn, 0, "r:3 A4:1 C5:1 D5:1 E5:1", vel=92, legato=0.95)
+    s.melody(hrn, 0, "r:3 F4:1 F4:1 Bb4:1 C5:1", vel=88, legato=0.95)
     for b in range(4):
-        root = ["D3", "D3", "Bb2", "A2"][b]
-        for off, d in [(0, 0.5), (0.5, 0.25), (0.75, 0.25)]:
-            s.note(strn, 2 + b + off, d * 0.9, pitch(root), 96)
-            s.note(strn, 2 + b + off, d * 0.9, pitch(root) + 12, 88)
-        s.note(tim, 2 + b, 0.3, pitch(root) - 12 if b < 2 else pitch(root), 96)
-        s.note(dr, 2 + b + 0.5, 0.2, 38, 70 + b * 8)
-        s.note(dr, 2 + b, 0.2, 36, 100)
-    # 小號衝鋒號角
-    s.melody(tpt, 0, "r:2 D5:.5 r:.25 D5:.25 F5:.5 D5:.5 G5:.5 F5:.5 E5:.5 C#5:.5 D5:2.5", vel=104, legato=0.85)
-    s.melody(brs, 0, "r:2 D4:.75 D4:.25 r:1 Bb3:1 A3:1 D4:2.5", vel=96, legato=0.9)
-    s.melody(brs, 0, "r:2 A3:.75 A3:.25 r:1 F3:1 E3:1 F#4:2.5", vel=90, legato=0.9)
-    # 第 6 拍：明亮的 D 大和弦＋鈸
-    s.note(dr, 6, 1.5, 49, 118)
-    s.note(dr, 6, 0.3, 36, 118)
-    s.note(tim, 6, 0.3, pitch("D2"), 120)
-    for n in ["D3", "A3", "D4", "F#4", "A4", "D5"]:
-        s.note(strn, 6, 2.2, pitch(n), 104)
-    s.note(tim, 6.5, 0.25, pitch("A2"), 100)
-    s.note(tim, 6.75, 0.25, pitch("A2"), 100)
-    s.note(tim, 7, 0.4, pitch("D2"), 124)
-    s.note(dr, 7, 1.5, 49, 110)
-    return s, 10
+        root = ["F2", "F2", "Bb2", "C3"][b]
+        s.note(strn, 3 + b, 0.45, pitch(root), 96)
+        s.note(strn, 3 + b + 0.5, 0.2, pitch(root) + 12, 86)
+        s.note(strn, 3 + b + 0.75, 0.2, pitch(root) + 12, 86)
+        s.note(dr, 3 + b, 0.2, 36, 104)
+        s.note(dr, 3 + b + 0.5, 0.2, 38, 84)
+        s.note(dr, 3 + b + 0.75, 0.1, 38, 64)
+        s.note(tim, 3 + b, 0.3, pitch(root), 96)
+    # 第 6.5 拍：筒鼓過門
+    for k, t in enumerate([50, 48, 47, 45]):
+        s.note(dr, 6.5 + k * 0.125, 0.12, t, 96 + k * 6)
+    # 第 7 拍：明亮的 F 大和弦＋鈸，鐵琴閃一下，定音鼓滾奏收尾
+    s.note(dr, 7, 1.8, 49, 122)
+    s.note(dr, 7, 0.3, 36, 122)
+    for n in ["F2", "C3", "F3", "A3", "C4", "F4", "A4", "C5"]:
+        s.note(strn, 7, 2.4, pitch(n), 106)
+    s.note(tpt, 7, 2.2, pitch("F5"), 108)
+    for n in ["A4", "C5"]:
+        s.note(hrn, 7, 2.2, pitch(n), 98)
+    for k, n in enumerate(["C6", "F6", "A6", "C7"]):
+        s.note(glk, 7 + k * 0.125, 1.6, pitch(n), 72 + k * 6)
+    for k in range(10):
+        s.note(tim, 7.5 + k * 0.1, 0.1, pitch("F2"), 70 + k * 4)
+    s.note(tim, 8.5, 0.4, pitch("F2"), 124)
+    s.note(dr, 8.5, 1.5, 49, 110)
+    return s, 11
 
 
 TRACKS = {"home": (home, True, 0.11), "town": (town, True, 0.11),
           "task": (task, True, 0.09), "clear": (clear, False, 0.14),
           "bell": (bell, False, 0.045), "battle": (battle, False, 0.16)}
+
+
+MAX_SEC = {"battle": 4.6}
 
 
 def main() -> None:
@@ -455,7 +468,12 @@ def main() -> None:
     for name in names:
         fn, loop, rms = TRACKS[name]
         song, beats = fn()
-        a = finish(render(song, name, beats, loop), rms)
+        raw = render(song, name, beats, loop)
+        if name in MAX_SEC and len(raw) > MAX_SEC[name] * SR:   # 音效不要拖太長：剪掉，最後淡出
+            raw = raw[:int(MAX_SEC[name] * SR)].copy()
+            n = int(SR * 0.8)
+            raw[-n:] *= np.linspace(1.0, 0.0, n)[:, None] ** 2
+        a = finish(raw, rms)
         path = os.path.join(GAME, f"{name}.ogg")
         write_ogg(path, a)
         sf.write(f"{WORK}/{name}.wav", a, SR)  # 試聽用
