@@ -4,17 +4,25 @@ extends Control
 ## 左頁：知識地圖的分類（A～K）→ 這一類的概念；右頁：五個步驟
 ##   ① 這一課要學什麼 → ② 你知道嗎？（先提問）→ ③ 講解（範例＋執行結果）→ ④ 選擇練習（對答案）→ ⑤ 相關任務
 ## 課文在 data/curriculum/lessons.json（tools/curriculum/gen_lessons.py 產生）。
+## 班級版另外有 data/class/class_lessons.json（gen_class_lessons.py 產生，不進 git、公開版不匯出）：
+##   三本教材的簡報文字與習題依知識點整合，多出「課本整理」「習題」兩頁，還有知識地圖沒有的分類（P、Q）。
 
 signal lesson_done(concept_id: String)
 signal closed
 
 const LESSON_PATH := "res://data/curriculum/lessons.json"
+const CLASS_PATH := "res://data/class/class_lessons.json"
 const STEPS := ["① 要學什麼", "② 你知道嗎？", "③ 講解", "④ 選擇練習", "⑤ 相關任務"]
+const CLASS_STEPS := ["📖 課本整理", "✎ 習題"]
 const CODE_BG := Color("2f3a33")
 const CODE_INK := Color("f4efe2")
 
 var kmap: Dictionary = {}
 var lessons: Dictionary = {}
+var class_content: Dictionary = {} # 班級版：id -> {slides, exercises}
+var areas: Array = []              # 知識地圖的分類（班級版多 P、Q）
+var steps: Array = []              # 這一課有哪些步驟：0～4 是五個步驟，10 課本整理、11 習題
+var _shown: Dictionary = {}        # 習題「看答案」打開了哪幾題
 var concepts: Dictionary = {}      # id -> concept（知識地圖＋補上的演算法概念）
 var order: Array = []              # 照分類排好的概念 id
 var done: Dictionary = {}          # 選擇練習答對的概念
@@ -45,9 +53,19 @@ func _ready() -> void:
 		lessons = d.get("lessons", {})
 		for c in kmap.get("concepts", []) + d.get("extra_concepts", []):
 			concepts[c.id] = c
-	for a in kmap.get("areas", []):
+	areas = kmap.get("areas", []).duplicate()
+	if FileAccess.file_exists(CLASS_PATH):
+		var cf := FileAccess.open(CLASS_PATH, FileAccess.READ)
+		var cd = JSON.parse_string(cf.get_as_text()) if cf else null
+		if cd is Dictionary:
+			class_content = cd.get("content", {})
+			areas += cd.get("areas", [])
+			for t in cd.get("topics", []):
+				concepts[t.id] = t
+	areas.sort_custom(func(a, b): return int(a.order) < int(b.order))
+	for a in areas:
 		for c in concepts.values():
-			if c.area == a.id and lessons.has(c.id):
+			if c.area == a.id and _has(c.id):
 				order.append(c.id)
 	_build()
 
@@ -147,12 +165,16 @@ func _build() -> void:
 	nav.add_child(next_b)
 
 
+func _has(cid: String) -> bool:
+	return lessons.has(cid) or class_content.has(cid)
+
+
 ## done_list：之前答對過的概念
 func open(done_list: Array = [], cid: String = "") -> void:
 	done.clear()
 	for c in done_list:
 		done[c] = true
-	if cid == "" or not lessons.has(cid):
+	if cid == "" or not _has(cid):
 		cid = concept_id
 		for c in order:   # 預設打開第一個還沒學會的
 			if not done.has(c):
@@ -168,21 +190,34 @@ func close() -> void:
 
 
 func show_concept(cid: String) -> void:
-	if not lessons.has(cid):
+	if not _has(cid):
 		return
 	concept_id = cid
 	area_id = concepts[cid].area
 	step = -1
+	_shown.clear()
+	steps = []
+	if lessons.has(cid):
+		steps.append_array(range(STEPS.size()))
+	if class_content.has(cid):
+		var cc: Dictionary = class_content[cid]
+		if not cc.get("slides", []).is_empty():
+			steps.append(10)
+		if not cc.get("exercises", []).is_empty():
+			steps.append(11)
 	_fill_index()
 	var c: Dictionary = concepts[cid]
-	var les: Dictionary = lessons[cid]
 	title_l.text = c.name
-	chap_l.text = "%s　｜　課本 %s　｜　知識地圖 %s %s" % [les.chapter, les.ch, area_id, _area(area_id).get("name", "")]
+	if lessons.has(cid):
+		var les: Dictionary = lessons[cid]
+		chap_l.text = "%s　｜　課本 %s　｜　知識地圖 %s %s" % [les.chapter, les.ch, area_id, _area(area_id).get("name", "")]
+	else:
+		chap_l.text = "%s　｜　知識地圖 %s %s" % [c.get("summary", ""), area_id, _area(area_id).get("name", "")]
 	_go(0)
 
 
 func _area(aid: String) -> Dictionary:
-	for a in kmap.get("areas", []):
+	for a in areas:
 		if a.id == aid:
 			return a
 	return {}
@@ -191,7 +226,7 @@ func _area(aid: String) -> Dictionary:
 func _fill_index() -> void:
 	for n in index_box.get_children():
 		n.queue_free()
-	for a in kmap.get("areas", []):
+	for a in areas:
 		var cs := order.filter(func(id): return concepts[id].area == a.id)
 		if cs.is_empty():
 			continue
@@ -227,7 +262,7 @@ func _open_area(aid: String) -> void:
 
 
 func _next() -> void:
-	if step < STEPS.size() - 1:
+	if step < steps.size() - 1:
 		_go(step + 1)
 		return
 	var i := order.find(concept_id)   # 最後一步：下一課
@@ -237,15 +272,17 @@ func _next() -> void:
 
 func _go(s: int) -> void:
 	var old := step
-	step = clampi(s, 0, STEPS.size() - 1)
-	if step == 1 and old != 1:
+	step = clampi(s, 0, steps.size() - 1)
+	var kind: int = steps[step]
+	if kind == 1 and old != step:
 		_asked = false
-	if step == 3:
+	if kind == 3 and old != step:
 		_quiz_pick = -1
 	for n in step_row.get_children():
 		n.queue_free()
-	for i in STEPS.size():
-		var b := UIKit.focusable(UIKit.button(STEPS[i], _go.bind(i)))
+	for i in steps.size():
+		var k: int = steps[i]
+		var b := UIKit.focusable(UIKit.button(STEPS[k] if k < 10 else CLASS_STEPS[k - 10], _go.bind(i)))
 		b.add_theme_font_size_override("font_size", 15)
 		var st := UIKit.panel_style(Color("e9d9f2") if i == step else Color("fffdf6"), 10, UIKit.INK, 2 if i == step else 1)
 		st.shadow_size = 0
@@ -253,18 +290,20 @@ func _go(s: int) -> void:
 		step_row.add_child(b)
 	prev_b.disabled = step == 0
 	var i_c := order.find(concept_id)
-	next_b.text = "下一步 →" if step < STEPS.size() - 1 else ("下一課 →" if i_c + 1 < order.size() else "全部上完了！")
-	next_b.disabled = step == STEPS.size() - 1 and i_c + 1 >= order.size()
+	next_b.text = "下一步 →" if step < steps.size() - 1 else ("下一課 →" if i_c + 1 < order.size() else "全部上完了！")
+	next_b.disabled = step == steps.size() - 1 and i_c + 1 >= order.size()
 	for n in body.get_children():
 		n.queue_free()
 	body_scroll.scroll_vertical = 0
-	var les: Dictionary = lessons[concept_id]
-	match step:
+	var les: Dictionary = lessons.get(concept_id, {})
+	match kind:
 		0: _step_goal(les)
 		1: _step_ask(les)
 		2: _step_explain(les)
 		3: _step_quiz(les)
 		4: _step_tasks(les)
+		10: _step_slides()
+		11: _step_exercises()
 
 
 # ---------------- 畫面小零件 ----------------
@@ -341,7 +380,7 @@ func _step_ask(les: Dictionary) -> void:
 		for k in ["我知道！", "不太確定"]:
 			row.add_child(UIKit.focusable(UIKit.button(k, func():
 				_asked = true
-				_go(1))))
+				_go(step))))
 	else:
 		_turtle(les.ask_answer + "\n接下來，我們慢慢講清楚。")
 
@@ -396,7 +435,9 @@ func _step_quiz(les: Dictionary) -> void:
 		fb.add_child(_text("答對了！" if ok else "不對喔，正確答案是 %s。" % letters[int(qz.answer)], 20, UIKit.TEXT_GREEN if ok else UIKit.TEXT_RED))
 		fb.add_child(_text(qz.why, 17))
 		if not ok:
-			var again := UIKit.focusable(UIKit.button("再做一次", func(): _go(3)))
+			var again := UIKit.focusable(UIKit.button("再做一次", func():
+					_quiz_pick = -1
+					_go(step)))
 			body.add_child(again)
 
 
@@ -406,9 +447,7 @@ func _pick(i: int) -> void:
 		done[concept_id] = true
 		lesson_done.emit(concept_id)
 		_fill_index()
-	for n in body.get_children():
-		n.queue_free()
-	_step_quiz(lessons[concept_id])
+	_go(step)
 	await get_tree().process_frame
 	body_scroll.scroll_vertical = 10000   # 捲到下面看解答
 
@@ -436,3 +475,95 @@ func _step_tasks(les: Dictionary) -> void:
 		var status: String = kmap.get("status_names", {}).get(t.status, t.status)
 		v.add_child(_text("%s・%s的委託　｜　%s" % [place, npc, status], 14, Color("8a6a50")))
 		v.add_child(_text(t.story, 16))
+
+
+# ---------------- 班級版：課本整理、習題 ----------------
+static var _re_cjk := RegEx.create_from_string("[\\x{4e00}-\\x{9fff}]")
+static var _re_code := RegEx.create_from_string("[=()\\[\\]:#]|^\\s*(for|if|while|def|import|from|print|else|elif|return)\\b")
+
+
+static func _is_code(l: String) -> bool:
+	if _re_cjk.search(l) != null and not l.contains("print(") and not l.contains("#"):
+		return false
+	return _re_code.search(l) != null
+
+
+func _mono_box(parent: Control, t: String) -> void:
+	var c := UIKit.label(t, 15, CODE_INK)
+	c.add_theme_font_override("font", UIKit.mono())
+	var p := PanelContainer.new()
+	var st := UIKit.panel_style(CODE_BG, 8, UIKit.INK, 1)
+	st.shadow_size = 0
+	st.set_content_margin_all(8)
+	p.add_theme_stylebox_override("panel", st)
+	p.add_child(c)
+	parent.add_child(p)
+
+
+func _lines_card(lines: Array) -> VBoxContainer:
+	var v := _card(Color("fffdf6"))
+	var buf: Array = []
+	for l in lines + [""]:
+		if l != "" and _is_code(l):
+			buf.append(l)
+			continue
+		if not buf.is_empty():
+			_mono_box(v, "\n".join(buf))
+			buf.clear()
+		if l != "":
+			v.add_child(_text(l, 16))
+	return v
+
+
+func _step_slides() -> void:
+	var sl: Array = class_content[concept_id].slides
+	_turtle("這是三本課本的簡報裡講「%s」的內容，一共 %d 張。每一張都寫了出自哪一本、第幾章、第幾張。" % [concepts[concept_id].name, sl.size()])
+	for s in sl:
+		var v := _lines_card(s.lines)
+		var src := _text("出處：%s｜%s" % [s.src, s.sec if s.sec != "" else "章首"], 13, Color("6b4f86"))
+		v.add_child(src)
+		v.move_child(src, 0)
+		for ex in s.get("code", []):
+			v.add_child(_text("本書範例 " + ex.file, 14, Color("8a6a50")))
+			_mono_box(v, ex.code)
+
+
+func _step_exercises() -> void:
+	var ex: Array = class_content[concept_id].exercises
+	_turtle("課本裡跟「%s」有關的習題，一共 %d 題。先自己想，再按「看答案」。" % [concepts[concept_id].name, ex.size()])
+	for i in ex.size():
+		var e: Dictionary = ex[i]
+		var v := _card(Color("fffdf6"))
+		var top := HBoxContainer.new()
+		top.add_theme_constant_override("separation", 8)
+		v.add_child(top)
+		top.add_child(QuestBook._tag(e.kind, Color("cfe3f5")))
+		var sl := UIKit.label(e.src, 13, UIKit.TEXT_MUTED)
+		sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		top.add_child(sl)
+		for l in String(e.text).split("\n", false):
+			var t := _text(l, 16)
+			if _is_code(l):
+				t.add_theme_font_override("font", UIKit.mono())
+			v.add_child(t)
+		var ans := String(e.get("answer", ""))
+		if ans == "" and not e.has("code"):
+			continue
+		if _shown.has(i):
+			if ans != "":
+				v.add_child(_text("答案：" + ans, 16, UIKit.TEXT_GREEN))
+			if e.has("code"):
+				_mono_box(v, e.code)
+		else:
+			var b := UIKit.focusable(UIKit.button("看參考程式" if e.has("code") else "看答案", _show_answer.bind(i)))
+			b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			v.add_child(b)
+
+
+func _show_answer(i: int) -> void:
+	_shown[i] = true
+	var y := body_scroll.scroll_vertical
+	_go(step)
+	await get_tree().process_frame
+	body_scroll.scroll_vertical = y
