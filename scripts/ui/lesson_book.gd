@@ -39,6 +39,10 @@ var _quiz_pick := -1               # ④ 這一題選了哪一個
 var _qi := 0                       # ④ 第幾題
 var _right: Dictionary = {}        # ④ 這一課答對過的題目
 var stage: LessonStage             # 小舞台：三個角色演出來
+var quiz_mode := true              # true：派派兔帶來（故事＋小測驗）；false：點慢慢館長（只有知識地圖和知識說明，沒有測驗）
+var book_style: StyleBoxFlat
+var title_book: Label
+var sub_book: Label
 
 var index_box: VBoxContainer
 var title_l: Label
@@ -92,7 +96,8 @@ func _build() -> void:
 	book.offset_right = 610
 	book.offset_top = -340
 	book.offset_bottom = 340
-	var bst := UIKit.panel_style(Color("c27a6e"), 22, UIKit.INK, 3)  # 紅蘿蔔色書皮（派派兔）
+	var bst := UIKit.panel_style(Color("c27a6e"), 22, UIKit.INK, 3)  # 紅蘿蔔色書皮（派派兔）；館長的書是紫色
+	book_style = bst
 	bst.set_content_margin_all(12)
 	book.add_theme_stylebox_override("panel", bst)
 	add_child(book)
@@ -111,10 +116,12 @@ func _build() -> void:
 	lv.add_theme_constant_override("separation", 4)
 	left.add_child(lv)
 	var t := UIKit.label("認識派派森林的世界", 24)
+	title_book = t
 	t.add_theme_font_override("font", UIKit.font_bold())
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lv.add_child(t)
 	var sub := UIKit.label("慢慢館長說故事・派派兔帶小測驗", 13, Color("8a6a50"))
+	sub_book = sub
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lv.add_child(sub)
 	var sc := ScrollContainer.new()
@@ -180,7 +187,12 @@ func _has(cid: String) -> bool:
 
 
 ## done_list：之前答對過的概念
-func open(done_list: Array = [], cid: String = "") -> void:
+## quiz：true＝派派兔帶來聽故事＋小測驗；false＝點慢慢館長，只看知識地圖和知識說明
+func open(done_list: Array = [], cid: String = "", quiz: bool = true) -> void:
+	quiz_mode = quiz
+	book_style.bg_color = Color("c27a6e") if quiz else Color("5b4370")
+	title_book.text = "認識派派森林的世界" if quiz else "慢慢館長的知識地圖"
+	sub_book.text = "慢慢館長說故事・派派兔帶小測驗" if quiz else "詳細的知識說明・照課本章節（小測驗找派派兔）"
 	done.clear()
 	for c in done_list:
 		done[c] = true
@@ -211,12 +223,12 @@ func show_concept(cid: String) -> void:
 	_shown.clear()
 	steps = []
 	if lessons.has(cid):
-		steps.append_array(range(STEPS.size()))
+		steps.append_array(range(STEPS.size()) if quiz_mode else [0, 1, 2])
 	if class_content.has(cid):
 		var cc: Dictionary = class_content[cid]
 		if not cc.get("slides", []).is_empty():
 			steps.append(10)
-		if not cc.get("exercises", []).is_empty():
+		if quiz_mode and not cc.get("exercises", []).is_empty():
 			steps.append(11)
 	_fill_index()
 	var c: Dictionary = concepts[cid]
@@ -403,7 +415,7 @@ func _step_goal(les: Dictionary) -> void:
 			row.add_child(UIKit.focusable(UIKit.button(k, func():
 				_asked = true
 				_go(step))))
-		stage.play([["rabbit", "館長，我們來聽故事了！", "hop"], ["turtle", les.ask]])
+		stage.play([["rabbit", "館長，我們來聽故事了！", "hop"], ["turtle", les.ask]] if quiz_mode else [["turtle", les.ask]])
 	else:
 		_turtle(les.ask_answer + "\n接下來說說：為什麼要知道這件事？")
 		stage.play([["turtle", les.ask_answer]])
@@ -427,7 +439,7 @@ func _step_explain(les: Dictionary) -> void:
 	_code(les.code, "範例程式")
 	var inputs: Array = les.get("inputs", [])
 	_code(les.output, "執行結果" + ("（假裝輸入了：%s）" % "、".join(inputs) if not inputs.is_empty() else ""), Color("fffaf0"), UIKit.INK)
-	_turtle("看完範例，先猜猜看：如果把裡面的數字或文字改掉，結果會變成什麼？猜好了，派派兔會帶你做小測驗。")
+	_turtle("看完範例，先猜猜看：如果把裡面的數字或文字改掉，結果會變成什麼？" + ("猜好了，派派兔會帶你做小測驗。" if quiz_mode else "想試試看自己懂了沒有，就去找派派兔做小測驗吧。"))
 
 
 ## 這一課的全部題目：原本那一題＋派派兔多出的題目

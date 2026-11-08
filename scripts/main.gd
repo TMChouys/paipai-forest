@@ -1527,7 +1527,7 @@ func _library_input(event: InputEvent) -> void:
 		var who := library.actor_at(mp, rig.cam)
 		var hot := library.hotspot_at(mp, rig.cam) if who == "" else ""
 		if who != "":
-			var act: String = {"turtle": "　點一下聽故事", "rabbit": "　點一下聽故事", "calico": "　點一下考試", "blackcat": "　點一下檢討"}.get(who, "　點一下聊天")
+			var act: String = {"turtle": "　點一下看知識地圖", "rabbit": "　點一下聽故事＋小測驗", "calico": "　點一下考試", "blackcat": "　點一下檢討"}.get(who, "　點一下聊天")
 			hud.show_status(LibraryView.NAMES[who] + act, mp)
 		elif hot != "":
 			var h: Dictionary = library.hotspots[hot]
@@ -1540,9 +1540,10 @@ func _library_input(event: InputEvent) -> void:
 		if who2 == "turtle" or who2 == "rabbit":
 			if who2 == "rabbit":
 				library.npcs["rabbit"].say("我們去找慢慢館長聽故事吧！", "say")
+				_open_lessons()
 			else:
-				library.npcs["turtle"].say("慢慢來，比較快。今天想聽什麼故事呢？", "say")
-			_open_lessons()
+				library.npcs["turtle"].say("慢慢來，比較快。想知道什麼，館長都說給你聽。", "say")
+				_open_lessons("", false)
 			return
 		if who2 == "calico":
 			_open_exam()
@@ -1888,9 +1889,10 @@ func _open_review() -> void:
 
 
 ## 派派兔的森林小課
-func _open_lessons(cid: String = "") -> void:
+## quiz：true＝派派兔帶來（故事＋小測驗）；false＝點慢慢館長（只有知識地圖和說明）
+func _open_lessons(cid: String = "", quiz: bool = true) -> void:
 	hud.show_status("", Vector2.ZERO)
-	lessons.open(save.get("lessons_done", []), cid)
+	lessons.open(save.get("lessons_done", []), cid, quiz)
 
 
 ## 點下去的地方冒一個小圈圈
@@ -3160,6 +3162,9 @@ func _auto_shot(path: String) -> void:
 			await get_tree().create_timer(2.5).timeout
 		elif s == "lessons":
 			_open_lessons()
+			await get_tree().create_timer(0.4).timeout
+		elif s.begins_with("turtlebook"):
+			_open_lessons("print", false)
 			await get_tree().create_timer(0.4).timeout
 		elif s.begins_with("lesson:"):
 			_open_lessons(s.substr(7))
