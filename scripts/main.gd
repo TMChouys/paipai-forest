@@ -957,7 +957,6 @@ func _intro_story(gen: int) -> void:
 	for t in FIRST_MEET.rabbit:
 		lines.append([cast[t[0]], t[1]])
 	lines += [
-		[wolf, "在派派森林，要用 Python 的 print() 才能說話喔！"],
 		[rabbit, "走到派派狼旁邊說說話，就能接任務。學會 print() 就能跟我們聊天了！"],
 		[wolf, "我們就在這裡等你，準備好就來找我！"],
 	]
@@ -2327,7 +2326,7 @@ func _npc_under_mouse() -> String:
 
 # ---------------- 跟派派狼、派派兔說話 ----------------
 const FIRST_MEET := {
-	"wolf": [["wolf", "嘿！新來的！你叫啥？"], ["gopher", "……？"], ["wolf", ".............不會說話嗎？"], ["wolf", "看樣子你甚麼都不會，沒關係！以後跟著我混，我教你。"]],
+	"wolf": [["wolf", "嘿！新來的，看你的家空空的，我教你怎麼打工拿獎勵。"], ["gopher", "……？"], ["wolf", "........怎麼不說話？"], ["wolf", "喔！你是不會用表達式 print() 吧！"], ["wolf", "我看你甚麼都不會的樣子，沒關係！以後跟著我混，我教你！"]],
 	"rabbit": [["rabbit", "歡迎你加入派派森林！我也是剛來不久，"], ["rabbit", "我們一起學習吧！如果有不會的就問我，別客氣喔！"]],
 }
 const RABBIT_TIPS := [
