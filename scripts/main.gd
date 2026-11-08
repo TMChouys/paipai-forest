@@ -101,6 +101,8 @@ func _ready() -> void:
 		_write_save())
 	hud.open_book.connect(_open_book)
 	hud.open_lessons.connect(func(): _go_story())
+	lessons.scene_cast = _lesson_cast
+	lessons.scene_layout.connect(_on_lesson_scene)
 	lessons.lesson_done.connect(func(cid):
 		if not save.has("lessons_done"):
 			save.lessons_done = []
@@ -1511,7 +1513,7 @@ func _enter_library(inside: bool) -> void:
 	if mode == "library" and library.inside == inside:
 		if inside and story_after_library:
 			story_after_library = false
-			library.npcs["turtle"].say("慢慢來，比較快。今天想聽什麼故事呢？", "say")
+			library.npcs["turtle"].say("大家坐好，我們開始上課囉。", "say")
 			await get_tree().create_timer(1.2).timeout
 			if mode == "library":
 				_open_lessons()
@@ -1539,7 +1541,7 @@ func _library_input(event: InputEvent) -> void:
 		var who2 := library.actor_at(mp, rig.cam)
 		if who2 == "turtle" or who2 == "rabbit":
 			if who2 == "rabbit":
-				library.npcs["rabbit"].say("我們去找慢慢館長聽故事吧！", "say")
+				library.npcs["rabbit"].say("我們一起去上課吧！", "say")
 				_open_lessons()
 			else:
 				library.npcs["turtle"].say("慢慢來，比較快。想知道什麼，館長都說給你聽。", "say")
@@ -1705,6 +1707,8 @@ func _process(delta: float) -> void:
 		rig.screen_center_x = (fs.x + fs.y) / 2.0
 		bubbles.side_left = fs.x + 8.0
 		bubbles.side_right = get_viewport().get_visible_rect().size.x - fs.y + 8.0
+	elif mode == "library" and lessons.visible and lessons.scene_on:
+		rig.screen_center_x = (get_viewport().get_visible_rect().size.x - LessonBook.SCENE_W) / 2.0
 	else:
 		rig.screen_center_x = -1.0
 	_idle_camera(delta)
@@ -1889,6 +1893,119 @@ func _open_review() -> void:
 
 
 ## 派派兔的森林小課
+## 派派兔帶來上課：在圖書館大廳演。館長站在講台（平台）上，派派狼、派派鼠、派派兔坐在台下的課桌椅上；
+## 派派兔很認真（常常點頭），派派狼在打瞌睡（輪到他說話才醒過來）
+const RABBIT_COUNTER := Vector3(-5.0, 0, 1.7)
+var _class_gen := 0
+
+
+func _lesson_cast() -> Dictionary:
+	if mode != "library" or not library.inside:
+		return {}
+	if not library.npcs.has("wolf"):
+		var w := library._spawn("wolf", Vector3(-1.5, 0, -1.3), "S")
+		w.bubble_requested.connect(_on_bubble)
+	var cast := {}
+	for who in ["turtle", "wolf", "gopher", "rabbit"]:
+		cast[who] = library.npcs[who]
+	return cast
+
+
+func _on_lesson_scene(on: bool) -> void:
+	bubbles.clear_all()
+	var vp := get_viewport().get_visible_rect().size
+	_class_gen += 1
+	if on:
+		library._walk_serial += 1   # 派派鼠不要再照之前點的地方走
+		if library._walk_tween:
+			library._walk_tween.kill()
+		library.set_class(true)
+		for who in LibraryView.CLASS_SEATS:
+			var a: GopherActor = library.npcs[who]
+			a.visible = true
+			a.moving = false
+			a.position = LibraryView.CLASS_SEATS[who] + Vector3(0, LibraryView.SEAT_Y, 0.05)
+			a.face("N")
+			a.model.rotation.y = a.target_yaw
+			a.set_seated(true)
+		var tt: GopherActor = library.npcs["turtle"]
+		tt.face("S")
+		rig.follow_target = null
+		rig.home_focus = Vector3(-0.6, 0.3, -2.0)
+		rig.home_distance = 9.5
+		rig.reset_view()
+		rig.target_yaw = deg_to_rad(28.0)   # 從斜後方看：台下的同學排成一排，講台上的館長看得到臉
+		rig.target_pitch = deg_to_rad(-30.0)
+		_class_life(_class_gen)
+		bubbles.avoid_side_panels = true
+		bubbles.side_left = 8.0
+		bubbles.side_right = LessonBook.SCENE_W + 16.0
+	else:
+		bubbles.avoid_side_panels = false
+		if mode == "library":
+			library.set_class(false)
+			for who in LibraryView.CLASS_SEATS:
+				var s: GopherActor = library.npcs.get(who)
+				if s:
+					s.set_seated(false)
+			var gg: GopherActor = library.npcs["gopher"]
+			gg.position = Vector3(0, 0, 0.4)
+			if library.npcs.has("wolf"):
+				library.npcs["wolf"].visible = false
+			var r: GopherActor = library.npcs.get("rabbit")
+			if r:
+				r.position = RABBIT_COUNTER
+				r.face("E")
+				r.model.rotation.y = r.target_yaw
+			rig.home_focus = library.view_focus()
+			rig.home_distance = library.view_distance()
+			rig.reset_view()
+
+
+## 上課時的小動作：派派狼打瞌睡（頭一點一點、閉眼、頭上冒 Zzz；輪到他說話就醒來），派派兔認真點頭
+func _class_life(gen: int) -> void:
+	var wolf: GopherActor = library.npcs.get("wolf")
+	var rab: GopherActor = library.npcs.get("rabbit")
+	if wolf == null:
+		return
+	var zzz := Label3D.new()
+	zzz.text = "Z z z"
+	zzz.font_size = 64
+	zzz.pixel_size = 0.004
+	zzz.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	zzz.modulate = Color("6a7fb0")
+	zzz.outline_size = 10
+	zzz.outline_modulate = Color("fffdf6")
+	zzz.no_depth_test = true
+	wolf.add_child(zzz)
+	var k := 0.0
+	while gen == _class_gen and mode == "library" and is_instance_valid(wolf):
+		await get_tree().create_timer(0.1).timeout
+		if gen != _class_gen or not is_instance_valid(wolf):
+			break
+		k += 0.1
+		var awake: bool = wolf.t < wolf._talk_until + 1.2
+		zzz.visible = not awake
+		var hd: Node3D = wolf.head if wolf.head != null else wolf.body
+		if awake:
+			if hd:
+				hd.rotation.x = lerpf(hd.rotation.x, 0.0, 0.4)
+		else:
+			wolf.set_face("blink", 0.3)
+			if hd:
+				hd.rotation.x = 0.22 + sin(k * 1.6) * 0.12   # 頭一點一點
+			zzz.position = Vector3(0.25, 1.45 + fmod(k * 0.25, 0.3), 0)
+		if rab and int(k * 10) % 45 == 0:
+			rab.hop(0.06)   # 派派兔認真點頭
+			rab.set_face("happy", 0.6)
+	if is_instance_valid(zzz):
+		zzz.queue_free()
+	if is_instance_valid(wolf):
+		var hd2: Node3D = wolf.head if wolf.head != null else wolf.body
+		if hd2:
+			hd2.rotation.x = 0.0
+
+
 ## quiz：true＝派派兔帶來（故事＋小測驗）；false＝點慢慢館長（只有知識地圖和說明）
 func _open_lessons(cid: String = "", quiz: bool = true) -> void:
 	hud.show_status("", Vector2.ZERO)
@@ -2602,7 +2719,7 @@ func _talk(who: String) -> void:
 		_go_story(a)
 
 
-## 派派兔：「我們去找慢慢館長聽故事吧！」→ 一起走進圖書館，館長打開課本
+## 派派兔：「我們一起去上課吧！」→ 一起走進圖書館，館長打開課本
 func _go_story(a: GopherActor = null) -> void:
 	if mode == "library":
 		if library.inside:
@@ -2614,7 +2731,7 @@ func _go_story(a: GopherActor = null) -> void:
 	if a == null and room.npcs.has("rabbit"):
 		a = room.npcs.get("rabbit")
 	if a != null and is_instance_valid(a) and a.visible:
-		a.say("準備好一起認識派派森林的世界了嗎？我們去找慢慢館長聽故事吧！", "say")
+		a.say("準備好一起認識派派森林的世界了嗎？我們一起去上課吧！", "say")
 		await get_tree().create_timer(2.4).timeout
 	if mode != "home" and mode != "town":
 		return

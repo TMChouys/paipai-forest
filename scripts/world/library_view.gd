@@ -37,7 +37,7 @@ const NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "gopher": "派�
 const BUBBLE_H := {"turtle": 1.4, "rabbit": 1.6, "gopher": 1.3, "calico": 1.35, "blackcat": 1.15}
 const LINES := {
 	"turtle": ["慢慢來，比較快。", "你覺得呢？先猜，再看。", "一個概念一本書，都在右邊的書櫃。", "左邊後面是閱讀教室，可以坐下來慢慢讀。", "樓上還在整理，以後再帶你上去。"],
-	"rabbit": ["準備好一起認識派派森林的世界了嗎？", "我們去找慢慢館長聽故事吧！", "錯了沒關係，錯了才知道哪裡要注意。", "館長是我的老師，派派森林的故事都是他教我的。"],
+	"rabbit": ["準備好一起認識派派森林的世界了嗎？", "我們一起去上課吧！", "錯了沒關係，錯了才知道哪裡要注意。", "館長是我的老師，派派森林的故事都是他教我的。"],
 	"gopher": ["好寬敞的圖書館！", "書好多喔……"],
 	"calico": ["哎呀，真是個好孩子。", "慢慢想，奶奶等你。"],
 	"blackcat": ["奶奶不說的，我偷偷告訴你。", "考完試，來找我檢討吧！"],
@@ -81,6 +81,7 @@ func build() -> void:
 	_counter()
 	_platform()
 	_reading_room()
+	_classroom()
 	_bookshelves()
 	_stairs()
 	_flush_batches()
@@ -615,6 +616,27 @@ func _reading_room() -> void:
 	_box(g, Vector3(X0 + 0.09, 1.45, -4.0), Vector3(0.03, 0.88, 1.68), Color("3f5a4a"), false)
 	_label(g, "print(\"你好！\")\nname = \"派派鼠\"", Vector3(X0 + 0.11, 1.5, -4.0), 36, Color("f2f0e6"), 90.0)
 	_hot("blackboard", "黑板", Vector3(X0 + 0.2, 1.5, -4.0), "黑板上寫著今天的功課。坐下來慢慢讀，讀懂了再來找我上課。")
+
+
+## 上課用的課桌椅：館長站在講台（平台）上，派派狼、派派鼠、派派兔坐在台下。平常收起來，上課才擺出來
+const CLASS_SEATS := {"wolf": Vector3(-1.7, 0, -0.9), "gopher": Vector3(0.0, 0, -0.9), "rabbit": Vector3(1.7, 0, -0.9)}
+const SEAT_Y := 0.42
+var classroom: Node3D
+
+
+func _classroom() -> void:
+	classroom = _group("Classroom")
+	for who in CLASS_SEATS:
+		var p: Vector3 = CLASS_SEATS[who]
+		_furn(classroom, "side_table", p + Vector3(0, 0, -0.75))
+		_furn(classroom, "chair_small", p, 180.0)
+		_furn(classroom, "books", p + Vector3(0.12, 0.5, -0.75), 20.0)
+	classroom.visible = false
+
+
+func set_class(on: bool) -> void:
+	if classroom:
+		classroom.visible = on
 
 
 ## 書櫃區（東邊）：三排書櫃，照課本的章節排好

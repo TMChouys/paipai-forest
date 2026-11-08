@@ -1,7 +1,7 @@
 class_name LessonBook
 extends Control
 ## 認識派派森林的世界：慢慢館長說故事（認知）＋派派兔帶選擇題小測驗（形成性評量）。
-## 點派派兔：「準備好一起認識派派森林的世界了嗎？我們去找慢慢館長聽故事吧！」→ 走進圖書館，館長打開這本書。
+## 點派派兔：「準備好一起認識派派森林的世界了嗎？我們一起去上課吧！」→ 走進圖書館，館長打開這本書。
 ## 一課只教一個概念，照課本章節、依知識地圖（心智圖）分門別類。
 ## 左頁：知識地圖的分類（A～K）→ 這一類的概念；右頁：五個步驟，上面的小舞台由三個角色演出來
 ##   ① 要知道什麼事？（先提問）→ ② 為什麼？ → ③ 怎麼做？（範例＋執行結果）
@@ -41,13 +41,22 @@ var _right: Dictionary = {}        # ④ 這一課答對過的題目
 var stage: LessonStage             # 小舞台：三個角色演出來
 var quiz_mode := true              # true：派派兔帶來（故事＋小測驗）；false：點慢慢館長（只有知識地圖和知識說明，沒有測驗）
 var book_style: StyleBoxFlat
+## 遊戲場景演出：main 給一個 Callable，回傳 {角色: GopherActor}（圖書館大廳裡的館長、派派狼、派派鼠、派派兔）；回傳空的就用書裡的小舞台
+var scene_cast: Callable
+var scene_on := false
+signal scene_layout(on: bool)   # 書收到右邊、場景可以移動觀察（main 安排角色站位和鏡頭）
+var dim: ColorRect
+var book: PanelContainer
+var left_page: PanelContainer
+var index_btn: Button
+const SCENE_W := 640.0
 var title_book: Label
 var sub_book: Label
 
 var index_box: VBoxContainer
 var title_l: Label
 var chap_l: Label
-var step_row: HBoxContainer
+var step_row: HFlowContainer
 var body: VBoxContainer
 var body_scroll: ScrollContainer
 var prev_b: Button
@@ -83,11 +92,11 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	var dim := ColorRect.new()
+	dim = ColorRect.new()
 	dim.color = Color(0.2, 0.12, 0.05, 0.4)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
-	var book := PanelContainer.new()
+	book = PanelContainer.new()
 	book.anchor_left = 0.5
 	book.anchor_right = 0.5
 	book.anchor_top = 0.5
@@ -109,6 +118,7 @@ func _build() -> void:
 
 	# ---- 左頁：知識地圖分類 ----
 	var left := PanelContainer.new()
+	left_page = left
 	left.custom_minimum_size.x = 290
 	left.add_theme_stylebox_override("panel", pst)
 	pages.add_child(left)
@@ -152,12 +162,16 @@ func _build() -> void:
 	tv.add_child(title_l)
 	chap_l = UIKit.label("", 14, Color("8a6a50"))
 	tv.add_child(chap_l)
+	index_btn = UIKit.focusable(UIKit.button("目錄", func(): left_page.visible = not left_page.visible, "打開／收起知識地圖目錄"))
+	index_btn.visible = false
+	index_btn.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	rh.add_child(index_btn)
 	var x := UIKit.focusable(UIKit.button("×", close, "關閉（Esc）"))
 	x.custom_minimum_size = Vector2(36, 36)
 	x.add_theme_font_size_override("font_size", 20)
 	x.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	rh.add_child(x)
-	step_row = HBoxContainer.new()
+	step_row = HFlowContainer.new()
 	step_row.add_theme_constant_override("separation", 6)
 	rv.add_child(step_row)
 	stage = LessonStage.new()
@@ -182,6 +196,37 @@ func _build() -> void:
 	nav.add_child(next_b)
 
 
+## 遊戲場景演出：書收到畫面右邊（不擋場景、不變暗），左邊是圖書館大廳，可以移動、旋轉鏡頭觀察
+func _set_scene(on: bool) -> void:
+	if on == scene_on:
+		return
+	scene_on = on
+	dim.visible = not on
+	mouse_filter = Control.MOUSE_FILTER_IGNORE if on else Control.MOUSE_FILTER_STOP
+	left_page.visible = not on
+	index_btn.visible = on
+	if on:
+		book.anchor_left = 1.0
+		book.anchor_right = 1.0
+		book.anchor_top = 0.0
+		book.anchor_bottom = 1.0
+		book.offset_left = -SCENE_W
+		book.offset_right = -8
+		book.offset_top = 62
+		book.offset_bottom = -8
+	else:
+		book.anchor_left = 0.5
+		book.anchor_right = 0.5
+		book.anchor_top = 0.5
+		book.anchor_bottom = 0.5
+		book.offset_left = -610
+		book.offset_right = 610
+		book.offset_top = -340
+		book.offset_bottom = 340
+		stage.cast_override = {}
+	scene_layout.emit(on)
+
+
 func _has(cid: String) -> bool:
 	return lessons.has(cid) or class_content.has(cid)
 
@@ -190,6 +235,9 @@ func _has(cid: String) -> bool:
 ## quiz：true＝派派兔帶來聽故事＋小測驗；false＝點慢慢館長，只看知識地圖和知識說明
 func open(done_list: Array = [], cid: String = "", quiz: bool = true) -> void:
 	quiz_mode = quiz
+	var cast: Dictionary = scene_cast.call() if quiz and scene_cast.is_valid() else {}
+	stage.cast_override = cast
+	_set_scene(not cast.is_empty())
 	book_style.bg_color = Color("c27a6e") if quiz else Color("5b4370")
 	title_book.text = "認識派派森林的世界" if quiz else "慢慢館長的知識地圖"
 	sub_book.text = "慢慢館長說故事・派派兔帶小測驗" if quiz else "詳細的知識說明・照課本章節（小測驗找派派兔）"
@@ -208,6 +256,7 @@ func open(done_list: Array = [], cid: String = "", quiz: bool = true) -> void:
 
 func close() -> void:
 	stage.stop()
+	_set_scene(false)
 	visible = false
 	closed.emit()
 
@@ -303,7 +352,7 @@ func _go(s: int) -> void:
 		_asked = false
 	if kind == 3 and old != step:
 		_quiz_pick = -1
-	stage.visible = kind in [0, 1, 3]
+	stage.visible = kind in [0, 1, 3] and not scene_on
 	stage.stop()
 	for n in step_row.get_children():
 		n.queue_free()
@@ -415,7 +464,7 @@ func _step_goal(les: Dictionary) -> void:
 			row.add_child(UIKit.focusable(UIKit.button(k, func():
 				_asked = true
 				_go(step))))
-		stage.play([["rabbit", "館長，我們來聽故事了！", "hop"], ["turtle", les.ask]] if quiz_mode else [["turtle", les.ask]])
+		stage.play([["rabbit", "館長好！", "hop"], ["turtle", les.ask]] if quiz_mode else [["turtle", les.ask]])
 	else:
 		_turtle(les.ask_answer + "\n接下來說說：為什麼要知道這件事？")
 		stage.play([["turtle", les.ask_answer]])

@@ -13,6 +13,8 @@ var cam: Camera3D
 var bubbles: BubbleLayer
 var actors: Dictionary = {}
 var _gen := 0
+## 借用遊戲場景裡的角色（圖書館大廳）演出：設了就不用小舞台，對話氣泡由遊戲畫面的氣泡層顯示
+var cast_override: Dictionary = {}
 
 
 func _ready() -> void:
@@ -116,13 +118,13 @@ func play(lines: Array) -> void:
 	var g := _gen
 	bubbles.clear_all()
 	for ln in lines:
-		if g != _gen or not is_inside_tree() or not visible:
+		if g != _gen or not is_inside_tree() or not (visible or not cast_override.is_empty()):
 			return
 		var who: String = ln[0]
 		var text: String = ln[1]
 		var act: String = ln[2] if ln.size() > 2 else ""
-		var a: GopherActor = actors.get(who)
-		if a == null:
+		var a: GopherActor = (cast_override if not cast_override.is_empty() else actors).get(who)
+		if a == null or not is_instance_valid(a):
 			continue
 		match act:
 			"hop":
@@ -142,7 +144,7 @@ func stop() -> void:
 
 
 func react(who: String, how: String) -> void:
-	var a: GopherActor = actors.get(who)
+	var a: GopherActor = (cast_override if not cast_override.is_empty() else actors).get(who)
 	if a == null:
 		return
 	if how == "happy":
