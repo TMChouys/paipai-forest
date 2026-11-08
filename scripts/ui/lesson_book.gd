@@ -361,7 +361,7 @@ func _go(s: int) -> void:
 		_asked = false
 	if kind == 3 and old != step:
 		_quiz_pick = -1
-	stage.visible = kind in [0, 1, 3] and not scene_on
+	stage.visible = quiz_mode and kind in [0, 1, 3] and not scene_on   # 館長的知識地圖：只有文字說明，沒有角色演出
 	stage.stop()
 	for n in step_row.get_children():
 		n.queue_free()
@@ -452,6 +452,12 @@ func _student() -> String:
 	return "wolf" if teacher == "rabbit" else "rabbit"
 
 
+## 角色演出：只在上課（派派兔的小測驗）時演；館長的知識地圖不演
+func _act(lines: Array) -> void:
+	if quiz_mode:
+		stage.play(lines)
+
+
 func _turtle(t: String) -> void:
 	var v := _card(Color("f1e8f7"), Color("b9a1cf"))
 	v.add_child(_text("慢慢館長：", 14, Color("6b4f86")))
@@ -488,10 +494,10 @@ func _step_goal(les: Dictionary) -> void:
 			row.add_child(UIKit.focusable(UIKit.button(k, func():
 				_asked = true
 				_go(step))))
-		stage.play([[_student(), "老師好！", "hop"], [teacher, les.ask]] if quiz_mode else [["turtle", les.ask]])
+		_act([[_student(), "老師好！", "hop"], [teacher, les.ask]] if quiz_mode else [["turtle", les.ask]])
 	else:
 		_teach(les.ask_answer + "\n接下來說說：為什麼要知道這件事？")
-		stage.play([[teacher, les.ask_answer]])
+		_act([[teacher, les.ask_answer]])
 
 
 func _step_why(les: Dictionary) -> void:
@@ -502,7 +508,7 @@ func _step_why(les: Dictionary) -> void:
 	v.add_child(_text("為什麼？", 15, Color("8f5f12")))
 	v.add_child(_text(why, 19))
 	_teach("知道了「為什麼」，下一步看看「怎麼做」。")
-	stage.play([["wolf" if teacher != "wolf" else "rabbit", "老師，學這個要做什麼？"], [teacher, why]])
+	_act([["wolf" if teacher != "wolf" else "rabbit", "老師，學這個要做什麼？"], [teacher, why]])
 
 
 func _step_explain(les: Dictionary) -> void:
@@ -570,7 +576,7 @@ func _step_quiz(les: Dictionary) -> void:
 	if _quiz_pick < 0:
 		var skit: Array = qz.get("skit", [])
 		# 題目情境演出來 → 派派兔問派派鼠 → 派派鼠想一想（玩家幫派派鼠選）
-		stage.play(skit + [["rabbit", "派派鼠，" + lines[0]], ["gopher", "……", "think"]])
+		_act(skit + [["rabbit", "派派鼠，" + lines[0]], ["gopher", "……", "think"]])
 		return
 	var ok := _quiz_pick == ans
 	var pool: Array = CHEER_RIGHT if ok else CHEER_WRONG
@@ -622,11 +628,11 @@ func _step_quiz(les: Dictionary) -> void:
 	var said := ["gopher", "（選 %s）%s" % [letters[_quiz_pick], qz.options[_quiz_pick]], "think"]
 	if ok:
 		var act: Array = qz.get("act", [])
-		stage.play([said] + act + [["rabbit", cheer, "happy"]])
+		_act([said] + act + [["rabbit", cheer, "happy"]])
 	else:
 		var wl: Array = qz.get("wrong", [])
 		var fix2: String = wl[_quiz_pick] if _quiz_pick < wl.size() else ""
-		stage.play([said, ["rabbit", "嗯……不對喔。" + fix2], ["rabbit", cheer]])
+		_act([said, ["rabbit", "嗯……不對喔。" + fix2], ["rabbit", cheer]])
 
 
 func _pick(i: int) -> void:
