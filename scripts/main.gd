@@ -653,6 +653,11 @@ var intro_skip_btn: Button
 var intro_gen := 0  # 開場重新開始時，舊的開場流程看到編號不同就停
 var intro_props: Array = []  # 灰塵、蜘蛛網、防塵布、行李……開場結束就收掉
 var intro_dust: Dictionary = {}  # 格子 → 灰塵堆
+## 地板上一層髒髒的灰（半透明的貼圖）；掃過的地方會變乾淨
+var intro_grime: MeshInstance3D = null
+var _grime_img: Image
+var _grime_tex: ImageTexture
+const GRIME_PPM := 16  # 每公尺幾個像素
 var intro_card: Control
 var intro_photo: Texture2D  # 爺爺的照片：開場前從門前小路拍的樹屋實景
 
@@ -1000,6 +1005,7 @@ func _sweep(g: GopherActor, c: Vector2i) -> void:
 		tw.tween_property(b, "rotation:z", -0.5, 0.18).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(b, "rotation:z", 0.0, 0.12)
 	_dust_puff(GopherActor.cell_pos(c))
+	_grime_clean(GopherActor.cell_pos(c) + Vector3(0, 0, 0.3), 1.5)
 	if intro_dust.has(c):
 		var pile: Node3D = intro_dust[c]
 		intro_dust.erase(c)
@@ -1121,23 +1127,8 @@ func _build_abandoned_props() -> void:
 		Models.part(leaf, Models.sphere(0.07), [Color("c48a4a"), Color("a9743e"), Color("d2a05a")][i % 3], Vector3.ZERO, Vector3(1.6, 0.08, 0.8), Vector3.ZERO, false)
 		room.add_child(leaf)
 		intro_props.append(leaf)
-	# 蜘蛛網：北牆兩個上角
-	for corner in [0, 1]:
-		var web := Node3D.new()
-		var sx := 1.0 if corner == 0 else -1.0
-		web.position = Vector3(0.0 if corner == 0 else float(home_world.width), RoomView.WALL_H - 0.06, 0.03)
-		var col := Color("f8f3ea")
-		for k in range(5):
-			var a := deg_to_rad(-90.0 + k * 22.5)
-			var dir := Vector3(cos(a) * sx, sin(a), 0)
-			_web_line(web, Vector3.ZERO, dir * 0.6, col)
-		for r in [0.2, 0.36, 0.52]:
-			for k in range(4):
-				var a1 := deg_to_rad(-90.0 + k * 22.5)
-				var a2 := deg_to_rad(-90.0 + (k + 1) * 22.5)
-				_web_line(web, Vector3(cos(a1) * sx, sin(a1), 0) * r, Vector3(cos(a2) * sx, sin(a2), 0) * (r - 0.03), col)
-		room.add_child(web)
-		intro_props.append(web)
+	_build_grime()
+	_build_cobwebs()
 	# 防塵布：蓋住落地家具（信箱是拍拍鳥剛送的，不蓋）
 	for uid in home_world.items:
 		var it: Dictionary = home_world.items[uid]
@@ -1160,10 +1151,147 @@ func _build_abandoned_props() -> void:
 		intro_props.append(sheet)
 
 
+## 地板上的一層灰：雜訊產生灰褐色的髒污，靠牆的地方特別髒，中間有一塊一塊比較淡的灰
+func _build_grime() -> void:
+	var W := home_world.width * GRIME_PPM
+	var H := home_world.depth * GRIME_PPM
+	var big := FastNoiseLite.new()
+	big.seed = 11
+	big.frequency = 0.035
+	big.fractal_octaves = 3
+	var fine := FastNoiseLite.new()
+	fine.seed = 5
+	fine.frequency = 0.3
+	_grime_img = Image.create(W, H, false, Image.FORMAT_RGBA8)
+	var dark := Color(0.27, 0.22, 0.16)
+	var dusty := Color(0.62, 0.58, 0.5)
+	for y in range(H):
+		for x in range(W):
+			var n := big.get_noise_2d(x, y) * 0.5 + 0.5
+			var f := fine.get_noise_2d(x, y) * 0.5 + 0.5
+			# 離最近的牆幾公尺：靠牆、牆角最髒
+			var d := minf(minf(float(x), float(W - 1 - x)), minf(float(y), float(H - 1 - y))) / GRIME_PPM
+			var e := clampf(1.0 - d / 1.4, 0.0, 1.0)
+			var al := 0.45 + 0.3 * smoothstep(0.35, 0.8, n) + 0.3 * e * e + 0.3 * (f - 0.5)
+			var col := dusty.lerp(dark, clampf(0.2 + 0.6 * smoothstep(0.4, 0.85, n) + 0.45 * e, 0.0, 1.0))
+			if f > 0.78:   # 小小的髒點、碎屑
+				col = col.darkened(0.35)
+				al += 0.2
+			col.a = clampf(al, 0.0, 0.9)
+			_grime_img.set_pixel(x, y, col)
+	_grime_tex = ImageTexture.create_from_image(_grime_img)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _grime_tex
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.roughness = 1.0
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(home_world.width, home_world.depth)
+	intro_grime = MeshInstance3D.new()
+	intro_grime.mesh = pm
+	intro_grime.material_override = m
+	intro_grime.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	intro_grime.position = Vector3(home_world.width / 2.0, 0.012, home_world.depth / 2.0)
+	room.add_child(intro_grime)
+
+
+## 掃過的地方變乾淨：以 at 為中心、半徑 r 公尺，邊緣淡淡地漸變
+func _grime_clean(at: Vector3, r: float) -> void:
+	if _grime_img == null or not is_instance_valid(intro_grime):
+		return
+	var cx := at.x * GRIME_PPM
+	var cy := at.z * GRIME_PPM
+	var rp := r * GRIME_PPM
+	for y in range(maxi(0, int(cy - rp)), mini(_grime_img.get_height(), int(cy + rp) + 1)):
+		for x in range(maxi(0, int(cx - rp)), mini(_grime_img.get_width(), int(cx + rp) + 1)):
+			var t := Vector2(x - cx, y - cy).length() / rp
+			if t >= 1.0:
+				continue
+			var c := _grime_img.get_pixel(x, y)
+			c.a *= smoothstep(0.55, 1.0, t)
+			_grime_img.set_pixel(x, y, c)
+	_grime_tex.update(_grime_img)
+
+
+## 很久沒人住的蜘蛛網：牆的上角（大）、牆腳（小）、圓窗、牆頂垂下來的蛛絲，還有一隻垂絲的小蜘蛛
+## 蜘蛛網都放在牆的節點底下，牆藏起來時（鏡頭那一側）會跟著藏，不會飄在半空中
+func _build_cobwebs() -> void:
+	var w := home_world
+	var H := RoomView.WALL_H
+	var wn: Node3D = room.walls.get("N", room)
+	_add_web(wn, Vector3(0.03, H - 0.05, 0.03), 0.0, 1.0, -1.0, 1.15)
+	_add_web(wn, Vector3(w.width - 0.03, H - 0.05, 0.03), 0.0, -1.0, -1.0, 1.15)
+	_add_web(wn, Vector3(0.03, 0.03, 0.03), 0.0, 1.0, 1.0, 0.5)
+	_add_web(wn, Vector3(w.width - 0.03, 0.03, 0.03), 0.0, -1.0, 1.0, 0.5)
+	for side in ["W", "E"]:
+		var holder: Node3D = room.walls.get(side, room)
+		var x := 0.03 if side == "W" else w.width - 0.03
+		_add_web(holder, Vector3(x, H - 0.05, w.depth - 0.03), PI / 2, 1.0, -1.0, 0.9)    # 南邊的上角
+		_add_web(holder, Vector3(x, H - 0.05, 0.03), PI / 2, -1.0, -1.0, 0.8)           # 北邊的上角（側面）
+		_add_web(holder, Vector3(x, 0.03, w.depth * 0.55), PI / 2, 1.0, 1.0, 0.3)
+	# 圓窗左上角的小網
+	for uid in w.items:
+		var it: Dictionary = w.items[uid]
+		if it.type == "window" and it.wall == "N":
+			var cx: float = it.cell.x + 0.5
+			_add_web(wn, Vector3(cx - 0.42, 1.8, 0.1), 0.0, 1.0, -1.0, 0.45)
+	# 牆頂垂下來、彎彎的蛛絲
+	var col := Color("f4efe4")
+	for span: Vector2 in [Vector2(1.0, 2.4), Vector2(5.6, 7.3), Vector2(8.1, 9.4)]:
+		var prev := Vector3(span.x, H - 0.03, 0.04)
+		for k in range(1, 9):
+			var t := k / 8.0
+			var p := Vector3(lerpf(span.x, span.y, t), H - 0.03 - 0.22 * 4.0 * t * (1.0 - t), 0.04)
+			_web_line(wn, prev, p, col)
+			prev = p
+	# 垂絲的小蜘蛛：慢慢上下晃
+	var thread := Node3D.new()
+	thread.position = Vector3(4.4, H - 0.02, 0.06)
+	wn.add_child(thread)
+	_web_line(thread, Vector3.ZERO, Vector3(0, -0.8, 0), col)
+	var spider := Node3D.new()
+	spider.position = Vector3(0, -0.8, 0)
+	thread.add_child(spider)
+	var ink := Color("3a2f2a")
+	Models.part(spider, Models.sphere(0.045), ink, Vector3.ZERO, Vector3(1, 1.15, 0.9), Vector3.ZERO, false)
+	Models.part(spider, Models.sphere(0.03), ink, Vector3(0, 0.05, 0), Vector3.ONE, Vector3.ZERO, false)
+	for sx: float in [-1.0, 1.0]:
+		for k in range(4):
+			var leg := Models.part(spider, Models.box(0.09, 0.008, 0.008), ink, Vector3(sx * 0.06, 0.02 - k * 0.015, 0), Vector3.ONE, Vector3(0, 0, sx * (30.0 - k * 20.0)), false)
+			leg.name = "Leg"
+	var bob := thread.create_tween().set_loops()
+	bob.tween_property(thread, "scale:y", 0.75, 2.4).set_trans(Tween.TRANS_SINE)
+	bob.tween_property(thread, "scale:y", 1.0, 2.4).set_trans(Tween.TRANS_SINE)
+	intro_props.append(thread)
+
+
+## 一張扇形的蜘蛛網：從牆角 pos 往 sx（左右）、sy（上下）張開；yaw = 貼在哪面牆（0 = 南北向的牆面，PI/2 = 東西向）
+func _add_web(parent: Node3D, pos: Vector3, yaw: float, sx: float, sy: float, size: float) -> void:
+	var web := Node3D.new()
+	web.position = pos
+	web.rotation.y = yaw
+	var col := Color("f8f3ea")
+	for k in range(5):
+		var a := deg_to_rad(k * 22.5)
+		_web_line(web, Vector3.ZERO, Vector3(cos(a) * sx, sin(a) * sy, 0) * size, col)
+	for r: float in [0.3, 0.55, 0.8]:
+		for k in range(4):
+			var a1 := deg_to_rad(k * 22.5)
+			var a2 := deg_to_rad((k + 1) * 22.5)
+			var sag := size * 0.05
+			var p1 := Vector3(cos(a1) * sx, sin(a1) * sy, 0) * size * r
+			var p2 := Vector3(cos(a2) * sx, sin(a2) * sy, 0) * size * r
+			var mid := (p1 + p2) / 2 * (1.0 - sag / maxf(size * r, 0.01))   # 每一段往中心垂一點
+			_web_line(web, p1, mid, col)
+			_web_line(web, mid, p2, col)
+	parent.add_child(web)
+	intro_props.append(web)
+
+
 func _web_line(parent: Node3D, a: Vector3, b: Vector3, col: Color) -> void:
 	var m := MeshInstance3D.new()
 	var ln := a.distance_to(b)
-	m.mesh = Models.box(ln, 0.014, 0.01)
+	m.mesh = Models.box(ln, 0.024, 0.012)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = col
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -1185,8 +1313,18 @@ func _node_aabb(n: Node3D) -> AABB:
 	return out
 
 
-## 收掉開場道具；fade > 0 就慢慢變小消失
+## 收掉開場道具；fade > 0 就慢慢變小消失（地上的灰慢慢變淡）
 func _clear_abandoned(fade: float) -> void:
+	if is_instance_valid(intro_grime):
+		if fade <= 0.0:
+			intro_grime.queue_free()
+		else:
+			var gm: StandardMaterial3D = intro_grime.material_override
+			var gt := intro_grime.create_tween()
+			gt.tween_property(gm, "albedo_color:a", 0.0, fade * 1.6).set_trans(Tween.TRANS_SINE)
+			gt.tween_callback(intro_grime.queue_free)
+	intro_grime = null
+	_grime_img = null
 	for p in intro_props:
 		if not is_instance_valid(p):
 			continue
