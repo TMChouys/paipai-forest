@@ -108,6 +108,53 @@ func _m(parent: Node3D, mesh: Mesh, color: Color, pos: Vector3, rot: Vector3 = V
 	return mi
 
 
+## 車床曲面：把輪廓（x＝半徑、y＝高度）繞 y 軸轉一圈，得到圓滑的形狀
+static func _lathe(profile: Array, seg: int = 36) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(0)
+	for i in range(profile.size() - 1):
+		var p0: Vector2 = profile[i]
+		var p1: Vector2 = profile[i + 1]
+		for k in seg:
+			var a0 := TAU * k / seg
+			var a1 := TAU * (k + 1) / seg
+			var v00 := Vector3(cos(a0) * p0.x, p0.y, sin(a0) * p0.x)
+			var v01 := Vector3(cos(a1) * p0.x, p0.y, sin(a1) * p0.x)
+			var v10 := Vector3(cos(a0) * p1.x, p1.y, sin(a0) * p1.x)
+			var v11 := Vector3(cos(a1) * p1.x, p1.y, sin(a1) * p1.x)
+			for v in [v00, v11, v10, v00, v01, v11]:
+				st.add_vertex(v)
+	st.index()
+	st.generate_normals()
+	return st.commit()
+
+
+static func _ball(r: float) -> SphereMesh:
+	var b := SphereMesh.new()
+	b.radius = r
+	b.height = r * 2
+	b.radial_segments = 32
+	b.rings = 16
+	return b
+
+
+static func _torus(r: float, thick: float) -> TorusMesh:
+	var t := TorusMesh.new()
+	t.inner_radius = r - thick
+	t.outer_radius = r + thick
+	t.rings = 32
+	t.ring_segments = 12
+	return t
+
+
+## 從 a 到 b 的手臂／袖子（a 端粗 r_a、b 端粗 r_b）
+func _limb(parent: Node3D, a: Vector3, b: Vector3, r_a: float, r_b: float) -> MeshInstance3D:
+	var mi := _m(parent, Models.cyl(r_b, r_a, a.distance_to(b)), STONE_LIGHT, (a + b) / 2)
+	mi.basis = Basis(Quaternion(Vector3.UP, (b - a).normalized()))
+	return mi
+
+
 ## 一個方塊（box 的中心、大小）
 func _box(parent: Node3D, center: Vector3, size: Vector3, color: Color, line: bool = true) -> MeshInstance3D:
 	return _m(parent, Models.box(size.x, size.y, size.z), color, center, Vector3.ZERO, line)
@@ -402,25 +449,66 @@ func _hall() -> void:
 	var s := Node3D.new()
 	s.position = c + Vector3(0, 0.56, 0)
 	g.add_child(s)
-	# 老烏龜賢者（石像，比派派鼠高一點）：長袍、背後的大龜殼、一手捧書、一手指著天空
-	_m(s, Models.cyl(0.26, 0.46, 1.0), STONE_LIGHT, Vector3(0, 0.5, 0))               # 長袍
-	_m(s, Models.cyl(0.3, 0.3, 0.08), STONE, Vector3(0, 0.98, 0))                      # 領口
-	var shell := _m(s, Models.sphere(0.5), STONE, Vector3(0, 0.72, -0.3))              # 背上的大龜殼
-	shell.scale = Vector3(1.05, 1.15, 0.6)
-	for k in range(3):                                                                  # 龜殼的格紋
-		_m(s, Models.cyl(0.13, 0.13, 0.04), STONE_DARK, Vector3((k - 1) * 0.26, 0.78 + (0.12 if k == 1 else 0.0), -0.6), Vector3(90, 0, 0), false)
-	_m(s, Models.sphere(0.21), STONE_LIGHT, Vector3(0, 1.25, 0.06))                    # 頭
-	var snout := _m(s, Models.sphere(0.13), STONE_LIGHT, Vector3(0, 1.2, 0.24))
-	snout.scale = Vector3(1.0, 0.8, 1.0)
-	_m(s, Models.cyl(0.02, 0.1, 0.36), STONE, Vector3(0, 1.0, 0.25), Vector3(18, 0, 0))  # 長鬍子
-	for sx: float in [-0.09, 0.09]:
-		_m(s, Models.box(0.1, 0.03, 0.04), STONE_DARK, Vector3(sx, 1.33, 0.22), Vector3.ZERO, false)   # 眉毛
-	var arm := _m(s, Models.cyl(0.06, 0.075, 0.6), STONE_LIGHT, Vector3(0.3, 1.25, 0.05), Vector3(0, 0, -15))
-	arm.name = "PointingArm"
-	_m(s, Models.sphere(0.075), STONE_LIGHT, Vector3(0.38, 1.56, 0.05))
-	_m(s, Models.cyl(0.02, 0.025, 0.14), STONE_LIGHT, Vector3(0.39, 1.66, 0.05))       # 指著天空的手指
-	_m(s, Models.cyl(0.07, 0.08, 0.36), STONE_LIGHT, Vector3(-0.3, 0.9, 0.12), Vector3(60, 0, 0))
-	_m(s, Models.box(0.34, 0.07, 0.26), STONE, Vector3(-0.3, 0.82, 0.3), Vector3(-10, 0, 10))   # 捧著的書
+	# 老烏龜賢者（石像，比派派鼠高一點）：寬袖長袍、腰帶、背上的大龜殼、
+	# 左手捧著攤開的書、右手拄著長杖，低頭慈祥地看著來的人。用車床曲面（旋轉的輪廓）做出圓滑的形狀
+	var robe := _m(s, _lathe([Vector2(0, 0), Vector2(0.45, 0), Vector2(0.47, 0.04), Vector2(0.43, 0.18), Vector2(0.37, 0.4),
+		Vector2(0.32, 0.62), Vector2(0.3, 0.78), Vector2(0.3, 0.9), Vector2(0.26, 0.99), Vector2(0.16, 1.05), Vector2(0, 1.07)]), STONE_LIGHT, Vector3.ZERO)
+	robe.scale = Vector3(1.0, 1.0, 0.86)
+	for k in range(5):                                                                    # 長袍下襬的皺褶
+		var ang := deg_to_rad(-60 + k * 30)
+		var fold := _m(s, _lathe([Vector2(0, 0), Vector2(0.04, 0), Vector2(0.035, 0.2), Vector2(0.012, 0.36), Vector2(0, 0.38)], 12), STONE_LIGHT, Vector3(sin(ang) * 0.42, 0, cos(ang) * 0.37), Vector3(0, 0, 0), false)
+		fold.rotation.z = -sin(ang) * 0.12
+	var belt := _m(s, _torus(0.3, 0.035), STONE_DARK, Vector3(0, 0.66, 0), Vector3.ZERO, false)  # 腰帶
+	belt.scale = Vector3(1.04, 1.0, 0.9)
+	_m(s, _ball(0.05), STONE_DARK, Vector3(0.0, 0.66, 0.28), Vector3.ZERO, false)       # 腰帶結
+	_m(s, _torus(0.2, 0.045), STONE, Vector3(0, 1.0, 0.0), Vector3(8, 0, 0), false)       # 領口
+	# 背上的大龜殼：圓頂＋外緣＋六角形的殼片
+	var sc := Vector3(0, 0.7, -0.24)
+	var shell_r := Vector3(0.44, 0.52, 0.24)
+	var shell := _m(s, _ball(1.0), STONE, sc)
+	shell.scale = shell_r
+	var rim := _m(s, _torus(1.0, 0.13), STONE_DARK, sc + Vector3(0, 0, 0.02), Vector3(90, 0, 0), false)
+	rim.scale = Vector3(0.44, 0.35, 0.52)
+	for d: Vector2 in [Vector2(0, 0), Vector2(0, 0.55), Vector2(0, -0.5), Vector2(0.5, 0.28), Vector2(-0.5, 0.28), Vector2(0.48, -0.3), Vector2(-0.48, -0.3)]:
+		var nz := -sqrt(maxf(0.0, 1.0 - d.x * d.x - d.y * d.y))
+		var n := Vector3(d.x / shell_r.x, d.y / shell_r.y, nz / shell_r.z).normalized()   # 橢球的法線
+		var hex := _m(s, Models.cyl(0.1, 0.11, 0.03), STONE_DARK, sc + Vector3(d.x * shell_r.x, d.y * shell_r.y, nz * shell_r.z), Vector3.ZERO, false)
+		hex.mesh.radial_segments = 6
+		hex.basis = Basis(Quaternion(Vector3.UP, n)) * Basis.from_scale(Vector3(1.0 + 0.3 * absf(d.x), 1, 1))
+	# 頭：烏龜的圓頭、往前的吻部、慈祥的瞇瞇眼、垂下來的長眉毛
+	var head := Node3D.new()
+	head.position = Vector3(0, 1.2, 0.07)
+	head.rotation_degrees = Vector3(12, 0, 0)                                              # 微微低頭
+	s.add_child(head)
+	var skull := _m(head, _ball(0.2), STONE_LIGHT, Vector3(0, 0.06, 0))
+	skull.scale = Vector3(1.0, 0.95, 1.05)
+	var muzzle := _m(head, _ball(0.14), STONE_LIGHT, Vector3(0, -0.01, 0.15))
+	muzzle.scale = Vector3(1.1, 0.8, 0.9)
+	for sx: float in [-1.0, 1.0]:
+		for k in [-1.0, 1.0]:                                                             # 瞇起來的眼睛：兩小段組成彎彎的線
+			_m(head, Models.capsule(0.009, 0.05), STONE_DARK, Vector3(sx * 0.085 + k * 0.018, 0.095 + 0.006, 0.19), Vector3(0, 0, 90 - k * 25), false)
+		var brow := _m(head, _lathe([Vector2(0, 0), Vector2(0.025, 0.01), Vector2(0.02, 0.1), Vector2(0, 0.13)], 10), STONE, Vector3(sx * 0.1, 0.15, 0.17), Vector3.ZERO, false)
+		brow.rotation_degrees = Vector3(40, 0, sx * 115)                                   # 往兩邊垂的長眉毛
+	var beard := _m(head, _lathe([Vector2(0, 0), Vector2(0.04, 0.05), Vector2(0.08, 0.15), Vector2(0.11, 0.28), Vector2(0.09, 0.37), Vector2(0, 0.4)], 20), STONE, Vector3(0, -0.5, 0.2))
+	beard.rotation_degrees = Vector3(14, 0, 0)                                             # 長長的鬍子
+	beard.scale = Vector3(1.0, 1.0, 0.7)
+	# 左手：寬袖子往前彎，手捧著攤開的書
+	_limb(s, Vector3(-0.27, 0.93, 0.0), Vector3(-0.2, 0.72, 0.22), 0.08, 0.13)
+	_m(s, _ball(0.065), STONE_LIGHT, Vector3(-0.14, 0.7, 0.32))
+	var book := Node3D.new()
+	book.position = Vector3(-0.08, 0.75, 0.36)
+	book.rotation_degrees = Vector3(-35, 15, 0)
+	s.add_child(book)
+	for side: float in [-1.0, 1.0]:                                                         # 兩頁攤開成淺淺的 V
+		var page := _m(book, Models.box(0.17, 0.025, 0.24), STONE, Vector3(side * 0.085, 0.0, 0), Vector3(0, 0, side * -10), false)
+		page.position.y = 0.012
+	_m(book, Models.box(0.36, 0.02, 0.26), STONE_DARK, Vector3(0, -0.01, 0), Vector3.ZERO, false)   # 書皮
+	# 右手：袖子垂在身側，握著比人還高的長杖，杖頭捲成一圈
+	_limb(s, Vector3(0.27, 0.93, 0.0), Vector3(0.36, 0.7, 0.14), 0.08, 0.13)
+	_m(s, _ball(0.065), STONE_LIGHT, Vector3(0.39, 0.68, 0.17))
+	_m(s, Models.cyl(0.028, 0.034, 1.66), STONE_DARK, Vector3(0.4, 0.83, 0.18), Vector3.ZERO, false)
+	_m(s, _torus(0.07, 0.025), STONE_DARK, Vector3(0.4, 1.72, 0.18), Vector3(0, 0, 90), false)
+	_m(s, _ball(0.045), STONE, Vector3(0.4, 1.72, 0.18))
 	_label(g, "初代大賢者\n知道自己不知道，\n是學習的開始。", c + Vector3(0, 0.27, 0.71), 20, Color("5a4630"))
 	_hot("statue", "初代大賢者像", c + Vector3(0, 1.3, 0), "這是我的老師，初代大賢者。派派森林所有的知識，都是從他開始的。底座刻著「知道自己不知道，是學習的開始。」")
 	# 門口兩盆植物、角落的落地燈、沙發

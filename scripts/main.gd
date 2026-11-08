@@ -3186,6 +3186,14 @@ func _auto_shot(path: String) -> void:
 			rig.follow_target = who
 			rig.target_distance = float(a[1])
 			rig.target_pitch = deg_to_rad(float(a[2]))
+		elif s.begins_with("cam:"):
+			# cam:看的點x,y,z,距離,水平角,俯角（角度）
+			var a: Array = Array(s.substr(4).split(",")).map(func(t): return float(t))
+			rig.follow_target = null
+			rig.target_focus = Vector3(a[0], a[1], a[2])
+			rig.target_distance = a[3]
+			rig.target_yaw = deg_to_rad(a[4])
+			rig.target_pitch = deg_to_rad(a[5])
 		elif s.begins_with("wait:"):
 			await get_tree().create_timer(float(s.substr(5))).timeout
 		elif s.begins_with("png:"):
