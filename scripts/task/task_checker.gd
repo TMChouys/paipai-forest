@@ -142,8 +142,22 @@ static func compare_outputs(exp: Array, got: Array, got_meta: Array, cname: Stri
 
 static func compare_goal(task: Dictionary, ref_world: WorldModel, stu_world: WorldModel, cname: String) -> Array:
 	var out: Array = []
+	# 野外：最後每個角色要站在對的地方
+	for who in task.get("goal_actors", []):
+		var rc: Vector2i = ref_world.gopher_cell if who == "gopher" else ref_world.actors.get(who, {}).get("cell", Vector2i.ZERO)
+		var sc: Vector2i = stu_world.gopher_cell if who == "gopher" else stu_world.actors.get(who, {}).get("cell", Vector2i.ZERO)
+		if rc != sc:
+			var nm: String = TaskRunner.NAMES.get(who, who)
+			out.append({"code": "goal.actor", "case": cname, "line": 0,
+				"message": "%s最後應該在 (%d, %d)，現在在 (%d, %d)" % [nm, rc.x, rc.y, sc.x, sc.y],
+				"hint": "看任務單：%s最後要走到哪裡？" % nm})
 	for uid in task.get("goal_items", []):
 		if not ref_world.items.has(uid):
+			if stu_world.items.has(uid):
+				out.append({"code": "goal.gate", "case": cname, "line": 0,
+					"message": "%s還關著" % WorldModel.def_of(stu_world.items[uid].type).name, "hint": "要算出正確的密碼，說「開門」加上密碼。"})
+			continue
+		if not stu_world.items.has(uid):
 			continue
 		var r: Dictionary = ref_world.items[uid]
 		var s: Dictionary = stu_world.items[uid]

@@ -37,6 +37,17 @@
     "tv_vintage": {"name":"復古電視","size":[1,1],"height":0.9,"kind":"floor","model":"res://models/kenney/furniture/televisionVintage.glb","model_fill":0.8,"model_tint":"#fff4e6","color":"#a8744f","builder":"crate","carry":true,"source":"Kenney Furniture Kit (CC0)"},
     "radio": {"name":"小收音機","size":[1,1],"height":0.25,"kind":"top","model":"res://models/kenney/furniture/radio.glb","model_fill":0.45,"color":"#d97b5a","builder":"cup","source":"Kenney Furniture Kit (CC0)"},
     "books": {"name":"一疊書","size":[1,1],"height":0.2,"kind":"top","model":"res://models/kenney/furniture/books.glb","model_fill":0.45,"color":"#7fb7a4","builder":"cup","source":"Kenney Furniture Kit (CC0)"},
-    "plant_small": {"name":"小盆栽","size":[1,1],"height":0.3,"kind":"top","model":"res://models/kenney/furniture/plantSmall1.glb","model_fill":0.4,"color":"#7cc47a","builder":"cup","source":"Kenney Furniture Kit (CC0)"}
+    "plant_small": {"name":"小盆栽","size":[1,1],"height":0.3,"kind":"top","model":"res://models/kenney/furniture/plantSmall1.glb","model_fill":0.4,"color":"#7cc47a","builder":"cup","source":"Kenney Furniture Kit (CC0)"},
+    "big_rock": {"name":"長青苔的大石頭","size":[1,1],"height":0.7,"kind":"floor","builder":"rock_big","color":"#9a9a8c","accent":"#8fae5a","heavy":true,"field":true},
+    "mushroom_ring": {"name":"一叢蘑菇","size":[1,1],"height":0.5,"kind":"floor","model":"res://models/kenney/nature/mushroom_redGroup.glb","model_fill":0.8,"color":"#c9783e","builder":"crate","field":true},
+    "forest_log": {"name":"倒下的木頭","size":[1,1],"height":0.5,"kind":"floor","model":"res://models/kenney/nature/log.glb","model_fill":0.95,"color":"#8a5a35","builder":"crate","heavy":true,"field":true},
+    "picnic_mat": {"name":"野餐墊","size":[1,1],"height":0.03,"kind":"floor","builder":"picnic_mat","color":"#e07a6a","accent":"#fff7ee","field":true},
+    "old_teacup": {"name":"爺爺的舊茶杯","size":[1,1],"height":0.2,"kind":"floor","builder":"cup","color":"#9fd3e6","accent":"#ffffff","carry":true,"old":true,"rarity":2,"grandpa":true},
+    "lavender_patch": {"name":"一叢薰衣草","size":[1,1],"height":0.8,"kind":"floor","builder":"lavender","color":"#a98bc9","field":true},
+    "herb_basket": {"name":"派派兔的草藥籃","size":[1,1],"height":0.35,"kind":"floor","builder":"basket","color":"#c8955f","accent":"#e9d6a8","field":true},
+    "old_umbrella_stand": {"name":"爺爺的舊青蛙傘架","size":[1,1],"height":1,"kind":"floor","builder":"umbrella","color":"#7cc47a","accent":"#5aa8d9","carry":true,"old":true,"rarity":2,"grandpa":true},
+    "cave_rock": {"name":"岩壁","size":[1,1],"height":1.5,"kind":"floor","builder":"cave_rock","color":"#55607a","accent":"#7fe0e8","field":true},
+    "stone_gate": {"name":"螢光寶庫的石門","size":[1,1],"height":2.0,"kind":"floor","builder":"gate","color":"#6c7690","accent":"#9ff0e0","field":true},
+    "glow_stone": {"name":"爺爺的發光石","size":[1,1],"height":0.8,"kind":"floor","builder":"glow_stone","color":"#fff1b8","accent":"#f6c85f","carry":true,"rarity":2,"grandpa":true,"glow":true}
   }
 }

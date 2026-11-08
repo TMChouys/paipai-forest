@@ -1,0 +1,373 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好出門冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range"
+  ],
+  "id": "FL1_lavender_basket",
+  "order": 202,
+  "unlock_after_main": 5,
+  "difficulty": 3,
+  "title": "薰衣草原的青蛙傘架",
+  "concept": "if / elif / else＋三個人一起行動（第 5 章冒險）",
+  "place": "薰衣草原・花田",
+  "sheet": {
+    "story": "派派兔帶大家去薰衣草原採草藥。爺爺的筆記說：「池塘邊的青蛙，幫我們撐過一整個雨天。」\n爺爺的[b]青蛙傘架[/b]就在池塘邊，可是被一根倒下的木頭擋住了。",
+    "given": [
+      "地點：薰衣草原・花田。",
+      "程式第 1 行已經寫好 bloom = 8：薰衣草開了幾成（0～10）。",
+      "這個任務的 print()：符合句型表的話是角色的動作；其他的話是派派鼠說的話。"
+    ],
+    "rules": [
+      "先說：薰衣草開了○成（f-string）",
+      "bloom 大於或等於 8：派派兔走到花田，採花。",
+      "bloom 大於或等於 5（但不到 8）：派派兔走到花田，採一半。",
+      "其他情況：花還沒開，派派兔走到小木屋等。",
+      "派派狼把木頭搬到小路上；派派鼠把青蛙傘架搬到草藥籃旁邊。"
+    ],
+    "limits": [
+      "保留 bloom 這一行，用 if / elif / else 判斷。"
+    ],
+    "expected": "按「▶ 看示範」看 bloom = 8 時大家怎麼做。交件時會換別的 bloom 再檢查。"
+  },
+  "patterns": [
+    {
+      "say": "派派兔走到花田",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "花田"
+      },
+      "desc": "派派兔走到花田前面"
+    },
+    {
+      "say": "派派兔採花",
+      "act": "do",
+      "args": {
+        "who": "rabbit",
+        "spot": "花田",
+        "verb": "採花",
+        "text": "採了滿滿一籃！"
+      },
+      "desc": "派派兔在花田採一整籃"
+    },
+    {
+      "say": "派派兔採一半",
+      "act": "do",
+      "args": {
+        "who": "rabbit",
+        "spot": "花田",
+        "verb": "採花",
+        "text": "先採一半，留一些給蜜蜂～"
+      },
+      "desc": "派派兔在花田採一半"
+    },
+    {
+      "say": "派派兔走到小木屋",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "小木屋"
+      },
+      "desc": "派派兔走到小木屋旁邊等"
+    },
+    {
+      "say": "派派狼走到木頭",
+      "act": "walk_to",
+      "args": {
+        "who": "wolf",
+        "spot": "木頭"
+      },
+      "desc": "派派狼走到木頭旁邊（面向木頭）"
+    },
+    {
+      "say": "派派狼搬起",
+      "act": "pick_up",
+      "args": {
+        "who": "wolf"
+      },
+      "desc": "派派狼把面前的東西抱起來"
+    },
+    {
+      "say": "派派狼走到小路",
+      "act": "walk_to",
+      "args": {
+        "who": "wolf",
+        "spot": "小路"
+      },
+      "desc": "派派狼走到小路（面向南邊）"
+    },
+    {
+      "say": "派派狼放下",
+      "act": "put_down",
+      "args": {
+        "who": "wolf"
+      },
+      "desc": "派派狼把手上的東西放在面前"
+    },
+    {
+      "say": "派派鼠走到傘架",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "傘架"
+      },
+      "desc": "派派鼠走到傘架旁邊（面向傘架）"
+    },
+    {
+      "say": "派派鼠搬起",
+      "act": "pick_up",
+      "args": {
+        "who": "gopher"
+      },
+      "desc": "派派鼠把面前的東西抱起來"
+    },
+    {
+      "say": "派派鼠放下",
+      "act": "put_down",
+      "args": {
+        "who": "gopher"
+      },
+      "desc": "派派鼠把手上的東西放在面前"
+    },
+    {
+      "say": "派派鼠走到草藥籃",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "草藥籃"
+      },
+      "desc": "派派鼠走到草藥籃旁邊（面向西邊）"
+    }
+  ],
+  "speech_example": "薰衣草開了8成",
+  "room": {
+    "name": "薰衣草原・花田",
+    "scene": "lavender",
+    "size": [
+      8,
+      6
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        3,
+        5
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          4,
+          5
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          2,
+          5
+        ],
+        "dir": "N"
+      }
+    ],
+    "spots": {
+      "花田": {
+        "cell": [
+          2,
+          2
+        ],
+        "face": "N"
+      },
+      "小木屋": {
+        "cell": [
+          0,
+          2
+        ],
+        "face": "W"
+      },
+      "木頭": {
+        "cell": [
+          5,
+          1
+        ],
+        "face": "E"
+      },
+      "小路": {
+        "cell": [
+          5,
+          3
+        ],
+        "face": "S"
+      },
+      "傘架": {
+        "cell": [
+          6,
+          1
+        ],
+        "face": "E"
+      },
+      "草藥籃": {
+        "cell": [
+          3,
+          4
+        ],
+        "face": "W"
+      }
+    },
+    "decor": [
+      {
+        "type": "herb_basket",
+        "cell": [
+          1,
+          4
+        ]
+      }
+    ],
+    "furniture": [
+      {
+        "uid": "lv1",
+        "type": "lavender_patch",
+        "cell": [
+          1,
+          1
+        ]
+      },
+      {
+        "uid": "lv2",
+        "type": "lavender_patch",
+        "cell": [
+          2,
+          1
+        ]
+      },
+      {
+        "uid": "lv3",
+        "type": "lavender_patch",
+        "cell": [
+          3,
+          1
+        ]
+      },
+      {
+        "uid": "lv4",
+        "type": "lavender_patch",
+        "cell": [
+          4,
+          1
+        ]
+      },
+      {
+        "uid": "lv5",
+        "type": "lavender_patch",
+        "cell": [
+          7,
+          0
+        ]
+      },
+      {
+        "uid": "lv6",
+        "type": "lavender_patch",
+        "cell": [
+          7,
+          2
+        ]
+      },
+      {
+        "uid": "log",
+        "type": "forest_log",
+        "cell": [
+          6,
+          1
+        ]
+      },
+      {
+        "uid": "frog",
+        "type": "old_umbrella_stand",
+        "cell": [
+          7,
+          1
+        ]
+      }
+    ]
+  },
+  "goal_items": [
+    "log",
+    "frog"
+  ],
+  "goal_actors": [
+    "gopher",
+    "wolf",
+    "rabbit"
+  ],
+  "starter_code": "bloom = 8\n\n# 1. 說：薰衣草開了○成\n\n\n# 2. 依照 bloom 決定派派兔要做什麼（if / elif / else）\n\n\n# 3. 派派狼把木頭搬到小路\n\n\n# 4. 派派鼠把青蛙傘架搬到草藥籃旁邊\n\n",
+  "given_vars": [
+    "bloom"
+  ],
+  "reference": "bloom = 8\nprint(f\"薰衣草開了{bloom}成\")\nif bloom >= 8:\n    print(\"派派兔走到花田\")\n    print(\"派派兔採花\")\nelif bloom >= 5:\n    print(\"派派兔走到花田\")\n    print(\"派派兔採一半\")\nelse:\n    print(\"派派兔走到小木屋\")\nprint(\"派派狼走到木頭\")\nprint(\"派派狼搬起\")\nprint(\"派派狼走到小路\")\nprint(\"派派狼放下\")\nprint(\"派派鼠走到傘架\")\nprint(\"派派鼠搬起\")\nprint(\"派派鼠走到草藥籃\")\nprint(\"派派鼠放下\")\n",
+  "tests": [
+    {
+      "name": "bloom = 8",
+      "vars": {
+        "bloom": 8
+      }
+    },
+    {
+      "name": "隱藏測資：bloom = 5",
+      "hidden": true,
+      "vars": {
+        "bloom": 5
+      }
+    },
+    {
+      "name": "隱藏測資：bloom = 3",
+      "hidden": true,
+      "vars": {
+        "bloom": 3
+      }
+    },
+    {
+      "name": "隱藏測資：bloom = 10",
+      "hidden": true,
+      "vars": {
+        "bloom": 10
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "bloom"
+    },
+    {
+      "id": "must_use",
+      "node": "If",
+      "label": "if"
+    },
+    {
+      "id": "must_use_op",
+      "op": ">="
+    },
+    {
+      "id": "must_use",
+      "node": "JoinedStr",
+      "label": "f-string"
+    }
+  ],
+  "reward": {
+    "furniture": "old_umbrella_stand",
+    "message": "池塘邊的木頭後面，就是爺爺的青蛙傘架！青蛙的嘴巴舊舊的、有點掉漆。先收進收藏冊，之後請大牙師傅修好，擺回玄關。"
+  },
+  "author_notes": "第 5 章章末冒險。bloom 的三種情況讓派派兔走到不同地方（goal_actors 會檢查），隱藏測資涵蓋邊界 5、8 和 else。"
+}

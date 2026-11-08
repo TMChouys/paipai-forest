@@ -16,6 +16,13 @@ var gopher_cell := Vector2i(0, 0)
 var gopher_dir := "N"
 var holding := ""
 var spots: Dictionary = {}  # 名稱 -> {cell:Vector2i, face:"N"}
+## 野外冒險：一起在場上的角色（派派狼、派派兔），程式也可以指揮他們。who -> {cell, dir, holding}
+var actors: Dictionary = {}
+var decor: Array = []      # 野外：只是裝飾、不擋路的東西 [{type, cell}]（野餐墊、草藥籃）
+var lock_code := 0          # 石門的密碼（layout.lock.code；測資可以用 "lock" 換掉）
+var lock_gate := ""         # 哪一件是石門（打開就消失）
+var _cur := "gopher"        # 現在是誰在做動作
+const STRONG := ["wolf"]    # 派派狼力氣大：搬得動重的東西（heavy）
 
 
 static func defs() -> Dictionary:
@@ -41,6 +48,13 @@ static func from_layout(layout: Dictionary) -> WorldModel:
 	var g: Dictionary = layout.get("gopher", {"cell": [0, 0], "dir": "N"})
 	w.gopher_cell = Vector2i(int(g.cell[0]), int(g.cell[1]))
 	w.gopher_dir = g.get("dir", "N")
+	for n in layout.get("npcs", []):
+		if layout.get("actors_move", false):
+			w.actors[n.who] = {"cell": Vector2i(int(n.cell[0]), int(n.cell[1])), "dir": n.get("dir", "N"), "holding": ""}
+	w.decor = layout.get("decor", [])
+	var lk: Dictionary = layout.get("lock", {})
+	w.lock_code = int(lk.get("code", 0))
+	w.lock_gate = lk.get("gate", "")
 	for name in layout.get("spots", {}):
 		var s: Dictionary = layout.spots[name]
 		w.spots[name] = {"cell": Vector2i(int(s.cell[0]), int(s.cell[1])), "face": s.get("face", "N")}
@@ -71,6 +85,9 @@ func clone() -> WorldModel:
 	w.gopher_dir = gopher_dir
 	w.holding = holding
 	w.spots = spots.duplicate(true)
+	w.actors = actors.duplicate(true)
+	w.lock_code = lock_code
+	w.lock_gate = lock_gate
 	return w
 
 
@@ -99,7 +116,7 @@ func footprint(item: Dictionary) -> Array:
 ## 這一格被哪個落地家具佔用（"" 表示空）
 func floor_item_at(c: Vector2i, ignore: String = "") -> String:
 	for uid in items:
-		if uid == ignore or uid == holding:
+		if uid == ignore or uid == holding or _held_by_actor(uid):
 			continue
 		var it: Dictionary = items[uid]
 		if it.wall != "" or it.on != "":
@@ -114,7 +131,54 @@ func is_free(c: Vector2i, ignore: String = "") -> bool:
 
 
 func walkable(c: Vector2i) -> bool:
-	return in_room(c) and floor_item_at(c) == ""
+	return in_room(c) and floor_item_at(c) == "" and not _occupied(c)
+
+
+## 這一格有沒有站著別的角色（自己以外）
+func _occupied(c: Vector2i) -> bool:
+	if actors.is_empty():
+		return false
+	if _cur != "gopher" and c == _gopher_saved.get("cell", Vector2i(-99, -99)):
+		return true
+	for who in actors:
+		if who != _cur and actors[who].cell == c:
+			return true
+	return false
+
+
+func _held_by_actor(uid: String) -> bool:
+	for who in actors:
+		if who != _cur and actors[who].holding == uid:
+			return true
+	if _cur != "gopher" and _gopher_saved.get("holding", "") == uid:
+		return true
+	return false
+
+
+var _gopher_saved: Dictionary = {}
+
+
+## 換成別的角色來做動作：把他的狀態放進 gopher_* 欄位，做完再換回來
+func _as_actor(who: String, act: String, args: Dictionary) -> Dictionary:
+	if not actors.has(who):
+		return {"ok": false, "act": act, "who": who, "reason": "%s不在這裡" % who}
+	_gopher_saved = {"cell": gopher_cell, "dir": gopher_dir, "holding": holding}
+	var a: Dictionary = actors[who]
+	gopher_cell = a.cell
+	gopher_dir = a.dir
+	holding = a.holding
+	_cur = who
+	var res := apply(act, args)
+	a.cell = gopher_cell
+	a.dir = gopher_dir
+	a.holding = holding
+	gopher_cell = _gopher_saved.cell
+	gopher_dir = _gopher_saved.dir
+	holding = _gopher_saved.holding
+	_cur = "gopher"
+	_gopher_saved = {}
+	res.who = who
+	return res
 
 
 func children_of(uid: String) -> Array:
@@ -161,7 +225,20 @@ func can_place(type: String, cell: Vector2i, rot: int, uid: String = "", on: Str
 # ---------------- 動作（任務演出用）----------------
 ## 每個動作回傳 {ok, act, ...演出需要的資料, reason}
 func apply(act: String, args: Dictionary = {}) -> Dictionary:
+	var who: String = args.get("who", "gopher")
+	if who != "gopher" and _cur == "gopher":
+		var a2 := args.duplicate()
+		a2.erase("who")
+		return _as_actor(who, act, a2)
 	match act:
+		"open_gate":
+			return _open_gate(int(args.get("code", 0)))
+		"do":
+			# 在指定地點做一件事（採花、照亮……）：要先走到那個地點
+			var sp: String = args.get("spot", "")
+			if sp != "" and spots.has(sp) and gopher_cell != spots[sp].cell:
+				return {"ok": false, "act": "do", "reason": "要先走到%s才能%s" % [sp, args.get("verb", "做這件事")]}
+			return {"ok": true, "act": "do", "text": str(args.get("text", "")), "dir": gopher_dir}
 		"walk_to":
 			return _walk_to(str(args.get("spot", "")))
 		"forward":
@@ -214,7 +291,8 @@ func _pick_up() -> Dictionary:
 	var uid := floor_item_at(front_cell())
 	if uid == "":
 		return {"ok": false, "act": "pick_up", "reason": "面前沒有家具可以搬"}
-	if not def_of(items[uid].type).get("carry", false):
+	var dd := def_of(items[uid].type)
+	if not dd.get("carry", false) and not (dd.get("heavy", false) and _cur in STRONG):
 		return {"ok": false, "act": "pick_up", "uid": uid, "reason": "%s太重了，搬不動" % def_of(items[uid].type).name}
 	holding = uid
 	return {"ok": true, "act": "pick_up", "uid": uid}
@@ -259,6 +337,18 @@ func _push(n: int) -> Dictionary:
 		gopher_cell += d
 		moved += 1
 	return {"ok": true, "act": "push", "uid": uid, "steps": moved}
+
+
+## 石門：說對密碼才會打開（石門消失，可以走過去）
+func _open_gate(code: int) -> Dictionary:
+	if lock_gate == "" or not items.has(lock_gate):
+		return {"ok": false, "act": "open_gate", "reason": "這裡沒有關著的門"}
+	if code != lock_code:
+		return {"ok": false, "act": "open_gate", "uid": lock_gate, "reason": "密碼「%d」不對，石門動也不動" % code,
+			"hint": "再算一次密碼，數字對了門才會開。"}
+	var uid := lock_gate
+	items.erase(uid)
+	return {"ok": true, "act": "open_gate", "uid": uid}
 
 
 ## A*（四方向）。回傳包含起點與終點的路徑；走不到回傳 []。

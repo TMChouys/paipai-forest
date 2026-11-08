@@ -343,6 +343,7 @@ func show_board(tasks: Array, progress: Dictionary) -> void:
 		var stars: int = progress.get(t.id, 0)
 		var row := PanelContainer.new()
 		var side: bool = t.get("track", "main") == "side"
+		var adv: bool = t.get("track", "main") == "adventure"
 		row.add_theme_stylebox_override("panel", UIKit.panel_style(Color("fffdf6"), 12, UIKit.INK, 2))
 		if not unlocked:
 			row.modulate.a = 0.55  # 還沒解鎖：淡一點，不搶眼
@@ -355,11 +356,13 @@ func show_board(tasks: Array, progress: Dictionary) -> void:
 		var th := HBoxContainer.new()
 		th.add_theme_constant_override("separation", 8)
 		info.add_child(th)
-		th.add_child(_track_tag(side))
-		var tag := "困難" if side else "No.%d" % int(t.order)
+		th.add_child(_track_tag(side, adv))
+		var tag := "困難" if side else ("出門" if adv else "No.%d" % int(t.order))
 		th.add_child(UIKit.label("%s　%s" % [tag, t.title], 18))
 		var reward_name: String = WorldModel.def_of(t.reward.furniture).name
 		var sub := "%s　難度 %s　獎勵：%s" % [t.concept, "★".repeat(int(t.difficulty)), reward_name]
+		if t.has("place"):
+			sub = "地點：%s　%s" % [t.place, sub]
 		if not unlocked:
 			sub = _lock_reason(t, tasks, progress)
 		info.add_child(UIKit.label(sub, 14, Color("8a6a50")))
@@ -389,10 +392,10 @@ func show_board(tasks: Array, progress: Dictionary) -> void:
 
 
 ## 主線／支線標籤（顏色＋文字，色盲也分得出來）
-static func _track_tag(side: bool) -> Label:
-	var l := UIKit.label("支線" if side else "主線", 14, UIKit.INK)
+static func _track_tag(side: bool, adv: bool = false) -> Label:
+	var l := UIKit.label("冒險" if adv else ("支線" if side else "主線"), 14, UIKit.INK)
 	l.add_theme_font_override("font", UIKit.font_bold())
-	var st := UIKit.panel_style(Color("9fd18f") if side else Color("ffcf6b"), 8, UIKit.INK, 1)
+	var st := UIKit.panel_style(Color("c9b3ea") if adv else (Color("9fd18f") if side else Color("ffcf6b")), 8, UIKit.INK, 1)
 	st.shadow_size = 0
 	st.content_margin_left = 8
 	st.content_margin_right = 8
@@ -419,7 +422,7 @@ static func _done_stamp() -> Label:
 
 
 static func _lock_reason(t: Dictionary, tasks: Array, progress: Dictionary) -> String:
-	if t.get("track", "main") == "side":
+	if t.get("track", "main") in ["side", "adventure"]:
 		return "完成 %d 個主線任務後解鎖" % int(t.get("unlock_after_main", 2))
 	var first := 999
 	for x in tasks:
@@ -429,7 +432,7 @@ static func _lock_reason(t: Dictionary, tasks: Array, progress: Dictionary) -> S
 
 
 static func is_unlocked(t: Dictionary, tasks: Array, progress: Dictionary) -> bool:
-	if t.get("track", "main") == "side":
+	if t.get("track", "main") in ["side", "adventure"]:
 		# 支線：完成 2 個主線任務後解鎖
 		var done := 0
 		for x in tasks:

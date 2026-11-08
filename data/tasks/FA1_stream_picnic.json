@@ -1,0 +1,303 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好出門冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range"
+  ],
+  "id": "FA1_stream_picnic",
+  "order": 201,
+  "unlock_after_main": 3,
+  "difficulty": 2,
+  "title": "溪畔的舊茶杯",
+  "concept": "算術運算 // %＋三個人一起行動（第 3 章冒險）",
+  "place": "派派森林・溪畔",
+  "sheet": {
+    "story": "派派狼帶大家來到派派森林的溪畔。爺爺筆記上寫著：「溪邊的大石頭後面，藏著我們野餐用的茶杯。」\n大石頭太重了，只有[b]派派狼[/b]搬得動。茶杯找到以後，大家坐在野餐墊上分蘑菇吃。",
+    "given": [
+      "地點：派派森林・溪畔（地上一格一格的地磚就是座標）。",
+      "程式第 1 行已經寫好 per = 5：每一叢蘑菇有 per 朵。",
+      "場上有幾叢蘑菇，自己數一數（不算倒下的木頭）。",
+      "這個任務的 print()：符合句型表的話是角色的動作；其他的話是派派鼠說的話。"
+    ],
+    "rules": [
+      "先請派派狼把大石頭搬到樹下（放在他面前），派派鼠才走得到茶杯。",
+      "派派鼠把茶杯搬到野餐墊上，派派兔走到野餐墊邊。",
+      "算出蘑菇一共幾朵，用 f-string 說：蘑菇一共○朵",
+      "派派狼不吃蘑菇，派派鼠和派派兔兩個人平分：每人○朵，剩下○朵（用 // 和 %）"
+    ],
+    "limits": [
+      "保留 per 這一行，蘑菇數量要用 per 算，不能直接寫答案。"
+    ],
+    "expected": "按「▶ 看示範」看三個人怎麼一起找到茶杯。交件時會換別的 per 再檢查。"
+  },
+  "patterns": [
+    {
+      "say": "派派狼走到大石頭",
+      "act": "walk_to",
+      "args": {
+        "who": "wolf",
+        "spot": "大石頭"
+      },
+      "desc": "派派狼走到大石頭旁邊（面向大石頭）"
+    },
+    {
+      "say": "派派狼搬起",
+      "act": "pick_up",
+      "args": {
+        "who": "wolf"
+      },
+      "desc": "派派狼把面前的東西抱起來"
+    },
+    {
+      "say": "派派狼走到樹下",
+      "act": "walk_to",
+      "args": {
+        "who": "wolf",
+        "spot": "樹下"
+      },
+      "desc": "派派狼走到樹下（面向南邊）"
+    },
+    {
+      "say": "派派狼放下",
+      "act": "put_down",
+      "args": {
+        "who": "wolf"
+      },
+      "desc": "派派狼把手上的東西放在面前"
+    },
+    {
+      "say": "派派鼠走到茶杯",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "茶杯"
+      },
+      "desc": "派派鼠走到茶杯旁邊（面向茶杯）"
+    },
+    {
+      "say": "派派鼠搬起",
+      "act": "pick_up",
+      "args": {
+        "who": "gopher"
+      },
+      "desc": "派派鼠把面前的東西抱起來"
+    },
+    {
+      "say": "派派鼠放下",
+      "act": "put_down",
+      "args": {
+        "who": "gopher"
+      },
+      "desc": "派派鼠把手上的東西放在面前"
+    },
+    {
+      "say": "派派鼠走到野餐墊",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "野餐墊"
+      },
+      "desc": "派派鼠走到野餐墊旁邊（面向野餐墊）"
+    },
+    {
+      "say": "派派兔走到野餐墊邊",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "野餐墊邊"
+      },
+      "desc": "派派兔走到野餐墊北邊"
+    }
+  ],
+  "speech_example": "蘑菇一共15朵",
+  "room": {
+    "name": "派派森林・溪畔",
+    "scene": "forest",
+    "size": [
+      8,
+      6
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        1,
+        5
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          2,
+          5
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          0,
+          5
+        ],
+        "dir": "N"
+      }
+    ],
+    "spots": {
+      "大石頭": {
+        "cell": [
+          4,
+          2
+        ],
+        "face": "E"
+      },
+      "樹下": {
+        "cell": [
+          4,
+          4
+        ],
+        "face": "S"
+      },
+      "茶杯": {
+        "cell": [
+          5,
+          2
+        ],
+        "face": "E"
+      },
+      "野餐墊": {
+        "cell": [
+          2,
+          4
+        ],
+        "face": "W"
+      },
+      "野餐墊邊": {
+        "cell": [
+          1,
+          3
+        ],
+        "face": "S"
+      }
+    },
+    "decor": [
+      {
+        "type": "picnic_mat",
+        "cell": [
+          1,
+          4
+        ]
+      }
+    ],
+    "furniture": [
+      {
+        "uid": "rock",
+        "type": "big_rock",
+        "cell": [
+          5,
+          2
+        ]
+      },
+      {
+        "uid": "teacup",
+        "type": "old_teacup",
+        "cell": [
+          6,
+          2
+        ]
+      },
+      {
+        "uid": "m1",
+        "type": "mushroom_ring",
+        "cell": [
+          6,
+          1
+        ]
+      },
+      {
+        "uid": "m2",
+        "type": "mushroom_ring",
+        "cell": [
+          6,
+          3
+        ]
+      },
+      {
+        "uid": "m3",
+        "type": "mushroom_ring",
+        "cell": [
+          2,
+          1
+        ]
+      },
+      {
+        "uid": "log1",
+        "type": "forest_log",
+        "cell": [
+          7,
+          2
+        ]
+      }
+    ]
+  },
+  "goal_items": [
+    "rock",
+    "teacup"
+  ],
+  "goal_actors": [
+    "gopher",
+    "wolf",
+    "rabbit"
+  ],
+  "starter_code": "per = 5\n\n# 1. 派派狼走到大石頭、搬起來，走到樹下放下\n\n\n# 2. 派派鼠走到茶杯、搬起來，走到野餐墊放下\n\n\n# 3. 派派兔走到野餐墊邊\n\n\n# 4. 數一數場上有幾叢蘑菇，算出一共幾朵\n#    說：蘑菇一共○朵\n\n\n# 5. 兩個人平分（// 和 %）\n#    說：每人○朵，剩下○朵\n\n",
+  "given_vars": [
+    "per"
+  ],
+  "reference": "per = 5\nprint(\"派派狼走到大石頭\")\nprint(\"派派狼搬起\")\nprint(\"派派狼走到樹下\")\nprint(\"派派狼放下\")\nprint(\"派派鼠走到茶杯\")\nprint(\"派派鼠搬起\")\nprint(\"派派鼠走到野餐墊\")\nprint(\"派派鼠放下\")\nprint(\"派派兔走到野餐墊邊\")\ngroups = 3\ntotal = groups * per\nprint(f\"蘑菇一共{total}朵\")\neach = total // 2\nleft = total % 2\nprint(f\"每人{each}朵，剩下{left}朵\")\n",
+  "tests": [
+    {
+      "name": "per = 5",
+      "vars": {
+        "per": 5
+      }
+    },
+    {
+      "name": "隱藏測資：per = 4",
+      "hidden": true,
+      "vars": {
+        "per": 4
+      }
+    },
+    {
+      "name": "隱藏測資：per = 7",
+      "hidden": true,
+      "vars": {
+        "per": 7
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "per"
+    },
+    {
+      "id": "must_use",
+      "node": "JoinedStr",
+      "label": "f-string"
+    }
+  ],
+  "reward": {
+    "furniture": "old_teacup",
+    "message": "在大石頭後面找到一個舊茶杯，杯底刻著「△ ○ ☆」三個記號——和爺爺照片裡長桌上的茶杯一模一樣！先收進收藏冊，之後請大牙師傅修一修。"
+  },
+  "author_notes": "第 3 章章末冒險。三個角色都要照程式動：派派狼搬重物（只有他搬得動 heavy）、派派鼠拿茶杯、派派兔走到野餐墊。蘑菇 3 叢要自己從場景數。"
+}

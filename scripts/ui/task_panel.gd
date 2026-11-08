@@ -361,7 +361,7 @@ func speed() -> float:
 # ---------------- 內容 ----------------
 func load_task(t: Dictionary, saved_code: String) -> void:
 	task = t
-	var tag := "支線" if t.get("track", "main") == "side" else "任務 No.%d" % int(t.get("order", 0))
+	var tag := "支線" if t.get("track", "main") == "side" else ("冒險・" + String(t.get("place", "")) if t.get("track", "main") == "adventure" else "任務 No.%d" % int(t.get("order", 0)))
 	title_label.text = "%s・%s" % [tag, t.title]
 	title_sub.text = "%s　難度 %s" % [t.concept, "★".repeat(int(t.get("difficulty", 1)))]
 	_fill_sheet(t)
@@ -463,6 +463,9 @@ static func build_sheet(t: Dictionary) -> Dictionary:
 	var giver: String = RoomView.NAMES.get(t.get("npc", "wolf"), "派派狼")
 	var head := "[font_size=20][b]%s的任務單[/b][/font_size]\n" % giver
 	head += "[color=#8a6a50]%s・難度 %s[/color]" % [UIKit.esc(t.get("concept", "")), "★".repeat(int(t.get("difficulty", 1)))]
+	if t.has("place"):
+		head += "
+[b]📍 地點：%s[/b]（派派狼帶大家出門冒險，在這裡執行任務）" % UIKit.esc(t.place)
 	var hidden := 0
 	for test in t.get("tests", []):
 		if test.get("hidden", false):

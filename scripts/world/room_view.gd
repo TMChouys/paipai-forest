@@ -17,7 +17,7 @@ var gopher: GopherActor
 ## 來訪的角色：who → GopherActor（"wolf"、"rabbit"）
 var npcs: Dictionary = {}
 const NAMES := {"gopher": "派派鼠", "wolf": "派派狼", "rabbit": "派派兔", "tanuki": "狸老闆", "turtle": "慢慢館長", "crow": "拍拍鳥", "calico": "三花奶奶", "blackcat": "黑貓弟弟"}
-const BUBBLE_H := {"gopher": 1.3, "wolf": 1.45, "rabbit": 1.6, "tanuki": 1.45, "turtle": 1.4, "crow": 1.4}
+const BUBBLE_H := {"gopher": 1.3, "wolf": 1.45, "rabbit": 1.6, "tanuki": 1.45, "turtle": 1.4, "crow": 1.4, "calico": 1.35, "blackcat": 1.15}
 var grid_visible := true
 ## house = 樹屋（木地板、牆）；town = 鎮中心（任務格子放在 town_spot 那棟房子前面）
 var scene := "house"
@@ -46,7 +46,9 @@ func build(w: WorldModel) -> void:
 	furniture_nodes.clear()
 	walls.clear()
 	npcs.clear()
-	if scene != "town":
+	if FieldView.is_field(scene):
+		FieldView.build_floor(self, world, scene)   # 野外冒險：梅花排列的地磚，沒有牆
+	elif scene != "town":
 		_build_floor()
 		_build_walls()
 	_build_grid()
@@ -492,6 +494,9 @@ static func door_x(w: WorldModel) -> float:
 ## 屋外：神木、溪流、前院、森林（Kenney Nature Kit，CC0）。只是裝飾，不在格子裡。
 ## with_mailbox：家裡才有門口的信箱（任務房間沒有）
 func build_outdoor(with_mailbox: bool = false) -> void:
+	if FieldView.is_field(scene):
+		FieldView.build_surround(self, world, scene)
+		return
 	if with_mailbox and scene != "town":
 		mailbox = Models.furniture("mailbox")
 		mailbox.name = "Mailbox"
@@ -2020,46 +2025,72 @@ func swing_door(open: bool, side: String = "S") -> void:
 # ---------------- 任務演出 ----------------
 ## 演出一個動作結果（由 TaskRunner 先算好）。回傳後畫面狀態 = 動作後。
 func play_result(res: Dictionary, speed: float) -> void:
+	var who: String = res.get("who", "gopher") if res.act != "say" else "gopher"
+	var a := actor(who)   # 野外：派派狼、派派兔也會照程式動
+	a.speed_scale = speed
 	gopher.speed_scale = speed
 	match res.act:
 		"walk_to", "forward":
-			await gopher.walk_path(res.get("path", []), null)
+			await a.walk_path(res.get("path", []), null)
 			if res.has("dir"):
-				await gopher.turn_to(res.dir)
+				await a.turn_to(res.dir)
 			if not res.ok:
-				await gopher.confused()
+				await a.confused()
 		"turn_left", "turn_right":
-			await gopher.turn_to(res.dir)
+			await a.turn_to(res.dir)
 		"pick_up":
 			if res.ok:
-				await gopher.pick(furniture_nodes[res.uid])
+				await a.pick(furniture_nodes[res.uid])
 			else:
-				await gopher.confused()
+				await a.confused()
 		"put_down":
 			if res.ok:
 				var item: Dictionary = world.items[res.uid]
 				item.cell = res.cell
-				var node := await gopher.drop(self, item_pos(item, world))
+				var node := await a.drop(self, item_pos(item, world))
 				node.rotation.y = item_yaw(item)
 			else:
-				await gopher.confused()
+				await a.confused()
 		"push":
 			var steps: int = res.get("steps", 0)
 			if steps > 0:
 				var node2: Node3D = furniture_nodes[res.uid]
-				var d: Vector2i = WorldModel.DIRS[gopher.dir]
-				var cells: Array = [world.gopher_cell]
-				var c: Vector2i = world.gopher_cell
+				var d: Vector2i = WorldModel.DIRS[a.dir]
+				var start: Vector2i = world.gopher_cell if who == "gopher" else world.actors[who].cell
+				var cells: Array = [start]
+				var c: Vector2i = start
 				for i in range(steps):
 					c += d
 					cells.append(c)
-				gopher.pushing = true
-				await gopher.walk_path(cells, node2)
-				gopher.pushing = false
-				world.gopher_cell = c
+				a.pushing = true
+				await a.walk_path(cells, node2)
+				a.pushing = false
+				if who == "gopher":
+					world.gopher_cell = c
+				else:
+					world.actors[who].cell = c
 				world.items[res.uid].cell += d * steps
 			if not res.ok:
-				await gopher.confused()
+				await a.confused()
+		"open_gate":
+			if res.ok and furniture_nodes.has(res.uid):
+				a.hop(0.12)
+				var gate: Node3D = furniture_nodes[res.uid]
+				var tw := create_tween()
+				tw.tween_property(gate, "position:y", gate.position.y - 2.2, 1.0 / speed).set_ease(Tween.EASE_IN)
+				await tw.finished
+				gate.visible = false
+				world.items.erase(res.uid)
+			else:
+				await a.confused()
+		"do":
+			if res.ok:
+				a.hop(0.1)
+				if res.get("text", "") != "":
+					a.say(res.text, "say")
+				await get_tree().create_timer(maxf(0.8, talk_time(res.get("text", "")) * 0.8) / speed).timeout
+			else:
+				await a.confused()
 		"say":
 			var sp := actor(res.get("who", "gopher"))
 			sp.say(res.text, "say")
@@ -2087,8 +2118,13 @@ func play_result(res: Dictionary, speed: float) -> void:
 		"confused":
 			await gopher.confused()
 	if not res.ok:
-		gopher.say(res.get("reason", "咦？"), "fail")
+		a.say(res.get("reason", "咦？"), "fail")
 	# 同步畫面用的世界狀態（只有位置與方向）
+	if who != "gopher" and world.actors.has(who):
+		if res.act in ["walk_to", "forward"] and res.has("path") and not res.path.is_empty():
+			world.actors[who].cell = res.path[-1]
+		world.actors[who].dir = a.dir
+		return
 	if res.act in ["walk_to", "forward"] and res.has("path") and not res.path.is_empty():
 		world.gopher_cell = res.path[-1]
 	if res.has("dir"):

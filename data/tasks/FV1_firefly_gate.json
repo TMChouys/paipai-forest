@@ -1,0 +1,308 @@
+{
+  "schema": 1,
+  "track": "adventure",
+  "npc": "wolf",
+  "npc_line": "準備好出門冒險了嗎？",
+  "print_role": "mixed",
+  "scoring": {},
+  "builtins": [
+    "print",
+    "str",
+    "int",
+    "float",
+    "range"
+  ],
+  "id": "FV1_firefly_gate",
+  "order": 203,
+  "unlock_after_main": 6,
+  "difficulty": 3,
+  "title": "螢火蟲的密碼門",
+  "concept": "for 迴圈與累加＋三個人一起行動（第 6 章冒險）",
+  "place": "螢光寶庫・入口",
+  "sheet": {
+    "story": "派派狼第一次帶大家走進螢光寶庫。石門上刻著：「第 1 盞燈 1 隻螢火蟲、第 2 盞燈 2 隻……一直到第 n 盞燈。全部的螢火蟲加起來，就是密碼。」\n門後面的石台上，放著爺爺的[b]發光石[/b]。",
+    "given": [
+      "地點：螢光寶庫・入口。",
+      "程式第 1 行已經寫好 n = 5：一共有 n 盞燈。",
+      "說「開門」加上密碼（例如「開門15」），密碼對了石門才會打開。",
+      "這個任務的 print()：符合句型表的話是角色的動作；其他的話是派派鼠說的話。"
+    ],
+    "rules": [
+      "用 for 迴圈把 1 + 2 + … + n 加起來，算出密碼。",
+      "石門打開後：派派狼走到門邊守著；派派兔走到石台旁照亮。",
+      "派派鼠走到石台、搬起發光石，帶回門口放下。"
+    ],
+    "limits": [
+      "保留 n 這一行，密碼要用迴圈算出來，不能直接寫答案。"
+    ],
+    "expected": "按「▶ 看示範」看 n = 5 時石門怎麼打開。交件時會換別的 n 再檢查（密碼也會跟著變）。"
+  },
+  "patterns": [
+    {
+      "say": "開門{code}",
+      "act": "open_gate",
+      "args": {},
+      "desc": "派派鼠說出密碼，對了石門就打開"
+    },
+    {
+      "say": "派派狼走到門邊",
+      "act": "walk_to",
+      "args": {
+        "who": "wolf",
+        "spot": "門邊"
+      },
+      "desc": "派派狼走到石門旁邊守著"
+    },
+    {
+      "say": "派派兔走到石台旁",
+      "act": "walk_to",
+      "args": {
+        "who": "rabbit",
+        "spot": "石台旁"
+      },
+      "desc": "派派兔走到石台旁邊"
+    },
+    {
+      "say": "派派兔照亮",
+      "act": "do",
+      "args": {
+        "who": "rabbit",
+        "spot": "石台旁",
+        "verb": "照亮",
+        "text": "我來照亮！"
+      },
+      "desc": "派派兔舉起螢火蟲燈照亮石台"
+    },
+    {
+      "say": "派派鼠走到石台",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "石台"
+      },
+      "desc": "派派鼠走到石台旁邊（面向發光石）"
+    },
+    {
+      "say": "派派鼠搬起",
+      "act": "pick_up",
+      "args": {
+        "who": "gopher"
+      },
+      "desc": "派派鼠把面前的東西抱起來"
+    },
+    {
+      "say": "派派鼠放下",
+      "act": "put_down",
+      "args": {
+        "who": "gopher"
+      },
+      "desc": "派派鼠把手上的東西放在面前"
+    },
+    {
+      "say": "派派鼠走到門口",
+      "act": "walk_to",
+      "args": {
+        "who": "gopher",
+        "spot": "門口"
+      },
+      "desc": "派派鼠走回門口（面向東邊）"
+    }
+  ],
+  "speech_example": "密碼是15",
+  "room": {
+    "name": "螢光寶庫・入口",
+    "scene": "vault",
+    "size": [
+      8,
+      7
+    ],
+    "actors_move": true,
+    "gopher": {
+      "cell": [
+        3,
+        6
+      ],
+      "dir": "N"
+    },
+    "npcs": [
+      {
+        "who": "wolf",
+        "cell": [
+          2,
+          6
+        ],
+        "dir": "N"
+      },
+      {
+        "who": "rabbit",
+        "cell": [
+          4,
+          6
+        ],
+        "dir": "N"
+      }
+    ],
+    "lock": {
+      "code": 15,
+      "gate": "gate"
+    },
+    "spots": {
+      "門邊": {
+        "cell": [
+          2,
+          4
+        ],
+        "face": "N"
+      },
+      "石台旁": {
+        "cell": [
+          5,
+          2
+        ],
+        "face": "N"
+      },
+      "石台": {
+        "cell": [
+          4,
+          1
+        ],
+        "face": "E"
+      },
+      "門口": {
+        "cell": [
+          2,
+          5
+        ],
+        "face": "E"
+      }
+    },
+    "furniture": [
+      {
+        "uid": "w0",
+        "type": "cave_rock",
+        "cell": [
+          0,
+          3
+        ]
+      },
+      {
+        "uid": "w1",
+        "type": "cave_rock",
+        "cell": [
+          1,
+          3
+        ]
+      },
+      {
+        "uid": "w2",
+        "type": "cave_rock",
+        "cell": [
+          2,
+          3
+        ]
+      },
+      {
+        "uid": "w4",
+        "type": "cave_rock",
+        "cell": [
+          4,
+          3
+        ]
+      },
+      {
+        "uid": "w5",
+        "type": "cave_rock",
+        "cell": [
+          5,
+          3
+        ]
+      },
+      {
+        "uid": "w6",
+        "type": "cave_rock",
+        "cell": [
+          6,
+          3
+        ]
+      },
+      {
+        "uid": "w7",
+        "type": "cave_rock",
+        "cell": [
+          7,
+          3
+        ]
+      },
+      {
+        "uid": "gate",
+        "type": "stone_gate",
+        "cell": [
+          3,
+          3
+        ]
+      },
+      {
+        "uid": "stone",
+        "type": "glow_stone",
+        "cell": [
+          5,
+          1
+        ]
+      }
+    ]
+  },
+  "goal_items": [
+    "gate",
+    "stone"
+  ],
+  "goal_actors": [
+    "gopher",
+    "wolf",
+    "rabbit"
+  ],
+  "starter_code": "n = 5\n\n# 1. 用 for 迴圈把 1 + 2 + … + n 加起來\n\n\n# 2. 說：開門○（○是密碼）\n\n\n# 3. 派派狼走到門邊；派派兔走到石台旁、照亮\n\n\n# 4. 派派鼠走到石台、搬起發光石，走到門口放下\n\n",
+  "given_vars": [
+    "n"
+  ],
+  "reference": "n = 5\ntotal = 0\nfor i in range(1, n + 1):\n    total += i\nprint(f\"開門{total}\")\nprint(\"派派狼走到門邊\")\nprint(\"派派兔走到石台旁\")\nprint(\"派派兔照亮\")\nprint(\"派派鼠走到石台\")\nprint(\"派派鼠搬起\")\nprint(\"派派鼠走到門口\")\nprint(\"派派鼠放下\")\n",
+  "tests": [
+    {
+      "name": "n = 5",
+      "vars": {
+        "n": 5
+      }
+    },
+    {
+      "name": "隱藏測資：n = 4",
+      "hidden": true,
+      "vars": {
+        "n": 4
+      },
+      "lock": 10
+    },
+    {
+      "name": "隱藏測資：n = 7",
+      "hidden": true,
+      "vars": {
+        "n": 7
+      },
+      "lock": 28
+    }
+  ],
+  "rules": [
+    {
+      "id": "given_var",
+      "name": "n"
+    },
+    {
+      "id": "must_use",
+      "node": "For",
+      "label": "for 迴圈"
+    }
+  ],
+  "reward": {
+    "furniture": "glow_stone",
+    "message": "石台上的發光石暖暖的，像一顆小星星。爺爺的筆記說，這就是樹屋那盞星星落地燈的燈罩！先收進收藏冊，之後請大牙師傅裝回去。"
+  },
+  "author_notes": "第 6 章章末冒險。密碼＝1+…+n，測資用 lock 欄位換石門密碼。石門打開才走得進去（cave_rock 圍一排牆）。"
+}

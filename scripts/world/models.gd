@@ -385,9 +385,74 @@ static func furniture(type: String) -> Node3D:
 				part(holder, box(cs, cs, cs), c, Vector3.ZERO)
 				for sy in [-0.3, 0.0, 0.3]:
 					part(holder, box(cs + 0.01, 0.05, cs + 0.01), a, Vector3(0, sy * cs, 0), Vector3.ONE, Vector3.ZERO, false)
+		# ---------- 野外冒險的東西 ----------
+		"rock_big":
+			# 長青苔的大石頭（重，只有派派狼搬得動）
+			part(root, sphere(0.42), c, Vector3(0, 0.3, 0), Vector3(1.05, 0.78, 0.95))
+			part(root, sphere(0.26), c.lightened(0.08), Vector3(0.18, 0.5, 0.1), Vector3(1, 0.7, 0.9), Vector3.ZERO, false)
+			part(root, sphere(0.3), a, Vector3(-0.08, 0.56, -0.06), Vector3(1.2, 0.35, 1.0), Vector3.ZERO, false)  # 青苔
+		"cave_rock":
+			# 洞窟的岩壁
+			part(root, box(0.98, 1.5, 0.9), c, Vector3(0, 0.75, 0), Vector3.ONE, Vector3(0, 8, 0))
+			part(root, sphere(0.42), c.lightened(0.1), Vector3(0.1, 1.45, 0.05), Vector3(1.1, 0.6, 1.0), Vector3.ZERO, false)
+			part(root, cyl(0.0, 0.07, 0.3), a, Vector3(-0.3, 0.3, 0.42), Vector3.ONE, Vector3(20, 0, 15), false, true)  # 小水晶
+		"gate":
+			# 螢光寶庫的石門：石框＋門板＋發光的密碼刻紋
+			for x in [-0.42, 0.42]:
+				part(root, box(0.16, 1.9, 0.5), c.darkened(0.15), Vector3(x, 0.95, 0))
+			part(root, box(1.0, 0.22, 0.55), c.darkened(0.15), Vector3(0, 1.95, 0))
+			part(root, box(0.68, 1.8, 0.2), c, Vector3(0, 0.9, 0))
+			for k in range(5):
+				part(root, sphere(0.05), a, Vector3(-0.2 + k * 0.1, 1.2 + (k % 2) * 0.12, 0.11), Vector3(1, 1, 0.3), Vector3.ZERO, false, true)
+			part(root, cyl(0.16, 0.16, 0.03), a, Vector3(0, 0.75, 0.11), Vector3.ONE, Vector3(90, 0, 0), false, true)
+		"glow_stone":
+			# 爺爺的發光石：石台上的一顆會發光的石頭（星星落地燈的燈罩原件）
+			part(root, cyl(0.24, 0.3, 0.42), Color("8a8f9c"), Vector3(0, 0.21, 0))
+			part(root, sphere(0.17), c, Vector3(0, 0.6, 0), Vector3(1, 1.15, 1), Vector3.ZERO, false, true)
+			part(root, sphere(0.07), Color("ffffff"), Vector3(0.06, 0.68, 0.1), Vector3.ONE, Vector3.ZERO, false, true)
+		"lavender":
+			# 一叢薰衣草
+			part(root, sphere(0.34), Color("7f9a5a"), Vector3(0, 0.2, 0), Vector3(1.1, 0.6, 1.1))
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 7
+			for k in range(9):
+				var ang := TAU * k / 9.0
+				var rr := 0.12 + rng.randf() * 0.16
+				var px := Vector3(cos(ang) * rr, 0.0, sin(ang) * rr)
+				part(root, cyl(0.012, 0.012, 0.42), Color("6f8a4a"), px + Vector3(0, 0.42, 0), Vector3.ONE, Vector3.ZERO, false)
+				part(root, capsule(0.045, 0.22), c.lightened(rng.randf() * 0.15), px + Vector3(0, 0.68, 0), Vector3.ONE, Vector3.ZERO, false)
+		"basket":
+			# 草藥籃
+			part(root, cyl(0.26, 0.2, 0.26), c, Vector3(0, 0.13, 0))
+			part(root, cyl(0.27, 0.27, 0.04), a, Vector3(0, 0.26, 0), Vector3.ONE, Vector3.ZERO, false)
+			part(root, Models.torus_mesh(0.2, 0.025), c.darkened(0.2), Vector3(0, 0.3, 0), Vector3.ONE, Vector3(90, 0, 0))
+		"picnic_mat":
+			# 野餐墊（紅白格子）
+			for x in range(4):
+				for z in range(4):
+					part(root, box(0.2, 0.02, 0.2), (c if (x + z) % 2 == 0 else a), Vector3(-0.3 + x * 0.2, 0.01, -0.3 + z * 0.2), Vector3.ONE, Vector3.ZERO, false)
 		_:
 			part(root, box(0.8 * w, float(d.height), 0.8 * dp), c, Vector3(0, float(d.height) / 2, 0))
+	if d.get("old", false):
+		tint_old(root)
 	return root
+
+
+## 舊舊的、蒙上灰塵的爺爺的東西：顏色淡一點、偏灰
+static func tint_old(n: Node) -> void:
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var m := (mi as MeshInstance3D).material_override
+		if m is StandardMaterial3D:
+			var m2: StandardMaterial3D = m.duplicate()
+			m2.albedo_color = m2.albedo_color.lerp(Color("b8ab98"), 0.45)
+			(mi as MeshInstance3D).material_override = m2
+
+
+static func torus_mesh(r: float, thick: float) -> TorusMesh:
+	var t := TorusMesh.new()
+	t.inner_radius = r - thick
+	t.outer_radius = r + thick
+	return t
 
 
 # ---------------- 角色 ----------------

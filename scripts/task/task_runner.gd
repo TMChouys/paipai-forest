@@ -142,6 +142,8 @@ static func run_case(task: Dictionary, code: String, test: Dictionary) -> Dictio
 	if task.get("print_role", "") == "dialogue":
 		return _run_dialogue(task, sub, interp, test)
 	var world := WorldModel.from_layout(task.room)
+	if test.has("lock"):
+		world.lock_code = int(test.lock)
 	var patterns := compile_patterns(task)
 	var role: String = task.get("print_role", "action")
 	var timeline: Array = []
