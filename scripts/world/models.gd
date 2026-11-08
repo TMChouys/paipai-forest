@@ -495,6 +495,11 @@ static func character(who: String) -> Node3D:
 		"tanuki":
 			return Anthro.build("tanuki", "Tanuki", 1.1)
 		"turtle":
+			if ResourceLoader.exists("res://models/turtle/turtle_rigged.glb"):
+				# 慢慢館長：老陸龜，背著大龜殼（fix_turtle.py 修過再上骨架）；走路很慢、很小心
+				var tm := Anthro.from_glb("res://models/turtle/turtle_rigged.glb", "Turtle", 1.2)
+				tm.set_meta("speed", 0.5)
+				return tm
 			return Anthro.build("turtle", "Turtle", 1.05)
 		"crow":
 			return Anthro.build("crow", "Crow", 1.05)

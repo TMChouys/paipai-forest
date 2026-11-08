@@ -1,5 +1,5 @@
 # 混元 3D 生成的土撥鼠 → 修腳、校色、接上 Kenney 人型骨架（含全部動畫）→ 匯出遊戲用 GLB
-# 用法：blender -b --factory-startup --python tools/blender/rig_hy3d.py -- <kenney.glb> <hy3d.glb> <out.glb> [gopher|rabbit]
+# 用法：blender -b --factory-startup --python tools/blender/rig_hy3d.py -- <kenney.glb> <hy3d.glb> <out.glb> [gopher|rabbit|wolf|turtle]
 # 座標：Blender Z 向上、角色面向 -Y。模型先縮放到高 0.74（和 Kenney 骨架同尺度）。
 import bpy, bmesh, sys, math
 import numpy as np
@@ -40,6 +40,15 @@ PROFILES = {
         neck=0.495, hip=0.09, foot=(0.11, -0.03),
         shoulder=(0.215, -0.03, 0.47), paw=(0.25, -0.05, 0.17), arm_out=(0.19, 0.225),
         arm_z=(0.14, 0.49), thigh_z=(0.08, 0.14)),
+    # 慢慢館長：先用 fix_turtle.py 修過（大龜殼、新披風、新裙襬的材質名稱是 Pin*，整片跟身體走不變形）。
+    # 一手拄拐杖、一手抱書：手臂不給權重（整個上半身跟著身體），拐杖底部不跟腳走。
+    # 走路：步子小（leg_amp）、整段放慢（walk_stretch），老人家小心慢慢走。
+    "turtle": dict(
+        H=0.9, feet=False, curves=None, zones=[],
+        neck=0.65, hip=0.11, foot=(0.11, -0.03),
+        shoulder=(0.2, -0.02, 0.5), paw=(0.2, -0.15, 0.4), arm_out=(5.0, 6.0),
+        arm_z=(0.3, 0.6), thigh_z=(0.04, 0.07), leg_amp=0.5, walk_stretch=1.8, walk_damp=0.3, foot_z=(0.035, 0.052),
+        no_leg=[(-0.18, -0.19, 0.05)]),
 }
 P = PROFILES[PROFILE]
 H = P["H"]
@@ -463,6 +472,51 @@ for act in bpy.data.actions:
         fixed += 1
 print("ARM curves fixed", fixed)
 
+# 走路放慢：關鍵格的時間拉長（老人家慢慢走）
+if P.get("walk_stretch"):
+    for act in bpy.data.actions:
+        if act.name != "walk":
+            continue
+        for fc in all_fcurves(act):
+            for kp in fc.keyframe_points:
+                for attr in ("co", "handle_left", "handle_right"):
+                    getattr(kp, attr)[0] *= P["walk_stretch"]
+            fc.update()
+        try:
+            act.frame_range = (act.frame_range[0] * P["walk_stretch"], act.frame_range[1] * P["walk_stretch"])
+        except Exception:
+            pass
+        print("WALK stretched", P["walk_stretch"])
+
+# 走路時身體（torso/root/head）的搖晃和上下起伏縮小：老人家走得穩、很小心
+if P.get("walk_damp") is not None:
+    k_ = P["walk_damp"]
+    act = bpy.data.actions.get("walk")
+    for bn in ("root", "torso", "head"):
+        fc = quat_curves(act, bn) if act else None
+        if fc:
+            n = len(fc[0].keyframe_points)
+            if all(len(fc[i].keyframe_points) == n for i in range(4)):
+                for kk in range(n):
+                    q = Quaternion([fc[i].keyframe_points[kk].co[1] for i in range(4)]).normalized()
+                    q2 = Quaternion().slerp(q, k_)
+                    if q2.dot(q) < 0:
+                        q2.negate()
+                    for i in range(4):
+                        kp = fc[i].keyframe_points[kk]; dv = q2[i] - kp.co[1]
+                        kp.co[1] = q2[i]; kp.handle_left[1] += dv; kp.handle_right[1] += dv
+                for i in range(4):
+                    fc[i].update()
+        path = f'pose.bones["{bn}"].location'
+        for f in (all_fcurves(act) if act else []):
+            if f.data_path == path and len(f.keyframe_points):
+                m_ = sum(kp.co[1] for kp in f.keyframe_points) / len(f.keyframe_points)
+                for kp in f.keyframe_points:
+                    for attr in ("co", "handle_left", "handle_right"):
+                        v_ = getattr(kp, attr); v_[1] = m_ + (v_[1] - m_) * k_
+                f.update()
+    print("WALK damped", k_)
+
 # 走路／跑步的抬腿幅度放大：腳短又大，原本 Kenney 的擺幅看起來幾乎沒動
 LEG_AMP = P.get("leg_amp", 1.7)
 for act in bpy.data.actions:
@@ -504,19 +558,29 @@ if "donor_foot" in mesh.vertex_groups:
     gi = mesh.vertex_groups["donor_foot"].index
     DONOR_SET = {v.index for v in mesh.data.vertices if any(g.group == gi for g in v.groups)}
     mesh.vertex_groups.remove(mesh.vertex_groups["donor_foot"])
+# 材質名稱 Pin* 的部分（龜殼、披風、裙襬）：整片只跟身體走
+PIN = set()
+for poly in mesh.data.polygons:
+    mat = mesh.data.materials[poly.material_index] if mesh.data.materials else None
+    if mat and mat.name.startswith("Pin"):
+        PIN.update(poly.vertices)
+print("PINNED verts", len(PIN))
 W_ALL = []
 for i, (x, y, z) in enumerate(co):
     p = Vector((x, y, z))
     w = {}
     w["head"] = smoothstep(NECK_Z - 0.015, NECK_Z + 0.02, z)
     # 腳掌全歸腿；往上到大腿外側也跟著腿（中間肚子不跟，免得被左右扯開）
-    foot = (1.0 - smoothstep(0.055, 0.09, z)) * (1.0 - smoothstep(*P.get("foot_y", (0.1, 0.16)), y))  # 尾巴（和腳跟後面的肚子）不算腳
+    foot = (1.0 - smoothstep(*P.get("foot_z", (0.055, 0.09)), z)) * (1.0 - smoothstep(*P.get("foot_y", (0.1, 0.16)), y))  # 尾巴（和腳跟後面的肚子）不算腳
     if P.get("smooth_legs"):
         foot *= smoothstep(0.035, 0.08, abs(x))   # 肚子正中間的底部不跟腳走
     thigh = (1.0 - smoothstep(*P.get("thigh_z", (0.1, 0.17)), z)) * smoothstep(0.03, 0.08, abs(x))         * (1.0 - smoothstep(*P.get("thigh_y", (FOOT_Y + 0.03, FOOT_Y + 0.08)), y))
     legs = max(foot, thigh)
     if DONOR_SET:
         legs = 1.0 if i in DONOR_SET else 0.0   # 換上去的腳整隻跟腿走，肚子不動（不會撕開）
+    for nx_, ny_, nr_ in P.get("no_leg", []):
+        if (x - nx_) ** 2 + (y - ny_) ** 2 < nr_ * nr_:
+            legs = 0.0   # 拐杖之類：不跟腳走
     side = smoothstep(-0.03, 0.03, x)
     w["leg-left"] = legs * side
     w["leg-right"] = legs * (1 - side)
@@ -535,6 +599,8 @@ for i, (x, y, z) in enumerate(co):
             w[k] /= tot
         tot = 1.0
     w["torso"] = 1.0 - tot
+    if i in PIN:
+        w = {"torso": 1.0}
     W_ALL.append(w)
 
 # 腿的權重沿著網格模糊（同位置的頂點合併計算）：交界變寬變平滑，肚子跟著腿慢慢彎，不會撕開

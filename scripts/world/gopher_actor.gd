@@ -49,6 +49,8 @@ func setup(m: Node3D) -> void:
 	carry_anchor.position = Vector3(0, 1.0, 0.05)
 	model.add_child(carry_anchor)
 	face_mat = model.get_meta("face") if model.has_meta("face") else null
+	if model.has_meta("speed"):
+		speed_scale = model.get_meta("speed")  # 角色自己的步調（慢慢館長走得慢）
 	_blink_at = randf_range(1.5, 4.0)
 	anim = model.get_meta("anim") if model.has_meta("anim") else null
 	if anim:
