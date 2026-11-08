@@ -360,14 +360,19 @@ func show_board(tasks: Array, progress: Dictionary) -> void:
 		info.add_child(th)
 		th.add_child(_track_tag(side, adv))
 		var tag := "困難" if side else ("出門" if adv else "No.%d" % int(t.order))
-		th.add_child(UIKit.label("%s　%s" % [tag, t.title], 18))
+		var title_l := UIKit.label("%s　%s" % [tag, t.title], 18)
+		title_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # 長的字自動換行，視窗不會被撐寬
+		title_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		th.add_child(title_l)
 		var reward_name: String = WorldModel.def_of(t.reward.furniture).name
 		var sub := "%s　難度 %s　獎勵：%s" % [t.concept, "★".repeat(int(t.difficulty)), reward_name]
 		if t.has("place"):
 			sub = "地點：%s　%s" % [t.place, sub]
 		if not unlocked:
 			sub = _lock_reason(t, tasks, progress)
-		info.add_child(UIKit.label(sub, 14, Color("8a6a50")))
+		var sub_l := UIKit.label(sub, 14, Color("8a6a50"))
+		sub_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # 「還要先上哪些課」很長時換行
+		info.add_child(sub_l)
 		if stars > 0:
 			h.add_child(_done_stamp())
 		var right := VBoxContainer.new()
