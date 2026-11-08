@@ -48,6 +48,10 @@ func _init() -> void:
 	elif "--trio" in OS.get_cmdline_user_args():
 		chars = [Models.character("wolf"), Models.gopher(), Models.character("rabbit")]
 		x = -1.2
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--who="):
+			chars = [Models.character(a.substr(6))]
+			x = 0.0
 	if lineup:
 		chars = [Anthro.build("chief_polarbear", "A", 1.05), Anthro.build("chief_raccoon", "B", 1.0), Models.gopher(), Anthro.build("neighbor_redpanda", "C", 0.95), Anthro.build("neighbor_fox", "D", 0.95)]
 		x = -2.4

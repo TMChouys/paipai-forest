@@ -560,6 +560,11 @@ static func character(who: String) -> Node3D:
 		"tanuki":
 			return Anthro.build("tanuki", "Tanuki", 1.1)
 		"turtle":
+			if ResourceLoader.exists("res://models/turtle/turtle2_rigged.glb"):
+				# 慢慢館長新模型 turtle_2（使用者做的）：背後原本是平的，暫時補一個圓頂龜殼（patch_turtle2_back.py），正式模型做好再換
+				var t2 := Anthro.from_glb("res://models/turtle/turtle2_rigged.glb", "Turtle", 1.2)
+				t2.set_meta("speed", 0.5)
+				return t2
 			if ResourceLoader.exists("res://models/turtle/turtle_rigged.glb"):
 				# 慢慢館長：老陸龜，背著大龜殼（fix_turtle.py 修過再上骨架）；走路很慢、很小心
 				var tm := Anthro.from_glb("res://models/turtle/turtle_rigged.glb", "Turtle", 1.2)
