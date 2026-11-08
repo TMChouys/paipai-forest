@@ -199,7 +199,7 @@ func _load_save() -> void:
 	if save.is_empty():
 		var hf := FileAccess.open("res://data/home.json", FileAccess.READ)
 		var home: Dictionary = JSON.parse_string(hf.get_as_text())
-		save = {"version": 1, "home": home, "inventory": home.get("inventory", {}), "stars": {}, "codes": {}}
+		save = {"version": 1, "home": home, "inventory": home.get("inventory", {}), "stars": {}, "codes": {}, "home_rug": false}
 	# 樹屋變大了（10x9）：舊存檔的房子撐大，南牆、東牆上的東西跟著牆移過去
 	var hsz: Array = save.home.get("size", [8, 8])
 	var nw := maxi(int(hsz[0]), 10)
@@ -267,6 +267,7 @@ func _enter_home() -> void:
 	playback.cancel()
 	task = {}
 	bubbles.clear_all()
+	room.show_rug = bool(save.get("home_rug", true))   # 新玩家一開始沒有地毯；舊存檔照舊
 	room.build(home_world)
 	room.set_grid_visible(false)  # 家裡不顯示格子（⋯ 選單可以打開）
 	if not save.has("yard") or int(save.get("yard_v", 0)) < 2:
@@ -2639,6 +2640,7 @@ func _reset_task_room() -> void:
 	var w := WorldModel.from_layout(task.room)
 	room.scene = task.room.get("scene", "house")
 	room.town_spot = task.room.get("spot", "")
+	room.show_rug = bool(save.get("home_rug", true))
 	room.build(w)
 	room.set_grid_visible(room.scene != "town")  # 任務用格子座標；鎮上的對話任務不需要
 	room.build_outdoor()
@@ -2827,6 +2829,8 @@ func _show_report(rep: Dictionary) -> void:
 		if first_clear:
 			var rt: String = task.reward.furniture
 			save.inventory[rt] = int(save.inventory.get(rt, 0)) + 1
+			if task.reward.get("rug", false):
+				save.home_rug = true   # 雜貨店老闆順便把圓地毯鋪好了
 		_write_save()
 
 
@@ -2834,7 +2838,7 @@ func _accept_reward() -> void:
 	report.visible = false
 	_exit_task()
 	await get_tree().create_timer(0.5).timeout
-	room.gopher.say("收藏冊裡有新家具了！", "say")
+	room.gopher.say("雜貨店老闆送貨來了！新家具放進收藏冊囉！", "say")
 	room.gopher.happy()
 
 

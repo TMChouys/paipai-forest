@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "新玩家的家（10x9）。存檔後會改存在 user://save.json。",
+  "note": "新玩家的家（10x9）：空空的，只有窗、門和往天空樹頂的門；家具靠派派狼的委託，由雜貨店老闆一件一件送到家。存檔後會改存在 user://save.json。",
   "size": [
     10,
     9
@@ -14,78 +14,10 @@
   },
   "furniture": [
     {
-      "uid": "h_bed",
-      "type": "bed",
-      "cell": [
-        0,
-        0
-      ]
-    },
-    {
-      "uid": "h_shelf",
-      "type": "bookshelf",
-      "cell": [
-        2,
-        0
-      ]
-    },
-    {
-      "uid": "h_table",
-      "type": "round_table",
-      "cell": [
-        6,
-        4
-      ]
-    },
-    {
-      "uid": "h_lamp",
-      "type": "mushroom_lamp",
-      "cell": [
-        6,
-        4
-      ],
-      "on": "h_table"
-    },
-    {
-      "uid": "h_chair",
-      "type": "chair_small",
-      "cell": [
-        6,
-        5
-      ],
-      "rot": 2
-    },
-    {
-      "uid": "h_pot",
-      "type": "flower_pot",
-      "cell": [
-        9,
-        0
-      ]
-    },
-    {
       "uid": "h_window",
       "type": "window",
       "cell": [
         3,
-        0
-      ],
-      "wall": "N"
-    },
-    {
-      "uid": "h_picture",
-      "type": "picture",
-      "cell": [
-        0,
-        4
-      ],
-      "wall": "W"
-    },
-    {
-      "uid": "h_clock",
-      "type": "clock",
-      "cell": [
-        8,
         0
       ],
       "wall": "N"
@@ -117,16 +49,5 @@
       ]
     }
   ],
-  "inventory": {
-    "teacup": 1,
-    "crate": 1,
-    "sofa": 1,
-    "side_table": 1,
-    "radio": 1,
-    "books": 1,
-    "plant_small": 1,
-    "bench": 1,
-    "coat_rack": 1,
-    "tv_vintage": 1
-  }
+  "inventory": {}
 }

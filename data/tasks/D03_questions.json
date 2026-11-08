@@ -74,6 +74,6 @@
   ],
   "scoring": {},
   "builtins": ["print", "input", "str", "int", "float"],
-  "reward": {"furniture": "picture", "message": "派派狼送你一幅「繪本小畫」：「掛起來，以後就是自己人了！」"},
+  "reward": {"furniture": "picture", "message": "雜貨店老闆送貨到家：「繪本小畫」！掛起來，家裡就更像家了。"},
   "author_notes": "input() 的提示文字由派派狼說出、玩家在回答框輸入；交件時由測資 inputs 自動回答。int() 轉換是常見錯誤點。"
 }

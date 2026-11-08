@@ -68,6 +68,6 @@
   ],
   "scoring": {},
   "builtins": ["print", "str", "int", "float"],
-  "reward": {"furniture": "star_lamp", "message": "好厲害！派派兔送你稀有的「星星落地燈」！"},
+  "reward": {"furniture": "star_lamp", "message": "好厲害！雜貨店老闆送來稀有的「星星落地燈」！"},
   "author_notes": "支線困難題。w=5 邊界值抓 >= 的寫法。"
 }

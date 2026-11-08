@@ -21,6 +21,8 @@ const BUBBLE_H := {"gopher": 1.3, "wolf": 1.45, "rabbit": 1.6, "tanuki": 1.45, "
 var grid_visible := true
 ## house = 樹屋（木地板、牆）；town = 鎮中心（任務格子放在 town_spot 那棟房子前面）
 var scene := "house"
+## 屋裡的編織圓地毯（新玩家一開始沒有，完成第一個委託才送來）
+var show_rug := true
 var town_spot := ""
 var room_name := ""
 ## 家門口旁的森林信箱（屋外固定的擺設，不是屋裡的家具）
@@ -169,6 +171,8 @@ func _build_floor() -> void:
 	floor_root.add_child(grass)
 	grass_plane = grass
 	# 圓形苔蘚地毯
+	if not show_rug:
+		return
 	var rug := MeshInstance3D.new()
 	rug.mesh = Models.cyl(1.4, 1.4, 0.02)
 	var rug_m := ground_mat("rug", Color(1, 1, 1), 1.0 / 2.8, false)  # 編織圓地毯：圖案剛好鋪滿一片

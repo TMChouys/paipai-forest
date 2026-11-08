@@ -60,6 +60,6 @@
   ],
   "scoring": {},
   "builtins": ["print"],
-  "reward": {"furniture": "sun_chair", "message": "派派兔送你一張「陽光小椅子」！"},
+  "reward": {"furniture": "sun_chair", "message": "雜貨店老闆送貨到家：「陽光小椅子」！"},
   "author_notes": "第一次寫程式。重點在讀懂句型表、半形符號、一行一個動作。"
 }

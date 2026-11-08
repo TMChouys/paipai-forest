@@ -61,6 +61,6 @@
   ],
   "scoring": {},
   "builtins": ["print", "str", "int", "float"],
-  "reward": {"furniture": "long_table", "message": "派派兔送你一張「長木桌」！"},
+  "reward": {"furniture": "long_table", "message": "雜貨店老闆送貨到家：「長木桌」！"},
   "author_notes": "隱藏測資抓 print(\"向前推4格\") 這種寫死的答案。"
 }

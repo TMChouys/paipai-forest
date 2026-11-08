@@ -68,6 +68,6 @@
   ],
   "scoring": {},
   "builtins": ["print"],
-  "reward": {"furniture": "mushroom_lamp", "message": "派派兔送你一盞「蘑菇小燈」當搬家禮物！"},
+  "reward": {"furniture": "mushroom_lamp", "message": "雜貨店老闆送貨到家：「蘑菇小燈」，還有一張「編織圓地毯」已經鋪好了！", "rug": true},
   "author_notes": "第一次寫程式：print()、字串的引號、註解。全形標點是故意保留的，練習一字不差。"
 }

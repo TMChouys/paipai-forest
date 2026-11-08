@@ -75,6 +75,6 @@
   ],
   "scoring": {},
   "builtins": ["print", "str", "int", "float"],
-  "reward": {"furniture": "flower_pot", "message": "派派狼塞給你一個「小花盆」：「拿去，別說我小氣！」"},
+  "reward": {"furniture": "flower_pot", "message": "雜貨店老闆送貨到家：「小花盆」！老闆說：「好適合你的家！」"},
   "author_notes": "變數、四則運算、整數除法、f-string。隱藏測資抓寫死數字的答案；5×7=35 讓 // 的整數除法派上用場。"
 }

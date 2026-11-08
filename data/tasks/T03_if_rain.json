@@ -64,6 +64,6 @@
   ],
   "scoring": {},
   "builtins": ["print", "str", "int", "float"],
-  "reward": {"furniture": "umbrella_stand", "message": "派派兔送你一個「青蛙傘架」！"},
+  "reward": {"furniture": "umbrella_stand", "message": "雜貨店老闆送貨到家：「青蛙傘架」！"},
   "author_notes": "隱藏測資 rain=False 讓沒有 else 的寫法露餡。"
 }
