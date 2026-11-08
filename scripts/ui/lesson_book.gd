@@ -1,8 +1,11 @@
 class_name LessonBook
 extends Control
-## 慢慢館長的課（在圖書館點館長打開）。一課只教一個概念，照課本章節、依知識地圖（心智圖）分門別類。
-## 左頁：知識地圖的分類（A～K）→ 這一類的概念；右頁：五個步驟
-##   ① 這一課要學什麼 → ② 你知道嗎？（先提問）→ ③ 講解（範例＋執行結果）→ ④ 選擇練習（對答案）→ ⑤ 相關任務
+## 認識派派森林的世界：慢慢館長說故事（認知）＋派派兔帶選擇題小測驗（形成性評量）。
+## 點派派兔：「準備好一起認識派派森林的世界了嗎？我們去找慢慢館長聽故事吧！」→ 走進圖書館，館長打開這本書。
+## 一課只教一個概念，照課本章節、依知識地圖（心智圖）分門別類。
+## 左頁：知識地圖的分類（A～K）→ 這一類的概念；右頁：五個步驟，上面的小舞台由三個角色演出來
+##   ① 要知道什麼事？（先提問）→ ② 為什麼？ → ③ 怎麼做？（範例＋執行結果）
+##   → ④ 小測驗（一題一題：作答 → 正解或糾正錯誤＋詳解 → 鼓勵 → 下一題；全部答對才算學會）→ ⑤ 去冒險（派派狼的相關任務）
 ## 課文在 data/curriculum/lessons.json（tools/curriculum/gen_lessons.py 產生）。
 ## 班級版另外有 data/class/class_lessons.json（gen_class_lessons.py 產生，不進 git、公開版不匯出）：
 ##   三本教材的簡報文字與習題依知識點整合，多出「課本整理」「習題」兩頁，還有知識地圖沒有的分類（P、Q）。
@@ -12,7 +15,9 @@ signal closed
 
 const LESSON_PATH := "res://data/curriculum/lessons.json"
 const CLASS_PATH := "res://data/class/class_lessons.json"
-const STEPS := ["① 要學什麼", "② 你知道嗎？", "③ 講解", "④ 選擇練習", "⑤ 相關任務"]
+const STEPS := ["① 要知道什麼事？", "② 為什麼？", "③ 怎麼做？", "④ 小測驗", "⑤ 去冒險"]
+const CHEER_RIGHT := ["好厲害！", "派派鼠也在幫你拍手！", "就是這樣！", "你越來越懂派派森林了！", "完全正確！"]
+const CHEER_WRONG := ["沒關係，錯了才知道哪裡要注意。", "差一點點！看懂原因就學會了。", "慢慢來，比較快。", "下一題一定可以！"]
 const CLASS_STEPS := ["📖 課本整理", "✎ 習題"]
 const CODE_BG := Color("2f3a33")
 const CODE_INK := Color("f4efe2")
@@ -30,7 +35,10 @@ var area_id := "A"
 var concept_id := "print"
 var step := 0
 var _asked := false                # ② 已經回答「知道／不確定」
-var _quiz_pick := -1               # ④ 選了哪一個
+var _quiz_pick := -1               # ④ 這一題選了哪一個
+var _qi := 0                       # ④ 第幾題
+var _right: Dictionary = {}        # ④ 這一課答對過的題目
+var stage: LessonStage             # 小舞台：三個角色演出來
 
 var index_box: VBoxContainer
 var title_l: Label
@@ -84,7 +92,7 @@ func _build() -> void:
 	book.offset_right = 610
 	book.offset_top = -340
 	book.offset_bottom = 340
-	var bst := UIKit.panel_style(Color("5b4370"), 22, UIKit.INK, 3)  # 紫色書皮（館長的披風色）
+	var bst := UIKit.panel_style(Color("c27a6e"), 22, UIKit.INK, 3)  # 紅蘿蔔色書皮（派派兔）
 	bst.set_content_margin_all(12)
 	book.add_theme_stylebox_override("panel", bst)
 	add_child(book)
@@ -102,11 +110,11 @@ func _build() -> void:
 	var lv := VBoxContainer.new()
 	lv.add_theme_constant_override("separation", 4)
 	left.add_child(lv)
-	var t := UIKit.label("慢慢館長的課", 24)
+	var t := UIKit.label("認識派派森林的世界", 24)
 	t.add_theme_font_override("font", UIKit.font_bold())
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lv.add_child(t)
-	var sub := UIKit.label("一次只學一個概念・照課本的章節", 13, Color("8a6a50"))
+	var sub := UIKit.label("慢慢館長說故事・派派兔帶小測驗", 13, Color("8a6a50"))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lv.add_child(sub)
 	var sc := ScrollContainer.new()
@@ -145,6 +153,8 @@ func _build() -> void:
 	step_row = HBoxContainer.new()
 	step_row.add_theme_constant_override("separation", 6)
 	rv.add_child(step_row)
+	stage = LessonStage.new()
+	rv.add_child(stage)
 	body_scroll = ScrollContainer.new()
 	body_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -176,8 +186,8 @@ func open(done_list: Array = [], cid: String = "") -> void:
 		done[c] = true
 	if cid == "" or not _has(cid):
 		cid = concept_id
-		for c in order:   # 預設打開第一個還沒學會的
-			if not done.has(c):
+		for c in order:   # 預設打開第一個還沒學會、有故事的課
+			if not done.has(c) and lessons.has(c):
 				cid = c
 				break
 	visible = true
@@ -185,6 +195,7 @@ func open(done_list: Array = [], cid: String = "") -> void:
 
 
 func close() -> void:
+	stage.stop()
 	visible = false
 	closed.emit()
 
@@ -195,6 +206,8 @@ func show_concept(cid: String) -> void:
 	concept_id = cid
 	area_id = concepts[cid].area
 	step = -1
+	_qi = 0
+	_right.clear()
 	_shown.clear()
 	steps = []
 	if lessons.has(cid):
@@ -274,10 +287,12 @@ func _go(s: int) -> void:
 	var old := step
 	step = clampi(s, 0, steps.size() - 1)
 	var kind: int = steps[step]
-	if kind == 1 and old != step:
+	if kind == 0 and old != step:
 		_asked = false
 	if kind == 3 and old != step:
 		_quiz_pick = -1
+	stage.visible = kind in [0, 1, 3]
+	stage.stop()
 	for n in step_row.get_children():
 		n.queue_free()
 	for i in steps.size():
@@ -298,7 +313,7 @@ func _go(s: int) -> void:
 	var les: Dictionary = lessons.get(concept_id, {})
 	match kind:
 		0: _step_goal(les)
-		1: _step_ask(les)
+		1: _step_why(les)
 		2: _step_explain(les)
 		3: _step_quiz(les)
 		4: _step_tasks(les)
@@ -340,6 +355,18 @@ func _code(t: String, title: String, bg: Color = CODE_BG, ink: Color = CODE_INK)
 	body.add_child(p)
 
 
+func _rabbit(t: String) -> void:
+	var v := _card(Color("fdecea"), Color("e3a59c"))
+	v.add_child(_text("派派兔：", 14, Color("a0544a")))
+	v.add_child(_text(t, 17))
+
+
+func _wolf(t: String) -> void:
+	var v := _card(Color("e9eef6"), Color("98a9c4"))
+	v.add_child(_text("派派狼：", 14, Color("4a5a78")))
+	v.add_child(_text(t, 17))
+
+
 func _turtle(t: String) -> void:
 	var v := _card(Color("f1e8f7"), Color("b9a1cf"))
 	v.add_child(_text("慢慢館長：", 14, Color("6b4f86")))
@@ -349,7 +376,7 @@ func _turtle(t: String) -> void:
 # ---------------- 五個步驟 ----------------
 func _step_goal(les: Dictionary) -> void:
 	var v := _card(Color("fff3d6"), Color("e3c27a"))
-	v.add_child(_text("這一課要學", 15, Color("8f5f12")))
+	v.add_child(_text("要知道什麼事？", 15, Color("8f5f12")))
 	var g := _text(les.goal, 22)
 	g.add_theme_font_override("font", UIKit.font_bold())
 	v.add_child(g)
@@ -360,20 +387,15 @@ func _step_goal(les: Dictionary) -> void:
 		var names := []
 		for p in pre:
 			names.append(("✓" if done.has(p) else "○") + (concepts[p].name if concepts.has(p) else p))
-		body.add_child(_text("先學過會比較好懂：" + "、".join(names), 15, UIKit.TEXT_MUTED))
+		body.add_child(_text("先認識過會比較好懂：" + "、".join(names), 15, UIKit.TEXT_MUTED))
 	if les.get("note", "") != "":
 		body.add_child(_text("※ " + les.note, 15, UIKit.TEXT_WARN))
-	_turtle("慢慢來，比較快。我們一次只學一個概念。準備好了，就按「下一步」。")
-
-
-func _step_ask(les: Dictionary) -> void:
-	var v := _card(Color("eef6ff"), Color("9cc3e6"))
-	v.add_child(_text("你知道嗎？", 15, UIKit.TEXT_INFO))
-	var q := _text(les.ask, 22)
-	q.add_theme_font_override("font", UIKit.font_bold())
-	v.add_child(q)
+	var q := _card(Color("eef6ff"), Color("9cc3e6"))
+	q.add_child(_text("你知道嗎？", 15, UIKit.TEXT_INFO))
+	var qt := _text(les.ask, 20)
+	qt.add_theme_font_override("font", UIKit.font_bold())
+	q.add_child(qt)
 	if not _asked:
-		body.add_child(_text("先想一想，再選一個：", 15, UIKit.TEXT_MUTED))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		body.add_child(row)
@@ -381,8 +403,21 @@ func _step_ask(les: Dictionary) -> void:
 			row.add_child(UIKit.focusable(UIKit.button(k, func():
 				_asked = true
 				_go(step))))
+		stage.play([["rabbit", "館長，我們來聽故事了！", "hop"], ["turtle", les.ask]])
 	else:
-		_turtle(les.ask_answer + "\n接下來，我們慢慢講清楚。")
+		_turtle(les.ask_answer + "\n接下來說說：為什麼要知道這件事？")
+		stage.play([["turtle", les.ask_answer]])
+
+
+func _step_why(les: Dictionary) -> void:
+	var why: String = les.get("why", "")
+	if why == "":
+		why = les.ask_answer
+	var v := _card(Color("fff3d6"), Color("e3c27a"))
+	v.add_child(_text("為什麼？", 15, Color("8f5f12")))
+	v.add_child(_text(why, 19))
+	_turtle("知道了「為什麼」，下一步看看「怎麼做」。")
+	stage.play([["wolf", "館長，學這個要做什麼？"], ["turtle", why]])
 
 
 func _step_explain(les: Dictionary) -> void:
@@ -392,14 +427,28 @@ func _step_explain(les: Dictionary) -> void:
 	_code(les.code, "範例程式")
 	var inputs: Array = les.get("inputs", [])
 	_code(les.output, "執行結果" + ("（假裝輸入了：%s）" % "、".join(inputs) if not inputs.is_empty() else ""), Color("fffaf0"), UIKit.INK)
-	_turtle("看完範例，先猜猜看：如果把裡面的數字或文字改掉，結果會變成什麼？")
+	_turtle("看完範例，先猜猜看：如果把裡面的數字或文字改掉，結果會變成什麼？猜好了，派派兔會帶你做小測驗。")
+
+
+## 這一課的全部題目：原本那一題＋派派兔多出的題目
+func _questions(les: Dictionary) -> Array:
+	return [les.quiz] + les.get("quiz_more", [])
 
 
 func _step_quiz(les: Dictionary) -> void:
-	var qz: Dictionary = les.quiz
+	var qs := _questions(les)
+	_qi = clampi(_qi, 0, qs.size() - 1)
+	var qz: Dictionary = qs[_qi]
 	var lines: PackedStringArray = String(qz.q).split("\n")
 	var v := _card(Color("fffdf6"))
-	v.add_child(_text("選擇練習", 15, UIKit.TEXT_INFO))
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 12)
+	v.add_child(top)
+	top.add_child(UIKit.label("小測驗　第 %d／%d 題　派派兔問派派鼠：" % [_qi + 1, qs.size()], 15, UIKit.TEXT_INFO))
+	var dots := ""
+	for i in qs.size():
+		dots += "●" if _right.has(i) else ("◉" if i == _qi else "○")
+	top.add_child(UIKit.label(dots, 15, UIKit.TEXT_GREEN))
 	var q := _text(lines[0], 20)
 	q.add_theme_font_override("font", UIKit.font_bold())
 	v.add_child(q)
@@ -413,43 +462,100 @@ func _step_quiz(les: Dictionary) -> void:
 		p.add_theme_stylebox_override("panel", st)
 		p.add_child(code)
 		v.add_child(p)
+	if _qi == 0 and _quiz_pick < 0 and _right.is_empty():
+		_rabbit("剛剛館長說的故事，換我來問派派鼠囉！你幫派派鼠選一個答案。一題一題來，答錯也沒關係。")
 	var letters := ["A", "B", "C", "D"]
+	var ans := int(qz.answer)
 	for i in qz.options.size():
 		var b := UIKit.focusable(UIKit.button("%s　%s" % [letters[i], qz.options[i]], _pick.bind(i)))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_font_override("font", UIKit.mono())
 		if _quiz_pick >= 0:
-			var right: bool = i == int(qz.answer)
-			var col := Color("d8f0d0") if right else (Color("f6d3cf") if i == _quiz_pick else Color("fffdf6"))
-			var st2 := UIKit.panel_style(col, 10, UIKit.INK, 2 if right or i == _quiz_pick else 1)
+			var ok_i: bool = i == ans and _quiz_pick == ans
+			var col := Color("d8f0d0") if ok_i else (Color("f6d3cf") if i == _quiz_pick else Color("fffdf6"))
+			var st2 := UIKit.panel_style(col, 10, UIKit.INK, 2 if i == _quiz_pick else 1)
 			st2.shadow_size = 0
 			b.add_theme_stylebox_override("normal", st2)
 			b.add_theme_stylebox_override("disabled", st2)
 			b.disabled = true
 			b.add_theme_color_override("font_disabled_color", UIKit.INK)
-			b.text += "　✓ 正確答案" if right else ("　✗" if i == _quiz_pick else "")
+			if i == _quiz_pick:
+				b.text += "　✓" if ok_i else "　✗"
 		body.add_child(b)
-	if _quiz_pick >= 0:
-		var ok := _quiz_pick == int(qz.answer)
-		var fb := _card(Color("eaf6e4") if ok else Color("fdeceb"), UIKit.GREEN if ok else UIKit.RED)
-		fb.add_child(_text("答對了！" if ok else "不對喔，正確答案是 %s。" % letters[int(qz.answer)], 20, UIKit.TEXT_GREEN if ok else UIKit.TEXT_RED))
-		fb.add_child(_text(qz.why, 17))
-		if not ok:
-			var again := UIKit.focusable(UIKit.button("再做一次", func():
+	if _quiz_pick < 0:
+		var skit: Array = qz.get("skit", [])
+		# 題目情境演出來 → 派派兔問派派鼠 → 派派鼠想一想（玩家幫派派鼠選）
+		stage.play(skit + [["rabbit", "派派鼠，" + lines[0]], ["gopher", "……", "think"]])
+		return
+	var ok := _quiz_pick == ans
+	var pool: Array = CHEER_RIGHT if ok else CHEER_WRONG
+	var cheer: String = pool[(_qi * 3 + _quiz_pick) % pool.size()]
+	var fb := _card(Color("eaf6e4") if ok else Color("fdeceb"), UIKit.GREEN if ok else UIKit.RED)
+	if ok:
+		fb.add_child(_text("答對了！" + cheer, 20, UIKit.TEXT_GREEN))
+		fb.add_child(_text("詳解：" + String(qz.why), 17))
+	else:
+		var wrong: Array = qz.get("wrong", [])
+		var fix: String = wrong[_quiz_pick] if _quiz_pick < wrong.size() else ""
+		fb.add_child(_text("再想想看！你選的是 %s。" % letters[_quiz_pick], 20, UIKit.TEXT_RED))
+		fb.add_child(_text("哪裡不對：" + (fix if fix != "" else "這個答案不對喔。"), 17))
+		fb.add_child(_text("詳解：" + String(qz.why), 17))
+		fb.add_child(_text(cheer, 16, UIKit.TEXT_WARN))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	body.add_child(row)
+	if not ok:
+		row.add_child(UIKit.focusable(UIKit.button("再試一次", func():
+				_quiz_pick = -1
+				_go(step))))
+	var left: Array = []
+	for i in qs.size():
+		if not _right.has(i):
+			left.append(i)
+	if left.is_empty():
+		var all_l := _text("這一課的 %d 題全部答對了！學會「%s」了。" % [qs.size(), concepts[concept_id].name], 18, UIKit.TEXT_GREEN)
+		all_l.add_theme_font_override("font", UIKit.font_bold())
+		body.add_child(all_l)
+		row.add_child(UIKit.primary(UIKit.focusable(UIKit.button("去冒險 →", func(): _go(step + 1)))))
+	else:
+		var nxt := -1
+		for i in left:   # 下一題：往後找還沒答對的；後面都答對了，就回到前面還沒答對的
+			if i > _qi:
+				nxt = i
+				break
+		if nxt < 0:
+			for i in left:
+				if i != _qi:
+					nxt = i
+					break
+		if nxt >= 0:
+			row.add_child(UIKit.primary(UIKit.focusable(UIKit.button("下一題 →" if nxt > _qi else "回去做還沒答對的題目 →", func():
+					_qi = nxt
 					_quiz_pick = -1
-					_go(step)))
-			body.add_child(again)
+					_go(step)))))
+	# 演出來：派派鼠說出選的答案 → 答對：程式跑出來的結果＋派派兔鼓勵；答錯：派派兔糾正＋鼓勵
+	var said := ["gopher", "（選 %s）%s" % [letters[_quiz_pick], qz.options[_quiz_pick]], "think"]
+	if ok:
+		var act: Array = qz.get("act", [])
+		stage.play([said] + act + [["rabbit", cheer, "happy"]])
+	else:
+		var wl: Array = qz.get("wrong", [])
+		var fix2: String = wl[_quiz_pick] if _quiz_pick < wl.size() else ""
+		stage.play([said, ["rabbit", "嗯……不對喔。" + fix2], ["rabbit", cheer]])
 
 
 func _pick(i: int) -> void:
+	var qs := _questions(lessons[concept_id])
 	_quiz_pick = i
-	if i == int(lessons[concept_id].quiz.answer) and not done.has(concept_id):
-		done[concept_id] = true
-		lesson_done.emit(concept_id)
-		_fill_index()
+	if i == int(qs[_qi].answer):
+		_right[_qi] = true
+		if _right.size() >= qs.size() and not done.has(concept_id):
+			done[concept_id] = true
+			lesson_done.emit(concept_id)
+			_fill_index()
 	_go(step)
 	await get_tree().process_frame
-	body_scroll.scroll_vertical = 10000   # 捲到下面看解答
+	body_scroll.scroll_vertical = 10000   # 捲到下面看詳解
 
 
 func _step_tasks(les: Dictionary) -> void:
@@ -459,7 +565,7 @@ func _step_tasks(les: Dictionary) -> void:
 		if a.compound != b.compound:
 			return not a.compound
 		return int(a.difficulty) < int(b.difficulty))
-	_turtle("學會了「%s」，派派森林裡有這些委託會用到它。" % concepts[concept_id].name if not ts.is_empty() else "這個概念的委託還在準備中。")
+	_wolf("學會了「%s」？準備好一起冒險了嗎？這些任務會用到它，來找我就出發！" % concepts[concept_id].name if not ts.is_empty() else "這件事的冒險還在準備中，先去認識下一件事吧！")
 	for t in ts:
 		var v := _card(Color("fffdf6"))
 		var top := HBoxContainer.new()

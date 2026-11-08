@@ -17,7 +17,8 @@ var hud: HomeHUD
 var panel: TaskPanel
 var report: ReportPanel
 var book: QuestBook
-var lessons: LessonBook   # 慢慢館長的課（圖書館）
+var lessons: LessonBook   # 認識派派森林的世界：慢慢館長說故事＋派派兔小測驗
+var story_after_library := false   # 派派兔帶派派鼠去圖書館聽故事：走進去就打開課本
 var exam: ExamPanel      # 三花奶奶的考核／黑貓弟弟的檢討（圖書館閱讀教室）
 var store: StoreBook      # 雜貨店的商品清單
 var letters: LetterPanel
@@ -99,6 +100,7 @@ func _ready() -> void:
 		music.set_enabled(on)
 		_write_save())
 	hud.open_book.connect(_open_book)
+	hud.open_lessons.connect(func(): _go_story())
 	lessons.lesson_done.connect(func(cid):
 		if not save.has("lessons_done"):
 			save.lessons_done = []
@@ -1507,7 +1509,13 @@ func _enter_library(inside: bool) -> void:
 	rig.reset_view()   # 和家裡一樣的角度和距離
 	await get_tree().create_timer(0.6).timeout
 	if mode == "library" and library.inside == inside:
-		if inside:
+		if inside and story_after_library:
+			story_after_library = false
+			library.npcs["turtle"].say("慢慢來，比較快。今天想聽什麼故事呢？", "say")
+			await get_tree().create_timer(1.2).timeout
+			if mode == "library":
+				_open_lessons()
+		elif inside:
 			library.talk("turtle")
 		else:
 			library.npcs["gopher"].say("到圖書館了！", "say")
@@ -1519,7 +1527,7 @@ func _library_input(event: InputEvent) -> void:
 		var who := library.actor_at(mp, rig.cam)
 		var hot := library.hotspot_at(mp, rig.cam) if who == "" else ""
 		if who != "":
-			var act: String = {"turtle": "　點一下上課", "calico": "　點一下考試", "blackcat": "　點一下檢討"}.get(who, "　點一下聊天")
+			var act: String = {"turtle": "　點一下聽故事", "rabbit": "　點一下聽故事", "calico": "　點一下考試", "blackcat": "　點一下檢討"}.get(who, "　點一下聊天")
 			hud.show_status(LibraryView.NAMES[who] + act, mp)
 		elif hot != "":
 			var h: Dictionary = library.hotspots[hot]
@@ -1529,8 +1537,11 @@ func _library_input(event: InputEvent) -> void:
 			hud.show_status("", Vector2.ZERO)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var who2 := library.actor_at(mp, rig.cam)
-		if who2 == "turtle":
-			library.npcs["turtle"].say("慢慢來，比較快。今天想學什麼呢？", "say")
+		if who2 == "turtle" or who2 == "rabbit":
+			if who2 == "rabbit":
+				library.npcs["rabbit"].say("我們去找慢慢館長聽故事吧！", "say")
+			else:
+				library.npcs["turtle"].say("慢慢來，比較快。今天想聽什麼故事呢？", "say")
 			_open_lessons()
 			return
 		if who2 == "calico":
@@ -1648,7 +1659,7 @@ func _update_mailbox_flag() -> void:
 func _open_board() -> void:
 	_cancel_held()
 	hud.show_board(tasks, save.stars)
-	_giver().say("新來的，來接任務吧！", "say")
+	_giver().say("準備好一起冒險了嗎？", "say")
 
 
 # ---------------- 派派鼠閒晃 ----------------
@@ -1876,7 +1887,7 @@ func _open_review() -> void:
 	exam.open_review(save)
 
 
-## 慢慢館長的課
+## 派派兔的森林小課
 func _open_lessons(cid: String = "") -> void:
 	hud.show_status("", Vector2.ZERO)
 	lessons.open(save.get("lessons_done", []), cid)
@@ -2343,7 +2354,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.show_status(d.name + tip, get_viewport().get_mouse_position())
 		elif _npc_under_mouse() != "":
 			var nn := _npc_under_mouse()
-			hud.show_status(("派派狼：走過去說話（接任務）" if nn == "wolf" else "派派兔：走過去說話（任務書）") , get_viewport().get_mouse_position())
+			hud.show_status(("派派狼：準備好一起冒險了嗎？（實作任務）" if nn == "wolf" else "派派兔：準備好一起認識派派森林的世界了嗎？（去圖書館聽故事＋小測驗）") , get_viewport().get_mouse_position())
 		elif _yard_under_mouse() != "":
 			var yt: String = _yard_item(_yard_under_mouse()).get("type", "")
 			hud.show_status(WorldModel.def_of(yt).name + "　點一下拿起來", get_viewport().get_mouse_position())
@@ -2578,16 +2589,35 @@ func _talk(who: String) -> void:
 				return
 		roam_busy = false
 		roam_timer = 10.0
-		_open_book()
+		_go_story(a)
 		return
 	roam_busy = false
 	roam_timer = 10.0
-	# 派派狼給任務；派派兔管任務書
+	# 派派狼：冒險（實作任務）；派派兔：認識世界（小課＋選擇題小測驗）
 	if who == "wolf":
 		_open_board()
 	else:
-		_open_book()
-		a.say(RABBIT_TIPS.pick_random(), "say")
+		_go_story(a)
+
+
+## 派派兔：「我們去找慢慢館長聽故事吧！」→ 一起走進圖書館，館長打開課本
+func _go_story(a: GopherActor = null) -> void:
+	if mode == "library":
+		if library.inside:
+			_open_lessons()
+		else:
+			story_after_library = true
+			_enter_library(true)
+		return
+	if a == null and room.npcs.has("rabbit"):
+		a = room.npcs.get("rabbit")
+	if a != null and is_instance_valid(a) and a.visible:
+		a.say("準備好一起認識派派森林的世界了嗎？我們去找慢慢館長聽故事吧！", "say")
+		await get_tree().create_timer(2.4).timeout
+	if mode != "home" and mode != "town":
+		return
+	story_after_library = true
+	_enter_library(true)
 
 
 func _wolf_under_mouse() -> bool:
@@ -3125,6 +3155,9 @@ func _auto_shot(path: String) -> void:
 		elif s == "examreview":
 			_open_review()
 			await get_tree().create_timer(0.4).timeout
+		elif s == "story":
+			await _go_story()
+			await get_tree().create_timer(2.5).timeout
 		elif s == "lessons":
 			_open_lessons()
 			await get_tree().create_timer(0.4).timeout
@@ -3139,7 +3172,7 @@ func _auto_shot(path: String) -> void:
 			await get_tree().create_timer(0.4).timeout
 		elif s == "lessonask":
 			lessons._asked = true
-			lessons._go(1)
+			lessons._go(0)
 			await get_tree().create_timer(0.3).timeout
 		elif s.begins_with("libwalk:"):
 			var wp: Array = s.substr(8).split(",")

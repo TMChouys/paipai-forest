@@ -9,6 +9,7 @@ signal view_reset
 signal task_chosen(task_id: String)
 signal reduce_motion_toggled(on: bool)
 signal open_book
+signal open_lessons  # 派派兔帶去圖書館聽慢慢館長說故事
 signal town_toggled  # 回樹屋（在圖書館時）
 signal open_library  # 功能選單：去圖書館
 signal open_store    # 功能選單：雜貨店的商品清單
@@ -50,12 +51,13 @@ func _build() -> void:
 	stars_label = UIKit.label("★ 0", 18, UIKit.TEXT_WARN)
 	stars_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	th.add_child(stars_label)
-	btn_tasks = UIKit.button("派派狼的任務", func(): open_board.emit(), "也可以直接點屋外的派派狼")
+	btn_tasks = UIKit.button("派派狼的冒險", func(): open_board.emit(), "準備好一起冒險了嗎？寫程式完成任務（也可以直接點屋外的派派狼）")
 	th.add_child(btn_tasks)
+	th.add_child(UIKit.button("認識世界", func(): open_lessons.emit(), "派派兔：準備好一起認識派派森林的世界了嗎？去圖書館找慢慢館長聽故事、做小測驗（也可以直接點派派兔）"))
 	th.add_child(UIKit.button("任務書", func(): open_book.emit(), "派森小鎮所有的任務，用知識地圖排好"))
 	var btn_tray := UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具")
 	th.add_child(btn_tray)
-	var btn_lib := UIKit.button("圖書館", func(): open_library.emit(), "去派森圖書館，找慢慢館長上課")
+	var btn_lib := UIKit.button("圖書館", func(): open_library.emit(), "去派森圖書館：派派兔在櫃台打工，三花奶奶在閱讀教室考試")
 	th.add_child(btn_lib)
 	var btn_store := UIKit.button("雜貨店", func(): open_store.emit(), "看看雜貨店的商品清單（照知識地圖排）")
 	th.add_child(btn_store)
@@ -148,7 +150,7 @@ func _build() -> void:
 	var pad := Control.new()
 	pad.custom_minimum_size.x = 36  # 和右邊 × 一樣寬，標題才會置中
 	bh.add_child(pad)
-	var bt := UIKit.label("派派狼的任務板", 24)
+	var bt := UIKit.label("派派狼：準備好一起冒險了嗎？", 24)
 	bt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bh.add_child(bt)
@@ -217,10 +219,10 @@ func _build_help_panel() -> void:
 	# 玩法
 	var play := UIKit.label("怎麼玩", 18, UIKit.TEXT_INFO)
 	v.add_child(play)
-	var steps := UIKit.label("1. 找派派狼接任務，用 Python 寫程式幫大家的忙。
-2. 完成任務會拿到新家具，放進收藏冊。
-3. 把家具拿出來，佈置派派鼠的家！
-（不會的地方，去問派派兔，派派兔管任務書。）", 16)
+	var steps := UIKit.label("1. 找派派兔認識派派森林的世界：去圖書館聽慢慢館長說故事，再做派派兔的選擇題小測驗。
+2. 找派派狼一起冒險：用 Python 寫程式完成任務。
+3. 完成任務會拿到新家具，放進收藏冊；把家具拿出來，佈置派派鼠的家！
+（所有任務都排在「任務書」裡。）", 16)
 	steps.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(steps)
 	v.add_child(HSeparator.new())
@@ -233,7 +235,7 @@ func _build_help_panel() -> void:
 	v.add_child(grid)
 	var rows := [
 		["左鍵點地面", "派派鼠走過去"],
-		["左鍵點派派狼／派派兔", "走過去說話：接任務／看任務書"],
+		["左鍵點派派狼／派派兔", "走過去說話：派派狼冒險／派派兔聽故事"],
 		["左鍵點家具、前院花草", "拿起來，再點一下放下"],
 		["拿著時  R／Delete／Esc", "旋轉／收進收藏冊／取消"],
 		["W A S D", "移動視角"],

@@ -9,6 +9,8 @@ var avoid_side_panels := false
 ## 兩邊面板佔掉的寬度（任務單收起／程式碼加寬時會變）
 var side_left := 388.0
 var side_right := 488.0
+## 小舞台用：氣泡留在這個框框裡（size 是 0 就不限制）
+var clamp_rect := Rect2()
 
 
 func _ready() -> void:
@@ -100,6 +102,9 @@ func _process(_delta: float) -> void:
 			var lo := Vector2(side_left, 62)
 			var hi := Vector2(vp.x - side_right - sz.x, vp.y - 10 - sz.y)
 			pos = pos.clamp(lo, hi.max(lo))
+		if clamp_rect.size != Vector2.ZERO:
+			var hi2 := clamp_rect.end - sz
+			pos = pos.clamp(clamp_rect.position, hi2.max(clamp_rect.position))
 		b.panel.position = pos
 		var tail: Node2D = b.panel.get_meta("tail")
 		tail.position = Vector2(clampf(sp.x - pos.x, 18, sz.x - 18), sz.y)

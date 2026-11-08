@@ -2,7 +2,7 @@ class_name ExamPanel
 extends Control
 ## 三花奶奶的考核（在圖書館的閱讀教室點三花奶奶打開）＋黑貓弟弟的檢討筆記（點黑貓弟弟打開）。
 ## 學習內容切成四關（data/exams.json）。每一關考這個範圍裡：
-##   全部的選擇題＝慢慢館長每一課的選擇練習；全部的實作題＝派派狼的委託（知識地圖對到的遊戲任務）。
+##   全部的選擇題＝派派兔小課每一課的全部小測驗題目；全部的實作題＝派派狼的委託（知識地圖對到的遊戲任務）。
 ## 一題都不能少、有計時、全部答對才過關。實作題沒有角色演出，只有純文字的系統輸出（像真的在電腦上寫程式）。
 ## 沒過：奶奶累了，要等 retry_wait_sec 秒才能重考；哪裡錯了去問黑貓弟弟。
 ## 存檔：save.exams[eid] = {passed, tries, next_at, last: {time, score, total, review: [...]}}
@@ -96,9 +96,9 @@ func setup(tasks: Array) -> void:
 		var tids: Array = []
 		for cid in lessons:
 			if area_of.get(cid, "") in e.areas and lessons[cid].get("quiz") is Dictionary:
-				var qz: Dictionary = lessons[cid].quiz
 				lids.append(cid)
-				qs.append({"kind": "mc", "cid": cid, "title": cname.get(cid, cid), "q": qz.q, "options": qz.options, "answer": int(qz.answer), "why": qz.get("why", "")})
+				for qz in [lessons[cid].quiz] + lessons[cid].get("quiz_more", []):   # 派派兔小課的全部選擇題
+					qs.append({"kind": "mc", "cid": cid, "title": cname.get(cid, cid), "q": qz.q, "options": qz.options, "answer": int(qz.answer), "why": qz.get("why", "")})
 		var code_ts: Array = []
 		for t in tasks:
 			if task_area.get(t.id, "") in e.areas:
@@ -154,7 +154,7 @@ func requirements(id: String) -> Array:
 			n_l += 1
 		else:
 			miss_l.append(cid)
-	out.append({"text": "慢慢館長的課：完成 %d／%d 堂" % [n_l, lesson_ids.get(id, []).size()], "ok": miss_l.is_empty(),
+	out.append({"text": "認識世界（館長的故事＋派派兔小測驗）：學會 %d／%d 課" % [n_l, lesson_ids.get(id, []).size()], "ok": miss_l.is_empty(),
 		"hint": "到圖書館找館長上課，選擇練習答對才算完成。"})
 	var tids: Array = task_ids.get(id, [])
 	if not tids.is_empty():

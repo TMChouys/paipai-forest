@@ -3,6 +3,8 @@
 # 每個範例都會真的跑一次，畫面上的「執行結果」就是跑出來的結果（有 input 的範例用 inputs 假裝輸入）。
 # 用法：python tools/curriculum/gen_lessons.py  →  data/curriculum/lessons.json
 import io, json, os, sys, contextlib, builtins
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from rabbit_lessons import WHY, QUIZ  # 派派兔的森林小課：為什麼、糾正錯誤、角色演出、更多題目
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "data", "curriculum", "lessons.json")
@@ -798,14 +800,23 @@ def main():
         les = dict(les)
         if les["output"] is None:
             les["output"] = run(les["code"], les["inputs"])
-        q = les["quiz"]
+        q = dict(les["quiz"])
         assert 0 <= q["answer"] < len(q["options"]), cid
+        les["why"] = WHY.get(cid, "")
+        rq = QUIZ.get(cid, {})
+        q.update(rq.get("main", {}))
+        les["quiz"] = q
+        les["quiz_more"] = rq.get("more", [])
+        for qq in [q] + les["quiz_more"]:
+            assert 0 <= qq["answer"] < len(qq["options"]), cid
+            assert len(qq.get("wrong", qq["options"])) == len(qq["options"]), cid
+            assert qq.get("wrong", [""] * 9)[qq["answer"]] == "", cid
         ch = les["ch"].split(".")[0].split("–")[0]
         les["chapter"] = CHAPTERS.get(ch, "補充")
         out[cid] = les
     data = {
         "schema": 1,
-        "note": "慢慢館長的課（tools/curriculum/gen_lessons.py 產生，不要手改）。章節照《Python零基礎入門班（第五版）》，說明和範例是派派森林版。",
+        "note": "派派兔的森林小課（原慢慢館長的課；tools/curriculum/gen_lessons.py 產生，不要手改）。章節照《Python零基礎入門班（第五版）》，說明和範例是派派森林版。",
         "book": "Python零基礎入門班（第五版）",
         "extra_concepts": EXTRA_CONCEPTS,
         "lessons": out,
