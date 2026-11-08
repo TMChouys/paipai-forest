@@ -1346,31 +1346,27 @@ func _enter_library(inside: bool) -> void:
 	town.visible = false
 	library.visible = true
 	if not library.built:
+		var t0 := Time.get_ticks_msec()
 		library.build()
+		print("library build ms: ", Time.get_ticks_msec() - t0)
 		for who in library.npcs:
 			library.npcs[who].bubble_requested.connect(_on_bubble)
 	library.set_inside(inside)
 	if inside:
-		library.walk_gopher(Vector3(1.5, 0, -4.0))   # 從大門走進大廳
+		library.walk_gopher(Vector3(1.5, 0, 3.5))   # 從大門走進大廳
 	hud.set_library_mode()
-	sun_light.directional_shadow_max_distance = 220   # 大教堂很大，影子要畫得遠
 	hud.show_status("", Vector2.ZERO)
 	rig.follow_target = null
 	rig.screen_offset = 0.0
 	rig.home_focus = library.view_focus()
 	rig.home_distance = library.view_distance()
-	rig.reset_view()
-	if not inside:
-		rig.target_pitch = deg_to_rad(-22.0)
-		rig.target_yaw = deg_to_rad(-12.0)   # 正面看教堂（斜一點會撞進老橡樹）   # 從前庭往上看，教堂好高
-	else:
-		rig.target_pitch = deg_to_rad(-34.0)
+	rig.reset_view()   # 和家裡一樣的角度和距離
 	await get_tree().create_timer(0.6).timeout
 	if mode == "library" and library.inside == inside:
 		if inside:
 			library.talk("turtle")
 		else:
-			library.npcs["gopher"].say("好高的圖書館！", "say")
+			library.npcs["gopher"].say("到圖書館了！", "say")
 
 
 func _library_input(event: InputEvent) -> void:
