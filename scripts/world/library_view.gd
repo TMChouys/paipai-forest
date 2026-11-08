@@ -349,7 +349,7 @@ func _ground_and_forecourt() -> void:
 	_m(self, Models.box(5.4, 1.1, 0.14), Color("c79a68"), Vector3(0, 7.3, GATE_Z + 0.05))
 	_label(self, "派森圖書館", Vector3(0, 7.3, GATE_Z + 0.14), 72, Color("4a3020"), 0.0, 0.011)
 	_label(self, "派森圖書館", Vector3(0, 7.3, GATE_Z - 0.04), 72, Color("4a3020"), 180.0, 0.011)
-	_hot("gate", "鐵門", Vector3(0, 3.0, GATE_Z), "回鎮中心", "out", "town")
+	_hot("gate", "鐵門", Vector3(0, 3.0, GATE_Z), "回樹屋", "out", "town")
 
 
 # ---------------- 教堂的牆、扶壁、飛扶壁、屋頂 ----------------

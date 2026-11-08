@@ -18,6 +18,7 @@ var panel: TaskPanel
 var report: ReportPanel
 var book: QuestBook
 var lessons: LessonBook   # 慢慢館長的課（圖書館）
+var store: StoreBook      # 雜貨店的商品清單
 var letters: LetterPanel
 var town: TownView
 var library: LibraryView
@@ -67,6 +68,7 @@ func _ready() -> void:
 	report = ReportPanel.new()
 	book = QuestBook.new()
 	lessons = LessonBook.new()
+	store = StoreBook.new()
 	letters = LetterPanel.new()
 	ui_layer.add_child(hud)
 	ui_layer.add_child(panel)
@@ -74,6 +76,7 @@ func _ready() -> void:
 	ui_layer.add_child(report)
 	ui_layer.add_child(book)
 	ui_layer.add_child(lessons)
+	ui_layer.add_child(store)
 	ui_layer.add_child(letters)
 	offer = PanelContainer.new()
 	offer.theme = UIKit.theme()
@@ -100,15 +103,13 @@ func _ready() -> void:
 			save.lessons_done.append(cid)
 			_write_save())
 	hud.help_closed.connect(_start_play)
-	hud.town_toggled.connect(func():
-		if mode == "library":
-			_enter_town()
-		elif mode == "town":
-			_enter_home()
-		elif mode == "home" and not intro_running and held.is_empty() and room.gopher != null:
-			_click_walk_to(room.path_end_point())
-		else:
-			_enter_town())
+	hud.town_toggled.connect(func():   # 小鎮場景先不用：這顆按鈕只在圖書館出現，回樹屋
+		if mode != "home":
+			_enter_home())
+	hud.open_library.connect(func():
+		if mode == "home" and not intro_running:
+			_enter_library(false))
+	hud.open_store.connect(_open_store)
 	letters.read_letter.connect(func(id):
 		if not save.has("letters_read"):
 			save.letters_read = []
@@ -1382,7 +1383,7 @@ func _library_input(event: InputEvent) -> void:
 			hud.show_status(LibraryView.NAMES[who] + ("　點一下上課" if who == "turtle" else "　點一下聊天"), mp)
 		elif hot != "":
 			var h: Dictionary = library.hotspots[hot]
-			var tip: String = {"enter": "　點一下走進去", "exit": "　點一下回前庭", "town": "　點一下回鎮中心"}.get(h.act, "　點一下看看")
+			var tip: String = {"enter": "　點一下走進去", "exit": "　點一下回前庭", "town": "　點一下回樹屋"}.get(h.act, "　點一下看看")
 			hud.show_status(h.name + tip, mp)
 		else:
 			hud.show_status("", Vector2.ZERO)
@@ -1409,7 +1410,7 @@ func _library_input(event: InputEvent) -> void:
 			"exit":
 				_enter_library(false)
 			"town":
-				_enter_town()
+				_enter_home()
 			_:
 				library.describe(hot2)
 
@@ -1512,7 +1513,7 @@ var idle_watch := false
 
 
 func _idle_camera(delta: float) -> void:
-	var panels: bool = report.visible or book.visible or letters.visible or hud.board.visible or hud.help_panel.visible
+	var panels: bool = report.visible or book.visible or letters.visible or hud.board.visible or hud.help_panel.visible or store.visible or lessons.visible
 	var can_watch: bool = mode == "home" and play_started and not intro_running and room.gopher != null and not panels and held.is_empty()
 	if not can_watch:
 		idle_time = 0.0
@@ -1698,6 +1699,12 @@ func _click_walk_to(p: Vector3) -> void:
 		_click_walk_loop()
 
 
+## 雜貨店的商品清單（照知識地圖排；先備的貨沒到就是「還沒到貨」）
+func _open_store() -> void:
+	hud.show_status("", Vector2.ZERO)
+	store.open(tasks, save.stars)
+
+
 ## 慢慢館長的課
 func _open_lessons(cid: String = "") -> void:
 	hud.show_status("", Vector2.ZERO)
@@ -1795,12 +1802,9 @@ func _leave_for_town() -> void:
 	roam_busy = true
 	var g := room.gopher
 	g.face("S")
-	g.say("出發去派森小鎮囉！", "say")
+	g.say("小鎮還在整理中……先從選單去圖書館或雜貨店吧！", "say")   # 小鎮場景先不用
 	await get_tree().create_timer(1.4).timeout
 	roam_busy = false
-	if mode == "home" and not click_walking:
-		rig.follow_target = null
-		_enter_town()
 
 
 ## 自己動的時候走去某個點（屋裡、屋外都可以，會開門）
@@ -2129,6 +2133,9 @@ func _input(event: InputEvent) -> void:
 	elif lessons.visible:
 		lessons.close()
 		get_viewport().set_input_as_handled()
+	elif store.visible:
+		store.close()
+		get_viewport().set_input_as_handled()
 	elif letters.visible:
 		letters.close()
 		get_viewport().set_input_as_handled()
@@ -2144,10 +2151,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if mode == "town" and not book.visible:
 		_town_input(event)
 		return
-	if mode == "library" and not book.visible and not lessons.visible:
+	if mode == "library" and not book.visible and not lessons.visible and not store.visible:
 		_library_input(event)
 		return
-	if mode != "home" or hud.board.visible or letters.visible or hud.help_panel.visible:
+	if mode != "home" or hud.board.visible or letters.visible or hud.help_panel.visible or store.visible:
 		return
 	if event is InputEventMouseMotion and not held.is_empty():
 		_update_held()
@@ -2884,6 +2891,12 @@ func _auto_shot(path: String) -> void:
 		elif s.begins_with("libtalk:"):
 			library.talk(s.substr(8))
 			await get_tree().create_timer(0.4).timeout
+		elif s == "store":
+			_open_store()
+			await get_tree().create_timer(0.4).timeout
+		elif s.begins_with("storearea:"):
+			store.show_area(s.substr(10))
+			await get_tree().create_timer(0.3).timeout
 		elif s == "lessons":
 			_open_lessons()
 			await get_tree().create_timer(0.4).timeout
