@@ -13,6 +13,13 @@ const PATH := "res://data/curriculum/classes.json"
 var cfg: Dictionary = {}
 var list: VBoxContainer
 var panel: PanelContainer
+var tabs: HBoxContainer
+var scroll: ScrollContainer
+## 篩選：all 全部、open 能上的課、locked 還不能上的課、done 已通過的課
+var filter := "open"
+const FILTERS := [["all", "全部"], ["open", "能上的課"], ["locked", "還不能上的課"], ["done", "已通過的課"]]
+var _book: LessonBook
+var _done := {}
 
 
 static func load_cfg() -> Dictionary:
@@ -60,10 +67,15 @@ func _ready() -> void:
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
+	tabs = HBoxContainer.new()
+	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	tabs.add_theme_constant_override("separation", 8)
+	v.add_child(tabs)
 	var sc := ScrollContainer.new()
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	v.add_child(sc)
+	scroll = sc
 	list = VBoxContainer.new()
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 8)
@@ -92,80 +104,126 @@ func is_open(book: LessonBook, cid: String, done: Dictionary) -> bool:
 	return true
 
 
+## 還沒上完的先修課（課名）
+func missing_prereqs(book: LessonBook, cid: String, done: Dictionary) -> Array:
+	var out: Array = []
+	for p in book.concepts[cid].get("prereqs", []) + cfg.get("extra_prereqs", {}).get(cid, []):
+		if book.lessons.has(p) and not done.has(p):
+			out.append(book.concepts[p].name)
+	return out
+
+
 func open(book: LessonBook, done_list: Array) -> void:
-	var done := {}
+	_book = book
+	_done = {}
 	for c in done_list:
-		done[c] = true
+		_done[c] = true
+	# 有能上的課就先看能上的課；全部上完就看已通過的課
+	filter = "open" if not _ids("open").is_empty() else ("done" if _ids("locked").is_empty() else "all")
+	_render()
+	visible = true
+
+
+func _status(cid: String) -> String:
+	if _done.has(cid):
+		return "done"
+	return "open" if is_open(_book, cid, _done) else "locked"
+
+
+func _ids(f: String) -> Array:
+	var out: Array = []
+	for cid in _book.order:
+		if _book.lessons.has(cid) and (f == "all" or _status(cid) == f):
+			out.append(cid)
+	return out
+
+
+func set_filter(f: String) -> void:
+	filter = f
+	_render()
+
+
+func _render() -> void:
+	for n in tabs.get_children():
+		n.queue_free()
+	for fl in FILTERS:
+		var id: String = fl[0]
+		var b := UIKit.button("%s（%d）" % [fl[1], _ids(id).size()], set_filter.bind(id))
+		if id == filter:
+			UIKit.primary(b)
+		tabs.add_child(b)
 	for n in list.get_children():
 		n.queue_free()
-	var kmap: Dictionary = book.kmap
 	var first: Button = null
-	var open_ids: Array = []
-	var done_ids: Array = []
-	var locked := 0
-	for cid in book.order:
-		if not book.lessons.has(cid):
-			continue
-		if done.has(cid):
-			done_ids.append(cid)
-		elif is_open(book, cid, done):
-			open_ids.append(cid)
-		else:
-			locked += 1
-	if not open_ids.is_empty():
-		list.add_child(UIKit.label("現在可以上的課", 16, UIKit.TEXT_INFO))
-	for cid in open_ids + done_ids:
-		if cid == (done_ids[0] if not done_ids.is_empty() else ""):
-			list.add_child(UIKit.label("上過的課（可以再上一次）", 16, UIKit.TEXT_GREEN))
-		var c: Dictionary = book.concepts[cid]
-		var les: Dictionary = book.lessons[cid]
-		var a: Dictionary = book._area(c.area)
-		var row := PanelContainer.new()
-		row.add_theme_stylebox_override("panel", UIKit.panel_style(Color("fffdf6"), 12, UIKit.INK, 2))
-		var hh := HBoxContainer.new()
-		hh.add_theme_constant_override("separation", 10)
-		row.add_child(hh)
-		var info := VBoxContainer.new()
-		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		hh.add_child(info)
-		var th := HBoxContainer.new()
-		th.add_theme_constant_override("separation", 8)
-		info.add_child(th)
-		th.add_child(QuestBook._tag("%s %s" % [c.area, a.get("name", "")], Color(a.get("color", "#cfe3f5")).lightened(0.3)))
-		var tl := UIKit.label(c.name, 18)
-		tl.add_theme_font_override("font", UIKit.font_bold())
-		th.add_child(tl)
-		var nq: int = 1 + (les.get("quiz_more", []) as Array).size()
-		var tasks := 0
-		for kt in kmap.get("tasks", []):
-			if cid in kt.get("concepts", []) and kt.get("game_task", "") != "":
-				tasks += 1
-		info.add_child(UIKit.label("老師：%s　地點：%s　小測驗 %d 題" % [teacher_name(cfg, teacher_of(cfg, cid)), cfg.get("place", "圖書館・教室"), nq], 14, Color("8a6a50")))
-		var stl := UIKit.label("故事：" + story_of(cfg, cid), 14, Color("6b5a48"))
-		stl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		info.add_child(stl)
-		var prac := ("實作：派派狼的冒險有 %d 個任務會用到" % tasks) if tasks > 0 else "實作：冒險任務準備中"
-		info.add_child(UIKit.label("%s　｜　%s" % [les.chapter, prac], 13, UIKit.TEXT_MUTED))
-		var id: String = cid
-		var b := UIKit.focusable(UIKit.button("去上課" if not done.has(cid) else "再上一次", func():
-			visible = false
-			chosen.emit(id)))
-		if not done.has(cid):
-			UIKit.primary(b)
-			if first == null:
-				first = b
-		else:
-			hh.add_child(HomeHUD._done_stamp())
-		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		hh.add_child(b)
-		list.add_child(row)
-	if locked > 0:
-		var l := UIKit.label("還有 %d 堂課還沒開：先上完前面的課，新的課就會開。" % locked, 14, UIKit.TEXT_MUTED)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		list.add_child(l)
-	visible = true
+	var ids := _ids(filter)
+	if ids.is_empty():
+		var e := UIKit.label({"open": "現在沒有能上的課了：全部都上完囉！", "locked": "沒有還不能上的課了，每一課都開了！",
+			"done": "還沒有通過的課：先去上第一堂課吧！"}.get(filter, ""), 15, UIKit.TEXT_MUTED)
+		e.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		list.add_child(e)
+	for cid in ids:
+		var b := _row(cid)
+		if first == null and b != null and _status(cid) == "open":
+			first = b
+	scroll.scroll_vertical = 0
 	if first:
 		first.grab_focus.call_deferred()
+
+
+## 一堂課的一列；回傳「去上課」按鈕（還不能上的課回傳 null）
+func _row(cid: String) -> Button:
+	var st := _status(cid)
+	var c: Dictionary = _book.concepts[cid]
+	var les: Dictionary = _book.lessons[cid]
+	var a: Dictionary = _book._area(c.area)
+	var row := PanelContainer.new()
+	row.add_theme_stylebox_override("panel", UIKit.panel_style(Color("f1ece2") if st == "locked" else Color("fffdf6"), 12,
+		Color("b8a99a") if st == "locked" else UIKit.INK, 2))
+	var hh := HBoxContainer.new()
+	hh.add_theme_constant_override("separation", 10)
+	row.add_child(hh)
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hh.add_child(info)
+	var th := HBoxContainer.new()
+	th.add_theme_constant_override("separation", 8)
+	info.add_child(th)
+	th.add_child(QuestBook._tag("%s %s" % [c.area, a.get("name", "")], Color(a.get("color", "#cfe3f5")).lightened(0.3)))
+	var tl := UIKit.label(("🔒 " if st == "locked" else "") + c.name, 18, UIKit.TEXT_MUTED if st == "locked" else UIKit.INK)
+	tl.add_theme_font_override("font", UIKit.font_bold())
+	th.add_child(tl)
+	var nq: int = 1 + (les.get("quiz_more", []) as Array).size()
+	var tasks := 0
+	for kt in _book.kmap.get("tasks", []):
+		if cid in kt.get("concepts", []) and kt.get("game_task", "") != "":
+			tasks += 1
+	info.add_child(UIKit.label("老師：%s　地點：%s　小測驗 %d 題" % [teacher_name(cfg, teacher_of(cfg, cid)), cfg.get("place", "圖書館・教室"), nq], 14, Color("8a6a50")))
+	var stl := UIKit.label("故事：" + story_of(cfg, cid), 14, Color("6b5a48"))
+	stl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_child(stl)
+	if st == "locked":
+		var why := UIKit.label("先上完：" + "、".join(missing_prereqs(_book, cid, _done).map(func(n): return "「%s」" % n)), 14, Color("b0603a"))
+		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info.add_child(why)
+	var prac := ("實作：派派狼的冒險有 %d 個任務會用到" % tasks) if tasks > 0 else "實作：冒險任務準備中"
+	info.add_child(UIKit.label("%s　｜　%s" % [les.chapter, prac], 13, UIKit.TEXT_MUTED))
+	list.add_child(row)
+	if st == "locked":
+		var lk := UIKit.label("還不能上", 14, UIKit.TEXT_MUTED)
+		lk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hh.add_child(lk)
+		return null
+	var id: String = cid
+	var b := UIKit.focusable(UIKit.button("去上課" if st == "open" else "再上一次", func():
+		visible = false
+		chosen.emit(id)))
+	if st == "open":
+		UIKit.primary(b)
+	else:
+		hh.add_child(HomeHUD._done_stamp())
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hh.add_child(b)
+	return b
 
 
 func close() -> void:

@@ -3295,6 +3295,9 @@ func _auto_shot(path: String) -> void:
 		elif s == "story":
 			await _go_story()
 			await get_tree().create_timer(1.0).timeout
+		elif s.begins_with("classtab:"):
+			class_board.set_filter(s.substr(9))
+			await get_tree().create_timer(0.3).timeout
 		elif s.begins_with("class:"):
 			class_board.visible = false
 			await _start_class(s.substr(6))
