@@ -79,7 +79,7 @@ data/furniture.json 家具定義；data/home.json 新玩家的家
 
 - 正式 3D 模型：派派鼠、派派兔、派派狼由混元 3D（Hunyuan3D-2）生成，經 `tools/blender/rig_hy3d.py` 修正並上骨架（`models/gopher/gopher_rigged.glb`、`models/rabbit/rabbit_rigged.glb`、`models/wolf/wolf_rigged.glb`；用法 `blender -b -P rig_hy3d.py -- kenney.glb 原檔.glb 輸出.glb gopher|rabbit|wolf`）、小椅子（`models/chair.glb`，陽光小椅子用 `model_tint` 染黃）。其餘家具仍是程式拼的佔位模型；Thrixel 免費額度剩 13 方塊，雕塑次數 2026-12-01 重置。換模型：把 GLB 放進 `models/`，在 `furniture.json` 填 `model`（可選 `model_fill` `model_yaw` `model_tint`），會自動縮放貼地並加描邊。
 - Kenney 模型（CC0，免費可商用，不需標註；授權檔在 `models/kenney/License-*.txt`）：Furniture Kit 的桌子、圓桌、書櫃、盆栽、沙發、邊桌、長椅、衣帽架、復古電視、收音機、書、小盆栽；Nature Kit 與 Fantasy Town Kit 的樹、花、灌木、蘑菇、石子路、柵欄、路燈、噴水池、攤位、推車（屋外小鎮景色，見 `room_view.gd` 的 `OUTDOOR`）。載入時會自動校正 Kenney 偏白的顏色並套繪本色票（`models.gd` 的 `KENNEY_PALETTE`）。
-- 背景音樂（`audio/music/`）：用 Meta **MusicGen**（facebook/musicgen，模型權重 CC-BY-NC 4.0，限非商業用途）生成，再做成可以無縫循環的 .ogg；生成腳本 `tools/music/gen_music.py`，環境在 `D:/ai/musicgen`。home＝樹屋、town＝派森小鎮、task＝寫程式任務、clear＝過關小樂句；「⋯ → 背景音樂」可以關掉。
+- 背景音樂（`audio/music/`）：用程式寫譜（`tools/music/compose.py`：旋律、和弦、伴奏一個音一個音寫），再用 **FluidSynth** 和 **GeneralUser GS** 音色庫（S. Christian Collins，免費、可商用）播成音檔；循環曲取第二遍，讓殘響接回開頭。home＝樹屋、town＝派森小鎮、task＝寫程式任務、clear＝過關小樂句；「⋯ → 背景音樂」可以關掉。
 - 管理員的任務設計器（第二版）。
 
 ## 派森小鎮任務書與教學進度

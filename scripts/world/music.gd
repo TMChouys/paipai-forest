@@ -1,7 +1,7 @@
 class_name Music
 extends Node
 ## 背景音樂：換場景時兩軌交叉淡入淡出；過關小樂句播的時候背景音樂先壓小聲。
-## 音樂檔在 res://audio/music/<名字>.ogg（MusicGen 生成，tools/music/gen_music.py）
+## 音樂檔在 res://audio/music/<名字>.ogg（tools/music/compose.py 寫譜，FluidSynth＋GeneralUser GS 播成音檔）
 
 const VOLUME_DB := -9.0
 const SILENT_DB := -60.0
