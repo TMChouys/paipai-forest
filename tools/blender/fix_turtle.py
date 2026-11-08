@@ -14,11 +14,11 @@ SRC, OUT = args[0], args[1]
 PREVIEW = args[2] if len(args) > 2 else None
 
 # ---- 顏色（sRGB 0..1）----
-SKIN = np.array([0.53, 0.67, 0.41])        # 帶綠的烏龜膚色
-SKIN_SPOT = np.array([0.42, 0.55, 0.31])   # 淡淡的老人斑
+SKIN = np.array([0.60, 0.70, 0.44])        # 帶綠的烏龜膚色
+SKIN_SPOT = np.array([0.48, 0.57, 0.33])   # 淡淡的老人斑
 PURPLE_H = 0.76                             # 披風紫色的色相
-CLOAK = np.array([0.45, 0.33, 0.60])
-CLOAK_DARK = np.array([0.30, 0.21, 0.41])
+CLOAK = np.array([0.40, 0.26, 0.57])
+CLOAK_DARK = np.array([0.27, 0.17, 0.40])
 GOLD = np.array([0.86, 0.69, 0.33])
 SHELL = np.array([0.64, 0.45, 0.27])
 SHELL_LIGHT = np.array([0.76, 0.56, 0.34])
@@ -132,7 +132,7 @@ X, Y, Z = pos[..., 0], pos[..., 1], pos[..., 2]
 
 # ---- 披風：藍綠／灰藍色 → 紫色（保留明暗和彩度的變化）----
 teal = smoothstep(0.19, 0.24, h) * (1 - smoothstep(0.66, 0.72, h)) * smoothstep(0.025, 0.06, s) * smoothstep(0.12, 0.2, v)
-purple = hsv_to_rgb(np.full_like(h, PURPLE_H), np.clip(s * 1.25 + 0.08, 0, 0.6), np.clip(v * 1.02, 0, 1))
+purple = hsv_to_rgb(np.full_like(h, PURPLE_H), np.clip(s * 1.3 + 0.18, 0, 0.62), np.clip(v * 0.92, 0, 1))
 rgb = rgb * (1 - teal[..., None]) + purple * teal[..., None]
 
 def box_blur(A, r):
@@ -191,10 +191,11 @@ img.pixels.foreach_set(pix.ravel())
 img.update(); img.pack()
 
 # ================= 2. 新龜殼 =================
-SC = Vector((0.0, 0.17, -0.11))       # 圓頂中心（埋在背裡）
-SR = Vector((0.50, 0.60, 0.53))       # 左右、往後、上下半徑
+# 照正面設計圖量的：龜殼比身體還寬（正面看得到兩側和肩膀上面的殼緣），上緣到眉毛高、下緣到腰
+SC = Vector((0.0, 0.15, 0.10))        # 圓頂中心（埋在背裡）
+SR = Vector((0.76, 0.64, 0.58))       # 左右、往後、上下半徑
 # 剖面 (s, h)：s = 離中軸的比例，h = 往後的比例；邊緣是一圈圓滾滾的厚緣
-prof = [(0.0, -0.25), (0.90, -0.25), (0.97, -0.13), (1.03, -0.03), (1.04, 0.04), (1.0, 0.10)]
+prof = [(0.0, -0.10), (0.90, -0.25), (0.97, -0.13), (1.03, -0.03), (1.04, 0.04), (1.0, 0.10)]
 for k in range(1, 15):
     a = k / 15 * math.pi / 2
     prof.append((math.cos(a) * 0.985, 0.10 + 0.90 * math.sin(a) ** 0.85))
@@ -233,6 +234,7 @@ for k in range(J, len(prof)):
     r_uv[k] = 0.86 * arc[k] / arc[J]
 for k in range(1, J):
     r_uv[k] = 0.86 + 0.14 * (arc[k] - arc[J]) / (arc[1] - arc[J])
+r_uv[0] = 0.99   # 前面的底板（從正面殼緣縫隙看得到）用緣甲的顏色
 ring_of = {v: k for k, ring in enumerate(rings) for v in ring}
 uvs = shell.loops.layers.uv.new("UVMap")
 for f in shell.faces:
@@ -296,7 +298,7 @@ Z_HEM, Z_TOP = -0.74, 0.44
 NT, NZ = 96, 56
 zs = np.linspace(Z_HEM, Z_TOP, NZ)
 def theta0(z):  # 前面開口的半角（度）：肩膀處窄（貼著鬍子），手臂以下寬（袖子從前面伸出來）
-    return 40.0 + 18.0 * (1 - smoothstep(0.12, 0.32, z))
+    return 40.0 + 10.0 * (1 - smoothstep(0.12, 0.32, z))
 R = np.zeros((NZ, NT)); TH = np.zeros((NZ, NT))
 for j, z in enumerate(zs):
     t0 = theta0(z)
@@ -315,7 +317,36 @@ def blur(A, ax, sig):
     P = np.pad(A, [(6, 6) if a == ax else (0, 0) for a in range(2)], mode='edge')
     return np.apply_along_axis(lambda r: np.convolve(r, k, mode='valid'), ax, P)
 R = blur(blur(R, 1, 2.2), 0, 1.8)
-R = R + 0.025 + 0.045 * smoothstep(-0.55, -0.74, zs)[:, None]      # 下襬微微張開
+R = R + 0.025
+# 鐘形：設計圖上披風在龜殼下面往外張開，下襬比龜殼還寬（正面量到的半寬）
+BELL = np.interp(zs, [-0.74, -0.6, -0.4, -0.1, 0.1, 0.3], [0.84, 0.83, 0.79, 0.76, 0.64, 0.45])
+# 鐘形只在兩側和前面張開（正面看的輪廓）；背後在龜殼下面只微微張開，不要像一個台階
+TF = np.minimum(TH, 360 - TH)
+T0 = np.array([theta0(z) for z in zs])[:, None]
+side_w = (1 - 0.8 * smoothstep(110.0, 165.0, TF)) * (0.35 + 0.65 * smoothstep(T0 + 5.0, T0 + 40.0, TF))  # 前緣不要像門板一樣翹出去
+R = np.maximum(R, R + (BELL[:, None] - R).clip(0) * side_w + 0.03 * smoothstep(-0.5, -0.74, zs)[:, None])
+# 肩膀往脖子收（不要方方的肩膀）
+CAP = np.interp(zs, [0.15, 0.3, 0.44], [0.9, 0.56, 0.42])
+R = np.minimum(R, CAP[:, None])
+# 披風不能蓋到龜殼：在龜殼後半部範圍裡，半徑限制在殼的裡面，再沿高度柔和過渡（殼下面才往外張開）
+def shell_rmax(th, z, m):
+    a_ = math.radians(th); sa, ca = math.sin(a_), math.cos(a_)
+    if ca >= -0.05:
+        return 9.0
+    A = (sa / SR.x) ** 2 + (ca / SR.y) ** 2
+    B = 2 * ca * SC.y / SR.y ** 2
+    C = (SC.y / SR.y) ** 2 + ((z - SC.z) / SR.z) ** 2 - m * m
+    disc = B * B - 4 * A * C
+    if disc <= 0:
+        return 9.0
+    r_hi = (-B + math.sqrt(disc)) / (2 * A)
+    r_c = (SC.y - 0.1 * SR.y) / (-ca)          # 殼的底板以後才算殼裡面
+    return r_hi if r_hi > r_c else 9.0
+RM = np.array([[shell_rmax(TH[j, i], zs[j], 0.9) for i in range(NT)] for j in range(NZ)])
+RM2 = np.array([[shell_rmax(TH[j, i], zs[j], 0.97) for i in range(NT)] for j in range(NZ)])
+R = np.minimum(R, RM)
+R = blur(R, 0, 2.5)
+R = np.minimum(R, RM2)
 R[-3:] = R[-3:] - np.array([0.0, 0.005, 0.012])[:, None]           # 領口收一點
 cl = bmesh.new()
 grid = [[cl.verts.new((R[j, i] * math.sin(math.radians(TH[j, i])), -R[j, i] * math.cos(math.radians(TH[j, i])), zs[j]))
@@ -500,9 +531,50 @@ for vv in body.data.vertices:
 body.data.update()
 print("ROBE hem pushed", pushed)
 
+# ================= 3d. 胸前兩顆金色圓扣（披風前緣） =================
+CS = 256
+gy, gx = np.mgrid[0:CS, 0:CS]
+cu = (gx + 0.5) / CS * 2 - 1; cv = (gy + 0.5) / CS * 2 - 1
+rr2 = np.sqrt(cu ** 2 + cv ** 2)
+GC = np.zeros((CS, CS, 3)); GC[:] = GOLD * 1.05
+GC *= (0.85 + 0.25 * (1 - rr2))[..., None]
+ring = (1 - smoothstep(0.03, 0.08, np.abs(rr2 - 0.82)))
+dia = (np.abs(cu) + np.abs(cv) * 0.75)
+dd = (1 - smoothstep(0.42, 0.48, dia)) * smoothstep(0.30, 0.36, dia) + (1 - smoothstep(0.12, 0.18, dia))
+GC = GC * (1 - 0.45 * np.clip(ring + dd, 0, 1))[..., None]
+gimg = bpy.data.images.new("turtle_clasp", CS, CS)
+gimg.pixels.foreach_set(np.concatenate([np.clip(GC, 0, 1), np.ones((CS, CS, 1))], -1).astype(np.float32).ravel())
+gimg.update(); gimg.pack()
+clasp_mat = tex_material("PinClasp", gimg, 0.5)
+clasps = []
+for sx in (-1, 1):
+    zc_ = 0.2
+    th = theta0(zc_) + 2.0
+    a_ = math.radians(th if sx > 0 else 360 - th)
+    rc = R_at(th, zc_) + 0.03
+    pos_ = Vector((rc * math.sin(a_), -rc * math.cos(a_), zc_))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.06, depth=0.025, location=pos_)
+    ob = bpy.context.active_object
+    nrm = Vector((math.sin(a_), -math.cos(a_), 0.0))
+    ob.rotation_euler = nrm.to_track_quat('Z', 'Y').to_euler()
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    me = ob.data
+    me.uv_layers.new(name="UVMap") if not me.uv_layers else None
+    bm_ = bmesh.new(); bm_.from_mesh(me); uvl_ = bm_.loops.layers.uv.active
+    for f in bm_.faces:
+        for l in f.loops:
+            c = l.vert.co
+            loc = Vector((c.dot(Vector((math.cos(a_), math.sin(a_), 0))), c.z, 0)) / 0.06
+            l[uvl_].uv = (0.5 + 0.5 * loc.x, 0.5 + 0.5 * loc.y)
+    bm_.to_mesh(me); bm_.free()
+    me.materials.clear(); me.materials.append(clasp_mat)
+    for p_ in me.polygons:
+        p_.use_smooth = False
+    clasps.append(ob)
+
 # ================= 4. 合併、輸出 =================
 bpy.ops.object.select_all(action='DESELECT')
-for o in (body, shell_ob, cloak_ob, skirt_ob):
+for o in (body, shell_ob, cloak_ob, skirt_ob, *clasps):
     o.select_set(True)
 bpy.context.view_layer.objects.active = body
 bpy.ops.object.join()
