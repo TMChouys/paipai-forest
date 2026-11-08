@@ -109,10 +109,10 @@ func _init() -> void:
 	quit()
 
 
-## 灰毛的權重：彩度低、亮度在中間
+## 灰毛的權重：彩度低（手腳屁股的灰毛帶一點暖色，彩度到 0.32；衣服鞋子 0.66 以上）、亮度在中間
 static func _fur_w(c: Color) -> float:
 	var l := c.get_luminance()
-	return (1.0 - smoothstep(0.10, 0.19, c.s)) * smoothstep(0.16, 0.26, l) * (1.0 - smoothstep(0.66, 0.76, l))
+	return (1.0 - smoothstep(0.34, 0.45, c.s)) * smoothstep(0.16, 0.26, l) * (1.0 - smoothstep(0.66, 0.76, l))
 
 
 static func _blue_fur(img: Image) -> Image:
