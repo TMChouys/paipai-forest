@@ -31,7 +31,7 @@ WORK = "D:/ai/music_work"
 PIANO, CELESTA, GLOCK, VIBES, MARIMBA, XYLO = 0, 8, 9, 11, 12, 13
 ACCORDION, NYLON, AC_BASS, PIZZ = 21, 24, 32, 45
 STRINGS, SLOW_STR, HORN, FLUTE = 48, 49, 60, 73
-WARM_PAD, KALIMBA = 89, 108
+EPIANO = 4
 
 NOTE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 QUAL = {"": (0, 4, 7), "m": (0, 3, 7), "7": (0, 4, 7, 10), "maj7": (0, 4, 7, 11),
@@ -153,7 +153,8 @@ def render(song: Song, name: str, beats: float, loop: bool) -> np.ndarray:
     assert sr == SR
     L = int(round(beats * 60.0 / song.bpm * SR))
     if loop:
-        a = a[L:2 * L]  # 第二遍：開頭已經帶著上一遍的殘響，循環接起來沒有縫
+        d = int(SR * 0.01)   # 提早 10 毫秒切：接縫落在音頭前面的安靜處，不會切到撥弦的音頭
+        a = a[L - d:2 * L - d]  # 第二遍：開頭已經帶著上一遍的殘響，循環接起來沒有縫
     else:
         # 去掉尾巴的靜音，最後 0.4 秒淡出
         level = np.abs(a).max(axis=1)
@@ -217,71 +218,59 @@ def bass_line(s: Song, ch, bar, chords, vel=62, low=36):
 
 
 # ---------------------------------------------------------------- 曲子
-def kalimba_arp(s: Song, ch, bar, chords, vel=54, pat=0):
-    """卡林巴分解和弦：拇指左右交替撥，偶爾空一拍讓它呼吸；每個音自然延音（不打斷）"""
-    pats = [
-        [0, 2, 1, 3, 2, 4, 3, 2],        # 往上再回來
-        [0, None, 2, 4, 1, None, 3, 2],  # 留空的
-        [0, 3, 2, 4, None, 3, 1, None],  # 更稀疏
-    ]
+def rhodes_comp(s: Song, ch, bar, chords, vel=40, center=62):
+    """電鋼琴輕輕按和弦：第一拍長按，第三拍後半輕輕再按一次（像咖啡廳裡的伴奏）"""
     for i, sym in enumerate(chords):
-        r, q, bass = chord(sym)
+        r, q, _ = chord(sym)
         b0 = (bar + i) * s.bpb
-        lo = near(bass, 50)
-        # 卡林巴的音：低音＋和弦音往上排成一串（全在中高音域，像真的琴齒）
-        tones = [lo] + sorted({near((r + iv) % 12, 64 + k * 4) for k, iv in enumerate(q[:3])})
-        tones.append(near(r, 74))
-        p_ = pats[(pat + i) % len(pats)] if pat >= 0 else pats[1]
-        for k, idx in enumerate(p_):
-            if idx is None:
-                continue
-            t = b0 + k * 0.5 + s.rng.uniform(0.0, 0.03)   # 手撥的小小不整齊（只往後，循環接縫才不會切到音頭）
-            v = vel + (8 if k == 0 else 0) - (6 if k % 2 else 0)
-            s.note(ch, t, 2.6 if k else 3.6, tones[min(idx, len(tones) - 1)], v)
+        voice = sorted({near((r + iv) % 12, center + k * 3) for k, iv in enumerate(q[1:] + (0,))})
+        for k, p in enumerate(voice):
+            s.note(ch, b0 + k * 0.015, 2.3, p, vel)
+            s.note(ch, b0 + 2.5 + k * 0.015, 1.4, p, vel - 8)
 
 
 def home() -> tuple[Song, float]:
-    """樹屋：C 大調 66 bpm。卡林巴（拇指琴）分解和弦＋木笛，療癒、可以發呆，慢慢佈置家具也不用心急。
-    放置型遊戲的背景音樂：音少、留白多、沒有突然的大聲，長時間聽也不累。48 小節（約 2 分 55 秒）循環。"""
-    s = Song(66, seed=41)
-    kal = s.part(0, KALIMBA, vol=104, pan=58, rev=72)
-    kal2 = s.part(1, KALIMBA, vol=80, pan=78, rev=80)   # 高音的卡林巴小旋律
-    flt = s.part(2, FLUTE, vol=62, pan=48, rev=80)
-    pad_ = s.part(3, WARM_PAD, vol=40, pan=64, rev=90)
-    A = ["C", "Am", "F", "C", "F", "C", "Dm", "G"]
-    B = ["Am", "F", "C", "G", "Am", "F", "Dm", "G"]
-    C = ["F", "C/E", "Dm", "C", "F", "Em", "Dm", "G"]
-    # 笛子：長音、五聲音階、句子之間留很多空
-    fA = ("E5:3 G5:1  A5:4  C6:2 A5:2  G5:4 "
-          "A5:2 G5:1 E5:1  C5:4  C5:2 D5:2  D5:3 r:1")
-    fA2 = ("G5:3 E5:1  A5:3 G5:1  E5:2 D5:2  C5:4 "
-           "F5:2 A5:2  G5:3 E5:1  D5:2 C5:2  D5:3 r:1")
-    fC = ("r:4  A5:2 G5:2  F5:4  r:4 "
-          "C5:2 A4:2  E5:3 D5:1  D5:4  r:4")
-    # 卡林巴的高音小旋律（像水滴）
-    kB = ("E6:1 C6:1 A5:2  r:2 A5:1 C6:1  G5:4  r:2 G5:1 A5:1 "
-          "E6:1 C6:1 A5:2  r:2 C6:1 D6:1  A5:4  D6:2 B5:2")
-    sec = ["A", "A", "B", "A", "C", "A"]
-    for k, tag in enumerate(sec):
+    """樹屋：F 大調 76 bpm。電鋼琴（Rhodes）唱旋律＋尼龍弦吉他指彈，木貝斯和很輕的弦樂墊底。
+    溫暖、明亮的大調（maj7 和弦），像午後的咖啡廳：療癒、可以發呆，慢慢佈置家具也不用心急。
+    放置型遊戲的背景音樂：六段輪流換主角（吉他、電鋼琴、貝斯進出），長時間聽也不膩。48 小節約 2 分 32 秒循環。"""
+    s = Song(76, seed=53)
+    gtr = s.part(0, NYLON, vol=96, pan=50, rev=55)
+    epl = s.part(1, EPIANO, vol=92, pan=72, rev=62)      # 電鋼琴旋律
+    epc = s.part(2, EPIANO, vol=78, pan=60, rev=62)      # 電鋼琴和弦
+    bas = s.part(3, AC_BASS, vol=78, pan=60, rev=30)
+    pad_ = s.part(4, SLOW_STR, vol=46, pan=40, rev=80)
+    gtm = s.part(5, NYLON, vol=90, pan=78, rev=55)       # 吉他唱旋律的那一段
+    A = ["Fmaj7", "C/E", "Dm7", "Bbmaj7", "F", "Gm7", "C", "F"]
+    B = ["Bbmaj7", "C", "Am7", "Dm7", "Gm7", "C", "Bbmaj7", "C"]
+    mA = ("A4:1.5 C5:.5 E5:1 C5:1  D5:1.5 C5:.5 G4:2  F4:1 A4:1 C5:1 D5:1  D5:3 r:1 "
+          "C5:1.5 A4:.5 F5:1 E5:1  D5:1.5 Bb4:.5 G4:2  E4:1 G4:1 Bb4:1 E5:1  F5:3 r:1")
+    mA2 = ("A4:1 C5:1 F5:1.5 E5:.5  D5:1 C5:1 G4:2  A4:1 C5:1 F5:1 D5:1  D5:2 F5:2 "
+           "C5:1.5 A4:.5 F5:1 E5:1  D5:1.5 Bb4:.5 G4:2  G4:1 C5:1 E5:1 G5:1  F5:3 r:1")
+    mB = ("F5:1.5 D5:.5 Bb4:2  C5:1 E5:1 G5:2  E5:1.5 C5:.5 A4:2  F5:1 E5:1 D5:1 C5:1 "
+          "Bb4:1.5 D5:.5 F5:2  E5:1 D5:1 C5:2  D5:1 F5:1 A5:1.5 F5:.5  G5:2 E5:1 C5:1")
+    cA = "C6:4 C6:4 A5:4 F5:4 A5:4 Bb5:4 G5:4 A5:2 r:2"   # 電鋼琴高高的長音（尾段點綴）
+    for k in range(6):
         bar = k * 8
-        chords = {"A": A, "B": B, "C": C}[tag]
-        kalimba_arp(s, kal, bar, chords, vel=52 if k in (0, 5) else 48, pat=-1 if tag == "C" else k)
-        if k == 1:
-            s.melody(flt, bar, fA, vel=62, legato=0.96, accent=0)
+        chords = B if k == 3 else A
+        guitar_arp(s, gtr, bar, chords, vel=54 if k in (0, 5) else 48)
+        if k == 0:
+            rhodes_comp(s, epc, bar, chords, vel=36)
+        elif k == 1:
+            s.melody(epl, bar, mA, vel=66, legato=0.95, accent=4)
         elif k == 2:
-            s.melody(kal2, bar, kB, vel=50, legato=1.0, accent=0)
-            pad(s, pad_, bar, chords, vel=30, center=60)
+            s.melody(epl, bar, mA2, vel=66, legato=0.95, accent=4)
+            bass_line(s, bas, bar, chords, vel=54)
         elif k == 3:
-            s.melody(flt, bar, fA2, vel=64, legato=0.96, accent=0)
-            pad(s, pad_, bar, chords, vel=26, center=60)
+            s.melody(epl, bar, mB, vel=68, legato=0.95, accent=4)
+            bass_line(s, bas, bar, chords, vel=56)
+            pad(s, pad_, bar, chords, vel=34, center=60)
         elif k == 4:
-            s.melody(flt, bar, fC, vel=56, legato=0.96, accent=0)
-            s.melody(kal2, bar, "r:4 r:4 r:4 r:2 G5:1 E5:1  r:4 r:4 r:4 r:2 D6:1 B5:1", vel=44, legato=1.0, accent=0)
-            pad(s, pad_, bar, chords, vel=30, center=60)
-    # 笛子每句慢慢進來（音量包絡），不要突然吹出來
-    for k in (1, 3, 4):
-        for j in range(8):
-            s.expr(flt, k * 8 * 4 + j * 4, 92 + (j % 4) * 6)
+            s.melody(gtm, bar, mA, vel=70, legato=1.0, accent=4)   # 換吉他唱
+            rhodes_comp(s, epc, bar, chords, vel=34)
+            bass_line(s, bas, bar, chords, vel=50)
+        else:
+            s.melody(epl, bar, cA, vel=48, legato=1.0, accent=0)
+            pad(s, pad_, bar, chords, vel=26, center=60)
     return s, 48 * 4
 
 
