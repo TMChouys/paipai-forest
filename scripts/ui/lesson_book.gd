@@ -50,6 +50,10 @@ var book: PanelContainer
 var left_page: PanelContainer
 var index_btn: Button
 const SCENE_W := 640.0
+signal teacher_changed(who: String)   # 上課換了一課：這一課的老師（main 安排老師站上講台）
+var teacher := "turtle"
+var class_cfg: Dictionary = {}
+const TEACHER_NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "wolf": "派派狼", "crow": "拍拍鳥", "calico": "三花奶奶"}
 var title_book: Label
 var sub_book: Label
 
@@ -75,6 +79,7 @@ func _ready() -> void:
 		for c in kmap.get("concepts", []) + d.get("extra_concepts", []):
 			concepts[c.id] = c
 	areas = kmap.get("areas", []).duplicate()
+	class_cfg = ClassBoard.load_cfg()
 	if FileAccess.file_exists(CLASS_PATH):
 		var cf := FileAccess.open(CLASS_PATH, FileAccess.READ)
 		var cd = JSON.parse_string(cf.get_as_text()) if cf else null
@@ -266,6 +271,9 @@ func show_concept(cid: String) -> void:
 		return
 	concept_id = cid
 	area_id = concepts[cid].area
+	teacher = class_cfg.get("teachers", {}).get(area_id, "turtle") if quiz_mode else "turtle"
+	if scene_on:
+		teacher_changed.emit(teacher)
 	step = -1
 	_qi = 0
 	_right.clear()
@@ -428,6 +436,21 @@ func _wolf(t: String) -> void:
 	v.add_child(_text(t, 17))
 
 
+## 這一課的老師說話（上課：輪流當老師的角色；館長的知識地圖：館長）
+func _teach(t: String) -> void:
+	if teacher == "turtle":
+		_turtle(t)
+		return
+	var v := _card(Color("fff3e0"), Color("e0b880"))
+	v.add_child(_text(TEACHER_NAMES.get(teacher, "老師") + "老師：", 14, Color("8f5f12")))
+	v.add_child(_text(t, 17))
+
+
+## 跟老師打招呼、問問題的同學（老師是派派兔時，換派派狼）
+func _student() -> String:
+	return "wolf" if teacher == "rabbit" else "rabbit"
+
+
 func _turtle(t: String) -> void:
 	var v := _card(Color("f1e8f7"), Color("b9a1cf"))
 	v.add_child(_text("慢慢館長：", 14, Color("6b4f86")))
@@ -464,10 +487,10 @@ func _step_goal(les: Dictionary) -> void:
 			row.add_child(UIKit.focusable(UIKit.button(k, func():
 				_asked = true
 				_go(step))))
-		stage.play([["rabbit", "館長好！", "hop"], ["turtle", les.ask]] if quiz_mode else [["turtle", les.ask]])
+		stage.play([[_student(), "老師好！", "hop"], [teacher, les.ask]] if quiz_mode else [["turtle", les.ask]])
 	else:
-		_turtle(les.ask_answer + "\n接下來說說：為什麼要知道這件事？")
-		stage.play([["turtle", les.ask_answer]])
+		_teach(les.ask_answer + "\n接下來說說：為什麼要知道這件事？")
+		stage.play([[teacher, les.ask_answer]])
 
 
 func _step_why(les: Dictionary) -> void:
@@ -477,8 +500,8 @@ func _step_why(les: Dictionary) -> void:
 	var v := _card(Color("fff3d6"), Color("e3c27a"))
 	v.add_child(_text("為什麼？", 15, Color("8f5f12")))
 	v.add_child(_text(why, 19))
-	_turtle("知道了「為什麼」，下一步看看「怎麼做」。")
-	stage.play([["wolf", "館長，學這個要做什麼？"], ["turtle", why]])
+	_teach("知道了「為什麼」，下一步看看「怎麼做」。")
+	stage.play([["wolf" if teacher != "wolf" else "rabbit", "老師，學這個要做什麼？"], [teacher, why]])
 
 
 func _step_explain(les: Dictionary) -> void:
@@ -488,7 +511,7 @@ func _step_explain(les: Dictionary) -> void:
 	_code(les.code, "範例程式")
 	var inputs: Array = les.get("inputs", [])
 	_code(les.output, "執行結果" + ("（假裝輸入了：%s）" % "、".join(inputs) if not inputs.is_empty() else ""), Color("fffaf0"), UIKit.INK)
-	_turtle("看完範例，先猜猜看：如果把裡面的數字或文字改掉，結果會變成什麼？" + ("猜好了，派派兔會帶你做小測驗。" if quiz_mode else "想試試看自己懂了沒有，就去找派派兔做小測驗吧。"))
+	_teach("看完範例，先猜猜看：如果把裡面的數字或文字改掉，結果會變成什麼？" + ("猜好了，派派兔會帶你做小測驗。" if quiz_mode else "想試試看自己懂了沒有，就去找派派兔做小測驗吧。"))
 
 
 ## 這一課的全部題目：原本那一題＋派派兔多出的題目
@@ -524,7 +547,7 @@ func _step_quiz(les: Dictionary) -> void:
 		p.add_child(code)
 		v.add_child(p)
 	if _qi == 0 and _quiz_pick < 0 and _right.is_empty():
-		_rabbit("剛剛館長說的故事，換我來問派派鼠囉！你幫派派鼠選一個答案。一題一題來，答錯也沒關係。")
+		_rabbit("剛剛老師說的故事，換我來問派派鼠囉！你幫派派鼠選一個答案。一題一題來，答錯也沒關係。")
 	var letters := ["A", "B", "C", "D"]
 	var ans := int(qz.answer)
 	for i in qz.options.size():
@@ -626,7 +649,7 @@ func _step_tasks(les: Dictionary) -> void:
 		if a.compound != b.compound:
 			return not a.compound
 		return int(a.difficulty) < int(b.difficulty))
-	_wolf("學會了「%s」？準備好一起冒險了嗎？這些任務會用到它，來找我就出發！" % concepts[concept_id].name if not ts.is_empty() else "這件事的冒險還在準備中，先去認識下一件事吧！")
+	_wolf("學會了「%s」？準備好一起去冒險了嗎？上完課，這些委託就解鎖了，來找我就出發！" % concepts[concept_id].name if not ts.is_empty() else "這件事的冒險還在準備中，先去認識下一件事吧！")
 	for t in ts:
 		var v := _card(Color("fffdf6"))
 		var top := HBoxContainer.new()

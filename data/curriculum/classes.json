@@ -1,0 +1,13 @@
+{
+ "note": "派派兔的上課：每個概念都有兩種鑑定——認知（上課的選擇題小測驗）＋實作（派派狼的冒險任務）。上課地點都在圖書館的教室；各角色輪流當老師（依知識地圖分類）。",
+ "place": "圖書館・教室",
+ "teachers": {"A": "turtle", "B": "turtle", "C": "rabbit", "D": "crow", "E": "wolf", "F": "rabbit", "G": "turtle", "H": "turtle", "I": "calico", "J": "turtle", "K": "calico"},
+ "teacher_lines": {
+  "turtle": "慢慢來，比較快。大家坐好，我們開始上課囉。",
+  "rabbit": "今天換我當老師！大家要認真聽喔～",
+  "wolf": "咳咳……今天我來教！誰打瞌睡就完蛋了。",
+  "crow": "拍拍！今天由郵差拍拍鳥來上課！",
+  "calico": "哎呀，今天奶奶來上課。慢慢想，不要急。"
+ },
+ "extra_prereqs": {"algo": ["list_sort"], "bubble": ["algo"], "seq_search": ["algo"], "binary_search": ["seq_search", "list_sort"]}
+}

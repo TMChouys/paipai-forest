@@ -18,7 +18,9 @@ var panel: TaskPanel
 var report: ReportPanel
 var book: QuestBook
 var lessons: LessonBook   # 認識派派森林的世界：慢慢館長說故事＋派派兔小測驗
-var story_after_library := false   # 派派兔帶派派鼠去圖書館聽故事：走進去就打開課本
+var story_after_library := false   # 派派兔帶派派鼠去圖書館上課：走進去就打開課本
+var class_cid := ""                 # 上課表選的課
+var class_board: ClassBoard
 var exam: ExamPanel      # 三花奶奶的考核／黑貓弟弟的檢討（圖書館閱讀教室）
 var store: StoreBook      # 雜貨店的商品清單
 var letters: LetterPanel
@@ -108,7 +110,13 @@ func _ready() -> void:
 			save.lessons_done = []
 		if not save.lessons_done.has(cid):
 			save.lessons_done.append(cid)
+			HomeHUD.lessons_done = save.lessons_done
 			_write_save())
+	HomeHUD.lessons_done = save.get("lessons_done", [])
+	class_board = ClassBoard.new()
+	ui_layer.add_child(class_board)
+	class_board.chosen.connect(_start_class)
+	lessons.teacher_changed.connect(_on_teacher)
 	exam.changed.connect(_write_save)
 	hud.help_closed.connect(_start_play)
 	hud.town_toggled.connect(func():   # 小鎮場景先不用：這顆按鈕只在圖書館出現，回樹屋
@@ -1513,10 +1521,8 @@ func _enter_library(inside: bool) -> void:
 	if mode == "library" and library.inside == inside:
 		if inside and story_after_library:
 			story_after_library = false
-			library.npcs["turtle"].say("大家坐好，我們開始上課囉。", "say")
-			await get_tree().create_timer(1.2).timeout
 			if mode == "library":
-				_open_lessons()
+				_open_lessons(class_cid)
 		elif inside:
 			library.talk("turtle")
 		else:
@@ -1541,8 +1547,8 @@ func _library_input(event: InputEvent) -> void:
 		var who2 := library.actor_at(mp, rig.cam)
 		if who2 == "turtle" or who2 == "rabbit":
 			if who2 == "rabbit":
-				library.npcs["rabbit"].say("我們一起去上課吧！", "say")
-				_open_lessons()
+				library.npcs["rabbit"].say("準備好一起去上課了嗎？", "say")
+				class_board.open(lessons, save.get("lessons_done", []))
 			else:
 				library.npcs["turtle"].say("慢慢來，比較快。想知道什麼，館長都說給你聽。", "say")
 				_open_lessons("", false)
@@ -1662,7 +1668,7 @@ func _update_mailbox_flag() -> void:
 func _open_board() -> void:
 	_cancel_held()
 	hud.show_board(tasks, save.stars)
-	_giver().say("準備好一起冒險了嗎？", "say")
+	_giver().say("準備好一起去冒險了嗎？", "say")
 
 
 # ---------------- 派派鼠閒晃 ----------------
@@ -1673,7 +1679,7 @@ var idle_watch := false
 
 
 func _idle_camera(delta: float) -> void:
-	var panels: bool = report.visible or book.visible or letters.visible or hud.board.visible or hud.help_panel.visible or store.visible or lessons.visible
+	var panels: bool = report.visible or book.visible or letters.visible or hud.board.visible or hud.help_panel.visible or store.visible or lessons.visible or class_board.visible
 	var can_watch: bool = mode == "home" and play_started and not intro_running and room.gopher != null and not panels and held.is_empty()
 	if not can_watch:
 		idle_time = 0.0
@@ -1902,13 +1908,43 @@ var _class_gen := 0
 func _lesson_cast() -> Dictionary:
 	if mode != "library" or not library.inside:
 		return {}
-	if not library.npcs.has("wolf"):
-		var w := library._spawn("wolf", Vector3(-1.5, 0, -1.3), "S")
-		w.bubble_requested.connect(_on_bubble)
+	library.arrange_class("")   # 先把派派狼、拍拍鳥準備好（藏著）
 	var cast := {}
-	for who in ["turtle", "wolf", "gopher", "rabbit"]:
-		cast[who] = library.npcs[who]
+	for who in library.npcs:
+		var a: GopherActor = library.npcs[who]
+		if not a.bubble_requested.is_connected(_on_bubble):
+			a.bubble_requested.connect(_on_bubble)
+		cast[who] = a
 	return cast
+
+
+## 這一課的老師站上講台，其他同學坐台下；老師說開場白
+var class_teacher := ""
+
+
+func _on_teacher(who: String) -> void:
+	if who == class_teacher:
+		return
+	class_teacher = who
+	library.arrange_class(who)
+	_class_gen += 1
+	_class_life(_class_gen)
+	var line: String = class_board.cfg.get("teacher_lines", {}).get(who, "大家坐好，我們開始上課囉。")
+	library.npcs[who].say(line, "say")
+
+
+## 上課表選了一堂課：派派兔帶大家去圖書館的教室
+func _start_class(cid: String) -> void:
+	class_cid = cid
+	if mode == "library" and library.inside:
+		_open_lessons(cid)
+		return
+	var a: GopherActor = room.npcs.get("rabbit") if mode == "home" else null
+	if a != null and is_instance_valid(a) and a.visible:
+		a.say("我們一起去上課吧！", "say")
+		await get_tree().create_timer(1.8).timeout
+	story_after_library = true
+	_enter_library(true)
 
 
 func _on_lesson_scene(on: bool) -> void:
@@ -1919,42 +1955,21 @@ func _on_lesson_scene(on: bool) -> void:
 		library._walk_serial += 1   # 派派鼠不要再照之前點的地方走
 		if library._walk_tween:
 			library._walk_tween.kill()
-		library.set_class(true)
-		for who in LibraryView.CLASS_SEATS:
-			var a: GopherActor = library.npcs[who]
-			a.visible = true
-			a.moving = false
-			a.position = LibraryView.CLASS_SEATS[who] + Vector3(0, LibraryView.SEAT_Y, 0.05)
-			a.face("W")
-			a.model.rotation.y = a.target_yaw
-			a.set_seated(true)
+		class_teacher = ""
 		rig.follow_target = null
 		rig.home_focus = Vector3(-10.4, 0.4, -2.0)
 		rig.home_distance = 10.0
 		rig.reset_view()
 		rig.target_yaw = deg_to_rad(90.0)   # 從教室後面看：講台、黑板、館長在前面，同學坐成一排面向黑板
 		rig.target_pitch = deg_to_rad(-34.0)
-		_class_life(_class_gen)
 		bubbles.avoid_side_panels = true
 		bubbles.side_left = 8.0
 		bubbles.side_right = LessonBook.SCENE_W + 16.0
 	else:
 		bubbles.avoid_side_panels = false
+		class_teacher = ""
 		if mode == "library":
-			library.set_class(false)
-			for who in LibraryView.CLASS_SEATS:
-				var s: GopherActor = library.npcs.get(who)
-				if s:
-					s.set_seated(false)
-			var gg: GopherActor = library.npcs["gopher"]
-			gg.position = Vector3(0, 0, 0.4)
-			if library.npcs.has("wolf"):
-				library.npcs["wolf"].visible = false
-			var r: GopherActor = library.npcs.get("rabbit")
-			if r:
-				r.position = RABBIT_COUNTER
-				r.face("E")
-				r.model.rotation.y = r.target_yaw
+			library.arrange_class("")
 			rig.home_focus = library.view_focus()
 			rig.home_distance = library.view_distance()
 			rig.reset_view()
@@ -1964,8 +1979,10 @@ func _on_lesson_scene(on: bool) -> void:
 func _class_life(gen: int) -> void:
 	var wolf: GopherActor = library.npcs.get("wolf")
 	var rab: GopherActor = library.npcs.get("rabbit")
-	if wolf == null:
-		return
+	if wolf == null or class_teacher == "wolf":
+		return   # 派派狼自己當老師的時候就不打瞌睡了
+	if class_teacher == "rabbit":
+		rab = null
 	var zzz := Label3D.new()
 	zzz.text = "Z z z"
 	zzz.font_size = 64
@@ -2429,6 +2446,9 @@ func _input(event: InputEvent) -> void:
 	elif book.visible:
 		book.close()
 		get_viewport().set_input_as_handled()
+	elif class_board.visible:
+		class_board.close()
+		get_viewport().set_input_as_handled()
 	elif lessons.visible:
 		lessons.close()
 		get_viewport().set_input_as_handled()
@@ -2471,7 +2491,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.show_status(d.name + tip, get_viewport().get_mouse_position())
 		elif _npc_under_mouse() != "":
 			var nn := _npc_under_mouse()
-			hud.show_status(("派派狼：準備好一起冒險了嗎？（實作任務）" if nn == "wolf" else "派派兔：準備好一起認識派派森林的世界了嗎？（去圖書館聽故事＋小測驗）") , get_viewport().get_mouse_position())
+			hud.show_status(("派派狼：準備好一起去冒險了嗎？（實作委託、拿獎勵）" if nn == "wolf" else "派派兔：準備好一起去上課了嗎？（選課、去教室上課＋小測驗）") , get_viewport().get_mouse_position())
 		elif _yard_under_mouse() != "":
 			var yt: String = _yard_item(_yard_under_mouse()).get("type", "")
 			hud.show_status(WorldModel.def_of(yt).name + "　點一下拿起來", get_viewport().get_mouse_position())
@@ -2717,24 +2737,13 @@ func _talk(who: String) -> void:
 		_go_story(a)
 
 
-## 派派兔：「我們一起去上課吧！」→ 一起走進圖書館，館長打開課本
+## 派派兔：「準備好一起去上課了嗎？」→ 打開上課表選課 → 「我們一起去上課吧！」→ 圖書館的教室
 func _go_story(a: GopherActor = null) -> void:
-	if mode == "library":
-		if library.inside:
-			_open_lessons()
-		else:
-			story_after_library = true
-			_enter_library(true)
-		return
-	if a == null and room.npcs.has("rabbit"):
+	if a == null and mode == "home" and room.npcs.has("rabbit"):
 		a = room.npcs.get("rabbit")
 	if a != null and is_instance_valid(a) and a.visible:
-		a.say("準備好一起認識派派森林的世界了嗎？我們一起去上課吧！", "say")
-		await get_tree().create_timer(2.4).timeout
-	if mode != "home" and mode != "town":
-		return
-	story_after_library = true
-	_enter_library(true)
+		a.say("準備好一起去上課了嗎？", "say")
+	class_board.open(lessons, save.get("lessons_done", []))
 
 
 func _wolf_under_mouse() -> bool:
@@ -3274,6 +3283,10 @@ func _auto_shot(path: String) -> void:
 			await get_tree().create_timer(0.4).timeout
 		elif s == "story":
 			await _go_story()
+			await get_tree().create_timer(1.0).timeout
+		elif s.begins_with("class:"):
+			class_board.visible = false
+			await _start_class(s.substr(6))
 			await get_tree().create_timer(2.5).timeout
 		elif s == "lessons":
 			_open_lessons()

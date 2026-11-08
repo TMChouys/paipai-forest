@@ -37,8 +37,8 @@ const LEAF := [Color("7fae5a"), Color("8fbd62"), Color("6f9e4f")]
 const GLASS := Color("bfe0f0")
 const BOOKS := [Color("b5544a"), Color("4f7a9a"), Color("6f9a5a"), Color("d9a24a"), Color("8a5aa0"), Color("c9b48a")]
 
-const NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "gopher": "派派鼠", "calico": "三花奶奶", "blackcat": "黑貓弟弟"}
-const BUBBLE_H := {"turtle": 1.4, "rabbit": 1.6, "gopher": 1.3, "calico": 1.35, "blackcat": 1.15}
+const NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "gopher": "派派鼠", "calico": "三花奶奶", "blackcat": "黑貓弟弟", "wolf": "派派狼", "crow": "拍拍鳥"}
+const BUBBLE_H := {"turtle": 1.4, "rabbit": 1.6, "gopher": 1.3, "calico": 1.35, "blackcat": 1.15, "wolf": 1.6, "crow": 1.4}
 const LINES := {
 	"turtle": ["慢慢來，比較快。", "你覺得呢？先猜，再看。", "一個概念一本書，都在右邊的書櫃。", "左邊後面是閱讀教室，可以坐下來慢慢讀。", "樓上還在整理，以後再帶你上去。"],
 	"rabbit": ["準備好一起認識派派森林的世界了嗎？", "我們一起去上課吧！", "錯了沒關係，錯了才知道哪裡要注意。", "館長是我的老師，派派森林的故事都是他教我的。"],
@@ -671,12 +671,40 @@ func _classroom() -> void:
 	_label(g, "教室", Vector3(-8.0, 2.9, ZN + 0.05), 56, UIKit.INK)
 
 
-func set_class(on: bool) -> void:
-	var tt: GopherActor = npcs.get("turtle")
-	if tt:   # 館長：上課站到黑板前，下課回到平台
-		tt.position = TEACHER_SPOT if on else Vector3(0, PLAT_H, -4.0)
-		tt.face("E" if on else "S")
-		tt.model.rotation.y = tt.target_yaw
+## 平常站的位置（下課回去）；派派狼、拍拍鳥平常不在圖書館
+const HOME_SPOTS := {"turtle": [Vector3(0, PLAT_H, -4.0), "S"], "rabbit": [Vector3(-5.0, 0, 1.7), "E"], "calico": [Vector3(XW + 0.9, 0, 2.2), "E"]}
+const STUDENTS := ["wolf", "gopher", "rabbit"]
+
+
+## 上課：teacher 站上講台，其他同學（派派狼、派派鼠、派派兔，老師除外）坐在台下；teacher = "" 是下課
+func arrange_class(teacher: String) -> void:
+	for who in ["wolf", "crow"]:
+		if not npcs.has(who):
+			_spawn(who, Vector3(XE - 1.0, 0, 5.0), "S").visible = false
+	for who in npcs:
+		var a: GopherActor = npcs[who]
+		a.moving = false
+		if teacher != "" and who == teacher:
+			a.set_seated(false)
+			a.visible = true
+			a.position = TEACHER_SPOT
+			a.face("E")
+		elif teacher != "" and who in STUDENTS:
+			a.visible = true
+			a.position = CLASS_SEATS[who] + Vector3(0, SEAT_Y, 0.05)
+			a.face("W")
+			a.set_seated(true)
+		else:
+			a.set_seated(false)
+			if HOME_SPOTS.has(who):
+				a.position = HOME_SPOTS[who][0]
+				a.face(HOME_SPOTS[who][1])
+			elif who in ["wolf", "crow"]:
+				a.visible = false
+			elif who == "gopher" and teacher == "":
+				a.position = Vector3(-7.0, 0, 1.0)   # 下課：站在教室門口
+				a.face("E")
+		a.model.rotation.y = a.target_yaw
 
 
 ## 書櫃區（東邊）：三排書櫃，照課本的章節排好

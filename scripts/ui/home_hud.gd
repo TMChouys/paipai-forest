@@ -51,9 +51,9 @@ func _build() -> void:
 	stars_label = UIKit.label("★ 0", 18, UIKit.TEXT_WARN)
 	stars_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	th.add_child(stars_label)
-	btn_tasks = UIKit.button("派派狼的冒險", func(): open_board.emit(), "準備好一起冒險了嗎？寫程式完成任務（也可以直接點屋外的派派狼）")
+	btn_tasks = UIKit.button("派派狼的冒險", func(): open_board.emit(), "準備好一起去冒險了嗎？寫程式完成委託、拿獎勵（要先上過課；也可以直接點屋外的派派狼）")
 	th.add_child(btn_tasks)
-	th.add_child(UIKit.button("認識世界", func(): open_lessons.emit(), "派派兔：準備好一起認識派派森林的世界了嗎？去圖書館找慢慢館長聽故事、做小測驗（也可以直接點派派兔）"))
+	th.add_child(UIKit.button("派派兔的上課", func(): open_lessons.emit(), "派派兔：準備好一起去上課了嗎？選一堂課，去圖書館的教室上課（也可以直接點派派兔）"))
 	th.add_child(UIKit.button("任務書", func(): open_book.emit(), "派森小鎮所有的任務，用知識地圖排好"))
 	var btn_tray := UIKit.button("收藏冊", func(): tray.visible = not tray.visible, "打開／收起收藏的家具")
 	th.add_child(btn_tray)
@@ -150,7 +150,7 @@ func _build() -> void:
 	var pad := Control.new()
 	pad.custom_minimum_size.x = 36  # 和右邊 × 一樣寬，標題才會置中
 	bh.add_child(pad)
-	var bt := UIKit.label("派派狼：準備好一起冒險了嗎？", 24)
+	var bt := UIKit.label("派派狼：準備好一起去冒險了嗎？", 24)
 	bt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bh.add_child(bt)
@@ -219,8 +219,8 @@ func _build_help_panel() -> void:
 	# 玩法
 	var play := UIKit.label("怎麼玩", 18, UIKit.TEXT_INFO)
 	v.add_child(play)
-	var steps := UIKit.label("1. 找派派兔認識派派森林的世界：去圖書館聽慢慢館長說故事，再做派派兔的選擇題小測驗。
-2. 找派派狼一起冒險：用 Python 寫程式完成任務。
+	var steps := UIKit.label("1. 找派派兔去上課：選一堂課，到圖書館的教室聽老師說故事，再做選擇題小測驗。
+2. 找派派狼一起去冒險：上過課的委託才能接，用 Python 寫程式完成、拿獎勵。
 3. 完成任務會拿到新家具，放進收藏冊；把家具拿出來，佈置派派鼠的家！
 （所有任務都排在「任務書」裡。）", 16)
 	steps.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -235,7 +235,7 @@ func _build_help_panel() -> void:
 	v.add_child(grid)
 	var rows := [
 		["左鍵點地面", "派派鼠走過去"],
-		["左鍵點派派狼／派派兔", "走過去說話：派派狼冒險／派派兔聽故事"],
+		["左鍵點派派狼／派派兔", "走過去說話：派派狼冒險／派派兔上課"],
 		["左鍵點家具、前院花草", "拿起來，再點一下放下"],
 		["拿著時  R／Delete／Esc", "旋轉／收進收藏冊／取消"],
 		["W A S D", "移動視角"],
@@ -423,7 +423,31 @@ static func _done_stamp() -> Label:
 	return l
 
 
+## 上過的課（main 讀存檔後設定）：委託要先上過對應的課才能接（第一個 print() 任務在家裡就能做，不用先上課）
+static var lessons_done: Array = []
+static var _task_concepts: Dictionary = {}
+static var _concept_names: Dictionary = {}
+const NO_LESSON_TASKS := ["D01_hello"]
+
+
+static func needed_lessons(t: Dictionary) -> Array:
+	if t.id in NO_LESSON_TASKS:
+		return []
+	if _task_concepts.is_empty():
+		var km := QuestBook.load_map()
+		for kt in km.get("tasks", []):
+			if kt.get("game_task", "") != "":
+				_task_concepts[kt.game_task] = kt.concepts
+		for c in km.get("concepts", []):
+			_concept_names[c.id] = c.name
+	var need: Array = t.get("lessons", _task_concepts.get(t.id, []))
+	return need.filter(func(c): return not lessons_done.has(c))
+
+
 static func _lock_reason(t: Dictionary, tasks: Array, progress: Dictionary) -> String:
+	if _order_ok(t, tasks, progress):
+		var names := needed_lessons(t).map(func(c): return "「%s」" % _concept_names.get(c, c))
+		return "先去上課：%s（找派派兔：準備好一起去上課了嗎？）" % "、".join(names)
 	if t.get("track", "main") in ["side", "adventure"]:
 		return "完成 %d 個主線任務後解鎖" % int(t.get("unlock_after_main", 2))
 	var first := 999
@@ -434,6 +458,13 @@ static func _lock_reason(t: Dictionary, tasks: Array, progress: Dictionary) -> S
 
 
 static func is_unlocked(t: Dictionary, tasks: Array, progress: Dictionary) -> bool:
+	if progress.get(t.id, 0) > 0:
+		return true   # 做過的可以再挑戰
+	return _order_ok(t, tasks, progress) and needed_lessons(t).is_empty()
+
+
+## 原本的順序規則：主線照順序；支線、冒險要先完成幾個主線
+static func _order_ok(t: Dictionary, tasks: Array, progress: Dictionary) -> bool:
 	if t.get("track", "main") in ["side", "adventure"]:
 		# 支線：完成 2 個主線任務後解鎖
 		var done := 0

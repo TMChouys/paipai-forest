@@ -2,7 +2,8 @@
   "schema": 1,
   "track": "adventure",
   "npc": "wolf",
-  "npc_line": "準備好一起冒險了嗎？",
+  "lessons": ["elif"],
+  "npc_line": "準備好一起去冒險了嗎？",
   "print_role": "mixed",
   "scoring": {},
   "builtins": [
