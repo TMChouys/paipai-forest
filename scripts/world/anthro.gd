@@ -478,9 +478,15 @@ static func build_proc(id: String, node_name: String, height: float = 1.0) -> No
 
 # ---------------- 身體貼圖換色 ----------------
 static func _body_texture(d: Dictionary) -> Texture2D:
-	var img := Image.load_from_file(ProjectSettings.globalize_path(BODY_DIR + "Textures/colormap.png"))
+	# 網頁版沒有原始 png（只有匯入後的貼圖），所以從匯入的貼圖拿圖片來換色
+	var src: Texture2D = load(BODY_DIR + "Textures/colormap.png")
+	if src == null:
+		return null
+	var img := src.get_image()
 	if img == null:
-		return load(BODY_DIR + "Textures/colormap.png")
+		return src
+	if img.is_compressed():
+		img.decompress()
 	img.convert(Image.FORMAT_RGBA8)
 	var fur := Color(d.fur)
 	for y in range(img.get_height()):
