@@ -117,6 +117,9 @@ func _ready() -> void:
 	ui_layer.add_child(class_board)
 	class_board.chosen.connect(_start_class)
 	lessons.teacher_changed.connect(_on_teacher)
+	lessons.class_list.connect(func():
+		lessons.close()
+		class_board.open(lessons, save.get("lessons_done", [])))
 	exam.changed.connect(_write_save)
 	hud.help_closed.connect(_start_play)
 	hud.town_toggled.connect(func():   # 小鎮場景先不用：這顆按鈕只在圖書館出現，回樹屋
@@ -3292,6 +3295,9 @@ func _auto_shot(path: String) -> void:
 		elif s == "examreview":
 			_open_review()
 			await get_tree().create_timer(0.4).timeout
+		elif s == "classlist":
+			lessons.index_btn.pressed.emit()
+			await get_tree().create_timer(0.5).timeout
 		elif s == "story":
 			await _go_story()
 			await get_tree().create_timer(1.0).timeout

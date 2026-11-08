@@ -50,6 +50,7 @@ var book: PanelContainer
 var left_page: PanelContainer
 var index_btn: Button
 const SCENE_W := 640.0
+signal class_list   # 上課中按「上課表」：回派派兔的上課表
 signal teacher_changed(who: String)   # 上課換了一課：這一課的老師（main 安排老師站上講台）
 var teacher := "turtle"
 var class_cfg: Dictionary = {}
@@ -166,7 +167,8 @@ func _build() -> void:
 	tv.add_child(title_l)
 	chap_l = UIKit.label("", 14, Color("8a6a50"))
 	tv.add_child(chap_l)
-	index_btn = UIKit.focusable(UIKit.button("目錄", func(): left_page.visible = not left_page.visible, "打開／收起知識地圖目錄"))
+	# 上課（場景演出）時：回派派兔的上課表換一堂課（上課和館長的知識書分開，不打開知識地圖目錄）
+	index_btn = UIKit.focusable(UIKit.button("上課表", func(): class_list.emit(), "回派派兔的上課表，換一堂課"))
 	index_btn.visible = false
 	index_btn.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	rh.add_child(index_btn)
