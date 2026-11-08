@@ -33,12 +33,14 @@ const LEAF := [Color("7fae5a"), Color("8fbd62"), Color("6f9e4f")]
 const GLASS := Color("bfe0f0")
 const BOOKS := [Color("b5544a"), Color("4f7a9a"), Color("6f9a5a"), Color("d9a24a"), Color("8a5aa0"), Color("c9b48a")]
 
-const NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "gopher": "派派鼠"}
-const BUBBLE_H := {"turtle": 1.4, "rabbit": 1.6, "gopher": 1.3}
+const NAMES := {"turtle": "慢慢館長", "rabbit": "派派兔", "gopher": "派派鼠", "calico": "三花奶奶", "blackcat": "黑貓弟弟"}
+const BUBBLE_H := {"turtle": 1.4, "rabbit": 1.6, "gopher": 1.3, "calico": 1.35, "blackcat": 1.15}
 const LINES := {
 	"turtle": ["慢慢來，比較快。", "你覺得呢？先猜，再看。", "一個概念一本書，都在右邊的書櫃。", "左邊後面是閱讀教室，可以坐下來慢慢讀。", "樓上還在整理，以後再帶你上去。"],
 	"rabbit": ["歡迎光臨！我在借書櫃台打工～", "小提示：卡住的時候，先把程式一行一行唸出來看看！", "小提示：print() 的括號和引號要成對喔～", "我只能給小提示啦，要弄懂就上台階去問館長！", "館長是我的老師，他講得最清楚。"],
 	"gopher": ["好寬敞的圖書館！", "書好多喔……"],
+	"calico": ["哎呀，真是個好孩子。", "慢慢想，奶奶等你。"],
+	"blackcat": ["奶奶不說的，我偷偷告訴你。", "考完試，來找我檢討吧！"],
 }
 
 ## 點得到的東西：id → {name, pos, text, act}
@@ -86,6 +88,8 @@ func build() -> void:
 	built = true
 	_spawn("turtle", Vector3(0, PLAT_H, -4.0), "S")
 	_spawn("rabbit", Vector3(-5.0, 0, 1.7), "E")   # 派派兔在借書櫃台後面打工
+	_spawn("calico", Vector3(X0 + 0.9, 0, -0.9), "S")   # 三花奶奶在閱讀教室的黑板前當考官
+	_spawn("blackcat", Vector3(-5.6, 0, -0.7), "S")     # 黑貓弟弟坐在閱讀教室門口，幫忙檢討
 	_spawn("gopher", Vector3(0, 0, 9.5), "N")
 	set_inside(false)
 

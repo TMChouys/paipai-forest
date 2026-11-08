@@ -503,6 +503,10 @@ static func character(who: String) -> Node3D:
 			return Anthro.build("turtle", "Turtle", 1.05)
 		"crow":
 			return Anthro.build("crow", "Crow", 1.05)
+		"calico":
+			return Anthro.build("calico", "Calico", 1.0)
+		"blackcat":
+			return Anthro.build("blackcat", "BlackCat", 0.82)
 		"wolf":
 			if ResourceLoader.exists("res://models/wolf/wolf_rigged.glb"):
 				return Anthro.from_glb("res://models/wolf/wolf_rigged.glb", "Wolf", 1.2)  # 高度含耳朵

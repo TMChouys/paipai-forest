@@ -43,6 +43,11 @@ const DEFS := {
 		"extras": [{"shape": "hat", "color": "#9a5b45", "band": "#f2d58a"}]},
 	"turtle": {"body": "character-male-c", "proc": "turtle", "fur": "#a3b77f", "feet": "#8a9a6a", "shirt": "#c9b28f", "pants": "#7d725f", "head_width": 0.56},
 	"crow": {"body": "character-male-a", "proc": "crow", "fur": "#34465f", "feet": "#c9963f", "shirt": "#d8c7a6", "pants": "#4f5a6b", "head_width": 0.54},
+	# 三花奶奶（考官）和孫子黑貓弟弟（暫定名）：程式做的貓頭，模型之後再換
+	"calico": {"body": "character-female-a", "proc": "cat", "fur": "#f4eee2", "feet": "#e9dfcf", "shirt": "#9b86b8", "pants": "#6b5a7a", "head_width": 0.56,
+		"patch_a": "#e39a4a", "patch_b": "#3a302c", "eyes": "smile"},
+	"blackcat": {"body": "character-male-a", "proc": "cat", "fur": "#34303a", "feet": "#2a2630", "shirt": "#e8c35a", "pants": "#4a5f86", "head_width": 0.58,
+		"eyes": "round"},
 	"neighbor_fox": {"body": "character-female-c", "animal": "Fox", "fur": "#d9672e", "feet": "#3b2018", "shirt": "#7fb7d9", "pants": "#f2efe6",
 		"head_width": 0.54, "tail": {"from": "auto", "scale": 0.55}, "extras": []},
 }
@@ -356,6 +361,50 @@ static func build_proc(id: String, node_name: String, height: float = 1.0) -> No
 			add.call(torso, Models.box(0.14, 0.12, 0.08), Color("4a3a30"), Vector3(0, 0.08, 0.28), Vector3.ONE, Vector3.ZERO, false)  # 風箱
 			add.call(torso, Models.cyl(0.045, 0.045, 0.05), Color("2b2b30"), Vector3(0, 0.08, 0.34), Vector3.ONE, Vector3(90, 0, 0))
 			add.call(torso, Models.sphere(0.025), Color("9fd3e6"), Vector3(0, 0.08, 0.365), Vector3(1, 1, 0.4), Vector3.ZERO, false)
+		"cat":
+			# 貓：圓臉、三角耳朵、白嘴套、粉紅鼻子、鬍鬚；三花奶奶有花斑、瞇瞇眼、珍珠項鍊和披肩，黑貓弟弟是圓圓的金色大眼睛
+			add.call(head, Models.sphere(r), fur, Vector3(0, y0, 0), Vector3(1.06, 0.92, 0.95))
+			if d.has("patch_a"):
+				add.call(head, Models.sphere(r * 0.62), Color(d.patch_a), Vector3(-0.42 * r, y0 + r * 0.42, r * 0.2), Vector3(1, 0.8, 0.9), Vector3(0, 0, 20), false)
+				add.call(head, Models.sphere(r * 0.55), Color(d.patch_b), Vector3(0.46 * r, y0 + r * 0.48, r * 0.05), Vector3(1, 0.75, 0.9), Vector3(0, 0, -25), false)
+			for sx in [-1, 1]:
+				var ear_c := fur
+				if d.has("patch_a"):
+					ear_c = Color(d.patch_a) if sx < 0 else Color(d.patch_b)
+				add.call(head, Models.cyl(0.0, r * 0.34, r * 0.55), ear_c, Vector3(0.56 * r * sx, y0 + r * 0.86, -r * 0.05), Vector3(1, 1, 0.55), Vector3(0, 0, -22 * sx))
+				add.call(head, Models.cyl(0.0, r * 0.22, r * 0.36), Color("f0b4b0"), Vector3(0.55 * r * sx, y0 + r * 0.8, r * 0.1), Vector3(1, 1, 0.3), Vector3(0, 0, -22 * sx), false)
+				var e := Vector3(0.36 * r * sx, y0 + r * 0.06, r * 0.84)
+				if d.get("eyes", "") == "smile":
+					# 瞇瞇眼：彎彎的一條線
+					add.call(head, Models.capsule(r * 0.045, r * 0.3), Color("2b1d14"), e, Vector3.ONE, Vector3(0, 0, 90 - 14 * sx), false)
+				else:
+					add.call(head, Models.sphere(r * 0.2), Color("e8c04a"), e, Vector3(1, 1.1, 0.6), Vector3.ZERO, false)
+					add.call(head, Models.sphere(r * 0.12), Color("1e1a18"), e + Vector3(0, 0, r * 0.06), Vector3(0.55, 1.2, 0.6), Vector3.ZERO, false)
+					add.call(head, Models.sphere(r * 0.05), Color("ffffff"), e + Vector3(r * 0.05, r * 0.07, r * 0.12), Vector3.ONE, Vector3.ZERO, false)
+				add.call(head, Models.sphere(r * 0.12), Color("e9a59a"), Vector3(0.6 * r * sx, y0 - r * 0.2, r * 0.66), Vector3(1, 0.6, 0.4), Vector3.ZERO, false)  # 腮紅
+				for k in [-1, 1]:  # 鬍鬚
+					add.call(head, Models.box(r * 0.55, r * 0.018, r * 0.018), Color("fffaf0") if fur.v < 0.5 else Color("8a7a6a"),
+						Vector3(0.62 * r * sx, y0 - r * (0.22 + 0.07 * k), r * 0.86), Vector3.ONE, Vector3(0, -18 * sx, 8 * k * sx), false)
+			add.call(head, Models.sphere(r * 0.38), Color("fbf7ef") if d.has("patch_a") else Color("4a4550"), Vector3(0, y0 - r * 0.3, r * 0.72), Vector3(1.35, 0.72, 0.6), Vector3.ZERO, false)  # 嘴套
+			add.call(head, Models.sphere(r * 0.085), Color("e98a92"), Vector3(0, y0 - r * 0.13, r * 0.98), Vector3(1.4, 0.85, 0.7), Vector3.ZERO, false)  # 鼻子
+			if d.has("patch_a"):
+				# 奶奶：小花髮夾、薰衣草披肩、珍珠項鍊
+				add.call(head, Models.sphere(r * 0.12), Color("f3d36b"), Vector3(-0.62 * r, y0 + r * 0.62, r * 0.42), Vector3.ONE, Vector3.ZERO, false)
+				for k in range(5):
+					var a := TAU * k / 5.0
+					add.call(head, Models.sphere(r * 0.1), Color("f4a6b8"), Vector3(-0.62 * r + cos(a) * r * 0.14, y0 + r * 0.62 + sin(a) * r * 0.14, r * 0.38), Vector3(1, 1, 0.5), Vector3.ZERO, false)
+				add.call(head, Models.cyl(r * 0.8, r * 0.95, r * 0.3), Color("b9a6d4"), Vector3(0, -0.02, -r * 0.05))
+				for k in range(9):
+					var a2 := deg_to_rad(-60.0 + k * 15.0)
+					add.call(torso, Models.sphere(0.022), Color("fbf8f0"), Vector3(sin(a2) * 0.13, 0.2 - cos(a2) * 0.05, 0.13 + cos(a2) * 0.02), Vector3.ONE, Vector3.ZERO, false)
+			else:
+				# 弟弟：紅色小領巾
+				add.call(head, Models.cyl(r * 0.76, r * 0.84, r * 0.26), Color("d9605a"), Vector3(0, -0.01, -r * 0.05))
+				add.call(head, Models.cyl(0.0, r * 0.3, r * 0.4), Color("d9605a"), Vector3(0, -r * 0.3, r * 0.62), Vector3(1, 1, 0.4), Vector3(180, 0, 0))
+			# 尾巴：從腰後面往上翹
+			for k in range(5):
+				var tt := float(k) / 4.0
+				add.call(torso, Models.sphere(0.045 - tt * 0.008), fur if k < 4 or not d.has("patch_a") else Color(d.patch_a), Vector3(0, -0.2 + tt * 0.22, -0.16 - sin(tt * PI * 0.8) * 0.12), Vector3.ONE, Vector3.ZERO, k == 4)
 	var head_h := r * 2.0 * 0.95
 	var total_h := 0.34 + head_h
 	var bs: float = height / total_h

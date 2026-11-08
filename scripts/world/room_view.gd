@@ -16,7 +16,7 @@ var ghosts: Node3D
 var gopher: GopherActor
 ## 來訪的角色：who → GopherActor（"wolf"、"rabbit"）
 var npcs: Dictionary = {}
-const NAMES := {"gopher": "派派鼠", "wolf": "派派狼", "rabbit": "派派兔", "tanuki": "狸老闆", "turtle": "慢慢館長", "crow": "拍拍鳥"}
+const NAMES := {"gopher": "派派鼠", "wolf": "派派狼", "rabbit": "派派兔", "tanuki": "狸老闆", "turtle": "慢慢館長", "crow": "拍拍鳥", "calico": "三花奶奶", "blackcat": "黑貓弟弟"}
 const BUBBLE_H := {"gopher": 1.3, "wolf": 1.45, "rabbit": 1.6, "tanuki": 1.45, "turtle": 1.4, "crow": 1.4}
 var grid_visible := true
 ## house = 樹屋（木地板、牆）；town = 鎮中心（任務格子放在 town_spot 那棟房子前面）

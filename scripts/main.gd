@@ -18,6 +18,7 @@ var panel: TaskPanel
 var report: ReportPanel
 var book: QuestBook
 var lessons: LessonBook   # 慢慢館長的課（圖書館）
+var exam: ExamPanel      # 三花奶奶的考核／黑貓弟弟的檢討（圖書館閱讀教室）
 var store: StoreBook      # 雜貨店的商品清單
 var letters: LetterPanel
 var town: TownView
@@ -68,6 +69,7 @@ func _ready() -> void:
 	report = ReportPanel.new()
 	book = QuestBook.new()
 	lessons = LessonBook.new()
+	exam = ExamPanel.new()
 	store = StoreBook.new()
 	letters = LetterPanel.new()
 	ui_layer.add_child(hud)
@@ -76,6 +78,7 @@ func _ready() -> void:
 	ui_layer.add_child(report)
 	ui_layer.add_child(book)
 	ui_layer.add_child(lessons)
+	ui_layer.add_child(exam)
 	ui_layer.add_child(store)
 	ui_layer.add_child(letters)
 	offer = PanelContainer.new()
@@ -102,6 +105,7 @@ func _ready() -> void:
 		if not save.lessons_done.has(cid):
 			save.lessons_done.append(cid)
 			_write_save())
+	exam.changed.connect(_write_save)
 	hud.help_closed.connect(_start_play)
 	hud.town_toggled.connect(func():   # 小鎮場景先不用：這顆按鈕只在圖書館出現，回樹屋
 		if mode != "home":
@@ -135,6 +139,7 @@ func _ready() -> void:
 	report.accept_pressed.connect(_accept_reward)
 
 	tasks = TaskRunner.list_tasks()
+	exam.setup(tasks)
 	_load_save()
 	UIKit.reduce_motion = save.get("reduce_motion", false)
 	music.enabled = save.get("music_on", true)
@@ -1514,7 +1519,8 @@ func _library_input(event: InputEvent) -> void:
 		var who := library.actor_at(mp, rig.cam)
 		var hot := library.hotspot_at(mp, rig.cam) if who == "" else ""
 		if who != "":
-			hud.show_status(LibraryView.NAMES[who] + ("　點一下上課" if who == "turtle" else "　點一下聊天"), mp)
+			var act: String = {"turtle": "　點一下上課", "calico": "　點一下考試", "blackcat": "　點一下檢討"}.get(who, "　點一下聊天")
+			hud.show_status(LibraryView.NAMES[who] + act, mp)
 		elif hot != "":
 			var h: Dictionary = library.hotspots[hot]
 			var tip: String = {"enter": "　點一下走進去", "exit": "　點一下回前庭", "town": "　點一下回樹屋"}.get(h.act, "　點一下看看")
@@ -1526,6 +1532,12 @@ func _library_input(event: InputEvent) -> void:
 		if who2 == "turtle":
 			library.npcs["turtle"].say("慢慢來，比較快。今天想學什麼呢？", "say")
 			_open_lessons()
+			return
+		if who2 == "calico":
+			_open_exam()
+			return
+		if who2 == "blackcat":
+			_open_review()
 			return
 		if who2 != "":
 			library.talk(who2)
@@ -1837,6 +1849,31 @@ func _click_walk_to(p: Vector3) -> void:
 func _open_store() -> void:
 	hud.show_status("", Vector2.ZERO)
 	store.open(tasks, save.stars)
+
+
+## 三花奶奶的考核：先說一句話，再打開考試說明
+func _open_exam(eid: String = "") -> void:
+	hud.show_status("", Vector2.ZERO)
+	var gm: GopherActor = library.npcs.get("calico")
+	var id := eid if eid != "" else exam.current_exam()
+	if gm:
+		if exam.wait_left(id) > 0:
+			gm.say("哎呀，奶奶累了，讓我休息一下……", "say")
+		elif exam.is_ready(id):
+			gm.say("準備好了嗎？慢慢想，奶奶等你。", "say")
+		else:
+			gm.say("還差一點點喔。都學完了再來找奶奶。", "say")
+	exam.open_intro(save, id)
+
+
+## 黑貓弟弟的檢討筆記
+func _open_review() -> void:
+	hud.show_status("", Vector2.ZERO)
+	var bc: GopherActor = library.npcs.get("blackcat")
+	if bc:
+		bc.say("奶奶不說的，我偷偷告訴你！" if exam.has_review() else "你還沒考過試喔～", "say")
+	exam.save = save
+	exam.open_review(save)
 
 
 ## 慢慢館長的課
@@ -2267,6 +2304,9 @@ func _input(event: InputEvent) -> void:
 	elif lessons.visible:
 		lessons.close()
 		get_viewport().set_input_as_handled()
+	elif exam.visible:
+		exam.close()
+		get_viewport().set_input_as_handled()
 	elif store.visible:
 		store.close()
 		get_viewport().set_input_as_handled()
@@ -2285,7 +2325,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if mode == "town" and not book.visible:
 		_town_input(event)
 		return
-	if mode == "library" and not book.visible and not lessons.visible and not store.visible:
+	if mode == "library" and not book.visible and not lessons.visible and not store.visible and not exam.visible:
 		_library_input(event)
 		return
 	if mode != "home" or hud.board.visible or letters.visible or hud.help_panel.visible or store.visible:
@@ -3051,6 +3091,40 @@ func _auto_shot(path: String) -> void:
 		elif s.begins_with("storearea:"):
 			store.show_area(s.substr(10))
 			await get_tree().create_timer(0.3).timeout
+		elif s.begins_with("exam:"):   # exam:E1 或 exam:E1:force（不檢查條件）
+			var ea: Array = s.substr(5).split(":")
+			exam.force = ea.size() > 1
+			_open_exam(ea[0])
+			await get_tree().create_timer(0.4).timeout
+		elif s == "examstart":
+			exam._start()
+			await get_tree().create_timer(0.4).timeout
+		elif s.begins_with("examq:"):
+			exam._goto(int(s.substr(6)))
+			await get_tree().create_timer(0.3).timeout
+		elif s.begins_with("exampick:"):
+			exam._pick_mc(int(s.substr(9)))
+			await get_tree().create_timer(0.2).timeout
+		elif s.begins_with("examcode:"):
+			exam.editor.text = s.substr(9).replace("\\n", "\n")
+			exam.answers[exam.qi] = exam.editor.text
+		elif s == "examrun":
+			exam._run_code()
+			await get_tree().create_timer(0.2).timeout
+		elif s.begins_with("examin:"):
+			exam.input_edit.text = s.substr(7)
+			exam._send_input()
+			await get_tree().create_timer(0.2).timeout
+		elif s == "examcheat":   # 開發用：全部填標準答案（檢查標準答案能不能拿滿分）
+			for i in exam.questions[exam.eid].size():
+				var eq: Dictionary = exam.questions[exam.eid][i]
+				exam.answers[i] = eq.answer if eq.kind == "mc" else String(eq.task.reference)
+		elif s == "examsubmit":
+			exam._grade(false)
+			await get_tree().create_timer(0.4).timeout
+		elif s == "examreview":
+			_open_review()
+			await get_tree().create_timer(0.4).timeout
 		elif s == "lessons":
 			_open_lessons()
 			await get_tree().create_timer(0.4).timeout
