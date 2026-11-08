@@ -56,7 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			target_distance = max(4.0, target_distance * 0.9)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			target_distance = min(26.0, target_distance * 1.1)
+			target_distance = min(maxf(26.0, home_distance * 1.4), target_distance * 1.1)
 	elif event is InputEventMouseMotion:
 		if _drag_rotate:
 			target_yaw -= event.relative.x * 0.008

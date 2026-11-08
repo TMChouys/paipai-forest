@@ -314,6 +314,14 @@ func set_town_mode(on: bool) -> void:
 		board.visible = false
 
 
+## 在圖書館：和鎮上一樣收起家裡的按鈕，按鈕改成回鎮中心
+func set_library_mode() -> void:
+	set_town_mode(true)
+	title_label.text = "派森圖書館"
+	town_btn.text = "回鎮中心"
+	town_btn.tooltip_text = "走出圖書館，回派森小鎮的鎮中心"
+
+
 func show_status(text: String, pos: Vector2, bad: bool = false) -> void:
 	status.text = text
 	status.visible = text != ""

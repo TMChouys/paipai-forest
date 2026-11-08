@@ -19,6 +19,8 @@ var report: ReportPanel
 var book: QuestBook
 var letters: LetterPanel
 var town: TownView
+var library: LibraryView
+var sun_light: DirectionalLight3D
 var return_to_town := false  # 任務是在鎮上接的：離開任務回鎮上
 var offer: PanelContainer  # 鎮上居民的任務邀請
 var playback: Playback
@@ -47,6 +49,9 @@ func _ready() -> void:
 	town = TownView.new()
 	town.visible = false
 	add_child(town)
+	library = LibraryView.new()
+	library.visible = false
+	add_child(library)
 	playback = Playback.new()
 	add_child(playback)
 	music = Music.new()
@@ -87,7 +92,9 @@ func _ready() -> void:
 	hud.open_book.connect(_open_book)
 	hud.help_closed.connect(_start_play)
 	hud.town_toggled.connect(func():
-		if mode == "town":
+		if mode == "library":
+			_enter_town()
+		elif mode == "town":
 			_enter_home()
 		elif mode == "home" and not intro_running and held.is_empty() and room.gopher != null:
 			_click_walk_to(room.path_end_point())
@@ -157,6 +164,7 @@ func _setup_environment() -> void:
 	sun.directional_shadow_max_distance = 40
 	sun.rotation_degrees = Vector3(-55, -30, 0)
 	add_child(sun)
+	sun_light = sun
 	# 繪本故事書濾鏡：蓋在 3D 畫面上、介面下面（介面的 CanvasLayer 是第 1 層）
 	var paper_layer := CanvasLayer.new()
 	paper_layer.layer = 0
@@ -242,6 +250,8 @@ func _enter_home() -> void:
 	room.visible = true
 	room.scene = "house"
 	town.visible = false
+	library.visible = false
+	sun_light.directional_shadow_max_distance = 40
 	hud.set_town_mode(false)
 	bubbles.avoid_side_panels = false
 	playback.cancel()
@@ -1260,6 +1270,8 @@ func _enter_town() -> void:
 	letters.close()
 	book.close()
 	room.visible = false
+	library.visible = false
+	sun_light.directional_shadow_max_distance = 40
 	town.visible = true
 	if not town.built:
 		town.build()
@@ -1290,6 +1302,8 @@ func _town_input(event: InputEvent) -> void:
 			hud.show_status(TownView.NAMES[who] + tip, mp)
 		elif town.board_at(mp, rig.cam):
 			hud.show_status("任務公告　點一下打開任務書", mp)
+		elif town.library_door_at(mp, rig.cam):
+			hud.show_status("圖書館　點一下走進去", mp)
 		else:
 			hud.show_status("", Vector2.ZERO)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -1302,8 +1316,81 @@ func _town_input(event: InputEvent) -> void:
 				_show_offer(who2, list)
 		elif town.board_at(mp, rig.cam):
 			_open_book()
+		elif town.library_door_at(mp, rig.cam):
+			_enter_library(false)
 		else:
 			offer.visible = false
+
+
+# ---------------- 圖書館 ----------------
+## inside=false：前庭（外面看教堂）；true：走進大廳
+func _enter_library(inside: bool) -> void:
+	_cancel_held()
+	mode = "library"
+	music.play("task")
+	playback.cancel()
+	bubbles.clear_all()
+	letters.close()
+	book.close()
+	offer.visible = false
+	room.visible = false
+	town.visible = false
+	library.visible = true
+	if not library.built:
+		library.build()
+		for who in library.npcs:
+			library.npcs[who].bubble_requested.connect(_on_bubble)
+	library.set_inside(inside)
+	hud.set_library_mode()
+	sun_light.directional_shadow_max_distance = 220   # 大教堂很大，影子要畫得遠
+	hud.show_status("", Vector2.ZERO)
+	rig.follow_target = null
+	rig.screen_offset = 0.0
+	rig.home_focus = library.view_focus()
+	rig.home_distance = library.view_distance()
+	rig.reset_view()
+	if not inside:
+		rig.target_pitch = deg_to_rad(-18.0)   # 從前庭往上看，教堂好高
+	else:
+		rig.target_pitch = deg_to_rad(-58.0)
+	await get_tree().create_timer(0.6).timeout
+	if mode == "library" and library.inside == inside:
+		if inside:
+			library.talk("turtle")
+		else:
+			library.npcs["gopher"].say("好高的圖書館！", "say")
+
+
+func _library_input(event: InputEvent) -> void:
+	var mp := get_viewport().get_mouse_position()
+	if event is InputEventMouseMotion:
+		var who := library.actor_at(mp, rig.cam)
+		var hot := library.hotspot_at(mp, rig.cam) if who == "" else ""
+		if who != "":
+			hud.show_status(LibraryView.NAMES[who] + "　點一下聊天", mp)
+		elif hot != "":
+			var h: Dictionary = library.hotspots[hot]
+			var tip: String = {"enter": "　點一下走進去", "exit": "　點一下回前庭", "town": "　點一下回鎮中心"}.get(h.act, "　點一下看看")
+			hud.show_status(h.name + tip, mp)
+		else:
+			hud.show_status("", Vector2.ZERO)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var who2 := library.actor_at(mp, rig.cam)
+		if who2 != "":
+			library.talk(who2)
+			return
+		var hot2 := library.hotspot_at(mp, rig.cam)
+		if hot2 == "":
+			return
+		match library.hotspots[hot2].act:
+			"enter":
+				_enter_library(true)
+			"exit":
+				_enter_library(false)
+			"town":
+				_enter_town()
+			_:
+				library.describe(hot2)
 
 
 ## 這位居民可以給的任務（已解鎖的）
@@ -1430,6 +1517,8 @@ func _stop_idle_watch() -> void:
 func _process(delta: float) -> void:
 	if rig.cam:
 		room.update_cutaway(rig.cam.global_position)
+		if mode == "library":
+			library.update_cutaway(rig.cam.global_position)
 	# 寫程式模式：演出場景放在任務單和程式碼視窗中間；面板收起／加寬時跟著挪
 	if mode == "task" and panel.visible:
 		var fs := panel.free_span()
@@ -2020,6 +2109,9 @@ func _input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if mode == "town" and not book.visible:
 		_town_input(event)
+		return
+	if mode == "library" and not book.visible:
+		_library_input(event)
 		return
 	if mode != "home" or hud.board.visible or letters.visible or hud.help_panel.visible:
 		return
@@ -2752,6 +2844,15 @@ func _auto_shot(path: String) -> void:
 		elif s == "town":
 			await _enter_town()
 			await get_tree().create_timer(1.5).timeout
+		elif s == "library" or s == "library_in":
+			await _enter_library(s == "library_in")
+			await get_tree().create_timer(1.5).timeout
+		elif s.begins_with("libtalk:"):
+			library.talk(s.substr(8))
+			await get_tree().create_timer(0.4).timeout
+		elif s.begins_with("libhot:"):
+			library.describe(s.substr(7))
+			await get_tree().create_timer(0.4).timeout
 		elif s.begins_with("talk:"):
 			var who_t: String = s.substr(5)
 			if _town_tasks(who_t).is_empty():
@@ -2851,10 +2952,17 @@ func _auto_shot(path: String) -> void:
 			_start_visitor_life()
 		elif s.begins_with("answer:"):
 			panel.submit_answer(s.substr(7))
+		elif s.begins_with("orbit:"):
+			# orbit:偏航角,俯角,距離（鏡頭繞著目前焦點轉）
+			var o: Array = s.substr(6).split(",")
+			rig.follow_target = null
+			rig.target_yaw = deg_to_rad(float(o[0]))
+			rig.target_pitch = deg_to_rad(float(o[1]))
+			rig.target_distance = float(o[2])
 		elif s.begins_with("look:"):
 			# look:wolf|rabbit|gopher,距離,俯角
 			var a: Array = s.substr(5).split(",")
-			var who: Node3D = town.npcs.get(a[0]) if mode == "town" else room.actor(a[0])
+			var who: Node3D = town.npcs.get(a[0]) if mode == "town" else (library.npcs.get(a[0]) if mode == "library" else room.actor(a[0]))
 			rig.follow_target = who
 			rig.target_distance = float(a[1])
 			rig.target_pitch = deg_to_rad(float(a[2]))

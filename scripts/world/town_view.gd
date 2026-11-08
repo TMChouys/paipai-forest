@@ -313,6 +313,13 @@ func board_at(screen_pos: Vector2, cam: Camera3D) -> bool:
 	return not cam.is_position_behind(p) and cam.unproject_position(p).distance_to(screen_pos) < 60
 
 
+## 滑鼠指到圖書館大門（點了就走進圖書館前庭）
+const LIBRARY_DOOR := Vector3(8, 0.9, 2.95)
+func library_door_at(screen_pos: Vector2, cam: Camera3D) -> bool:
+	var p := global_transform * LIBRARY_DOOR
+	return not cam.is_position_behind(p) and cam.unproject_position(p).distance_to(screen_pos) < 50
+
+
 ## 滑鼠指到哪個居民（螢幕上離頭部附近 55 像素以內）
 func actor_at(screen_pos: Vector2, cam: Camera3D) -> String:
 	var best := ""
